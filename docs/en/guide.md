@@ -33,7 +33,28 @@ Open **Mods → Magic Shulker Boxes → Configure**. Labels and descriptions fol
 - **In game**: the server must run a version of this mod supporting the GUI protocol and allow personal settings. A save waits for server acknowledgement before updating the local file. Rejections, rate limits and timeouts display feedback. Enforced server policy locks personal editing.
 - **World settings / Local defaults**: available only at the title screen or to the singleplayer / LAN host. Edit this instance's shared defaults, including the master switch and permission to use personal settings. Saves apply immediately. Remote multiplayer clients cannot access this page.
 
-The two pages save independently. Switching with unsaved edits prompts to discard or return to editing. Reopen the personal editor after a connection or server-policy change; stale drafts cannot be submitted. Descriptions show received server defaults, and a disabled master switch is clearly indicated. Older servers still support the existing `/msb` commands. With Mod Menu but without YACL, the configuration entry displays a missing-dependency message.
+The two pages save independently. Switching with unsaved edits prompts to discard or return to editing. Reopen the personal editor after a connection or server-policy change; stale drafts cannot be submitted. Option names are fixed labels, with a separate value button on the right. Click to cycle values, right-click to cycle backward, and use the adjacent reset button to restore the option default. Personal preferences include inheritance; world settings select explicit values. Inherited options show the received value directly, such as “Inherit server (On)”. Offline or unavailable defaults are marked “unknown”; values refresh when the server synchronizes its settings, while stale drafts still require reopening. Descriptions also show received server defaults, and a disabled master switch is clearly indicated. Older servers still support the existing `/msb` commands. With Mod Menu but without YACL, the configuration entry displays a missing-dependency message.
+
+## Schematic material refilling (0.2.0-alpha)
+
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes 0.2.0-alpha on both sides. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+
+Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
+
+When full, space-making moves a backpack stack directly into the source box without dropping items. Hotbar slots are protected by default; `useHotbarForSpace`, `allowPartialStacksForSpace` and `allowMixedItemsWhenMakingSpace` also apply. Shulker boxes are never nested. A stacked source needs a separate free slot for one modified box. With no safe space, nothing changes. Carpet normally stacks only empty boxes, which contain no materials to extract.
+
+The menu has a **Schematic materials** group:
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `schematicRefill` | `true` | Enable refilling; players cannot override a server-wide disable |
+| `refillFullStack` | `true` | Take up to one stack from one box slot; off takes one item |
+| `refillMakeSpace` | `true` | Direct relocation when full, independent of pickup drop-and-recollect behavior |
+| `refillFailureMessages` | `true` | **Only failed refills** produce an action-bar notice, at most once every two seconds; success is silent |
+
+Notices distinguish missing matching materials, unsafe inventory space, disabled refilling and unsupported servers. Turning notices off does not affect refilling. Personal overrides still require `allowPlayerSettings`.
+
+Matching includes item components, so renamed or otherwise different materials are not mistaken for the required stack. Only ordinary inventory and optionally offhand boxes are searched, excluding ender chests and nested containers. The client searches during missing-material attempts and sends at most two requests per second. The server verifies actual contents, game mode and menu state. Clients never provide authoritative item data or edit the inventory ahead of confirmation.
 
 ## Carpet stacking
 
@@ -85,7 +106,7 @@ Multiple stacks of cobblestone still count as one type. Actual stack merging alw
 
 All options except `makeSpaceMode` require JSON booleans. Its value must be one of the three strings listed above. Omitted fields use defaults. Invalid JSON, unknown keys, invalid modes, and incorrect types are rejected without overwriting the file. Invalid server configuration disables automatic storage at startup; a failed runtime reload retains the previous active configuration.
 
-Only ground-item pickup is handled. Chest transfers, crafting, item-giving commands, and manual dropping do not directly trigger storage. Ender chests and nested containers are not searched.
+Pickup storage handles only ground-item pickup. Chest transfers, crafting, item-giving commands, and manual dropping do not directly trigger storage. Ender chests and nested containers are not searched.
 
 ## Personal settings and languages
 

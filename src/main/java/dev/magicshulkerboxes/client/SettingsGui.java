@@ -2,8 +2,6 @@ package dev.magicshulkerboxes.client;
 
 import com.google.gson.JsonObject;
 import dev.isxander.yacl3.api.*;
-import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
-import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
 import dev.isxander.yacl3.gui.YACLScreen;
 import dev.magicshulkerboxes.*;
 import java.io.IOException;
@@ -19,12 +17,15 @@ import net.minecraft.network.chat.Component;
 /** Optional GUI adapter. Persistence and network authority remain outside YACL bindings. */
 public final class SettingsGui {
     private SettingsGui() {}
+    private enum OnOff { ON, OFF }
+    private static OnOff onOff(boolean value) { return value ? OnOff.ON : OnOff.OFF; }
     private static Component text(String key, Object... args) { return ClientSettings.text(key, args); }
     private static Screen invalid(Screen parent) {
         return new ConfirmScreen(ignored -> Minecraft.getInstance().setScreen(parent), text("title"), text("gui.invalid_file"));
     }
     private static String group(String key) {
         return switch (key) {
+            case "schematicRefill", "refillFullStack", "refillMakeSpace", "refillFailureMessages" -> "refill";
             case "useMatchingBoxes", "useEmptyBoxes", "useMixedBoxes", "allowOtherSingleTypeBoxes", "includeOffhand" -> "boxes";
             case "splitStackedBoxes", "makeSpaceMode", "useHotbarForSpace", "allowPartialStacksForSpace", "allowMixedItemsWhenMakingSpace", "preferExistingBoxesBeforeMakingSpace" -> "space";
             default -> "pickup";
@@ -51,7 +52,7 @@ public final class SettingsGui {
             if (defaults != null && defaults.has("enabled") && !defaults.get("enabled").getAsBoolean()) {
                 category.option(LabelOption.create(text("gui.global_off")));
             }
-            for (String section : List.of("pickup", "boxes", "space")) {
+            for (String section : List.of("pickup", "boxes", "space", "refill")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
                 for (String key : ConfigFile.optionNames()) {
                     if (!group(key).equals(section)) continue;
@@ -60,15 +61,15 @@ public final class SettingsGui {
                         option = Option.<SettingsDraft.Space>createBuilder().name(text("option." + key))
                                 .description(description(key, defaults))
                                 .binding(SettingsDraft.Space.INHERIT, draft::space, draft::space)
-                                .controller(o -> EnumControllerBuilder.create(o).enumClass(SettingsDraft.Space.class)
-                                        .formatValue(v -> text("gui.space." + v.name())))
+                                .customController(o -> new SettingsChoice<>(o,
+                                        v -> SettingsLabels.personal(key, v.name(), ClientSettings.defaults())))
                                 .available(ClientSettings.session.editable(revision)).build();
                     } else {
                         option = Option.<SettingsDraft.Toggle>createBuilder().name(text("option." + key))
                                 .description(description(key, defaults))
                                 .binding(SettingsDraft.Toggle.INHERIT, () -> draft.toggle(key), v -> draft.toggle(key, v))
-                                .controller(o -> EnumControllerBuilder.create(o).enumClass(SettingsDraft.Toggle.class)
-                                        .formatValue(v -> text("gui.toggle." + v.name())))
+                                .customController(o -> new SettingsChoice<>(o,
+                                        v -> SettingsLabels.personal(key, v.name(), ClientSettings.defaults())))
                                 .available(ClientSettings.session.editable(revision)).build();
                     }
                     group.option(option);
@@ -94,7 +95,7 @@ public final class SettingsGui {
             var category = ConfigCategory.createBuilder().name(text("gui.local"))
                     .option(LabelOption.create(text("gui.local_hint")));
             var editable = new ArrayList<Option<?>>();
-            for (String section : List.of("pickup", "boxes", "space")) {
+            for (String section : List.of("pickup", "boxes", "space", "refill")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
                 for (String key : values.keySet()) {
                     if (!group(key).equals(section)) continue;
@@ -104,12 +105,12 @@ public final class SettingsGui {
                                 .description(description(key, null))
                                 .binding(StorageConfig.MakeSpaceMode.MOVE_TO_BOX,
                                         () -> StorageConfig.MakeSpaceMode.valueOf(values.get(key).getAsString()), v -> values.addProperty(key, v.name()))
-                                .controller(o -> EnumControllerBuilder.create(o).enumClass(StorageConfig.MakeSpaceMode.class)
-                                        .formatValue(v -> text("gui.space." + v.name()))).build();
+                                .customController(o -> new SettingsChoice<>(o, v -> text("gui.space." + v.name()))).build();
                     } else {
-                        option = Option.<Boolean>createBuilder().name(text("option." + key)).description(description(key, null))
-                                .binding(defaults.get(key).getAsBoolean(), () -> values.get(key).getAsBoolean(), v -> values.addProperty(key, v))
-                                .controller(o -> BooleanControllerBuilder.create(o).formatValue(v -> text(v ? "gui.toggle.ON" : "gui.toggle.OFF"))).build();
+                        option = Option.<OnOff>createBuilder().name(text("option." + key)).description(description(key, null))
+                                .binding(onOff(defaults.get(key).getAsBoolean()), () -> onOff(values.get(key).getAsBoolean()),
+                                        v -> values.addProperty(key, v == OnOff.ON))
+                                .customController(o -> new SettingsChoice<>(o, v -> text("gui.toggle." + v.name()))).build();
                     }
                     group.option(option);
                     editable.add(option);

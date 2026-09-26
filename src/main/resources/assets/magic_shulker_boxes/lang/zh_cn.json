@@ -76,5 +76,22 @@
   "magic_shulker_boxes.gui.unsaved_title": "有未保存的修改",
   "magic_shulker_boxes.gui.back": "返回编辑",
   "magic_shulker_boxes.gui.unsaved_body": "切换设置页会丢弃当前草稿。返回后可以先保存。",
-  "magic_shulker_boxes.gui.world": "世界设置"
+  "magic_shulker_boxes.gui.world": "世界设置",
+  "magic_shulker_boxes.description.refillMakeSpace": "背包满时，把一栏背包物品直接收进来源盒来腾出位置。不会丢弃物品；遵守快捷栏及非整组物品保护设置。",
+  "magic_shulker_boxes.refill.changed": "无法取料：潜影盒内容已变化，请重试。",
+  "magic_shulker_boxes.refill.missing": "无法取料：可用潜影盒内没有匹配的材料。",
+  "magic_shulker_boxes.option.refillMakeSpace": "取料时自动腾栏",
+  "magic_shulker_boxes.refill.space": "无法取料：没有可安全使用的背包栏位，请检查腾栏及堆叠盒设置。",
+  "magic_shulker_boxes.refill.unsupported": "无法取料：服务器需安装兼容版本的魔法潜影盒。",
+  "magic_shulker_boxes.option.refillFullStack": "每次取一组",
+  "magic_shulker_boxes.description.refillFullStack": "从盒内一个栏位取出最多一组物品。关闭时每次取一个。",
+  "magic_shulker_boxes.gui.group.refill": "原理图取料",
+  "magic_shulker_boxes.option.schematicRefill": "Litematica 自动取料",
+  "magic_shulker_boxes.refill.disabled": "无法取料：原理图自动取料已关闭。",
+  "magic_shulker_boxes.description.refillFailureMessages": "仅在取料失败时于快捷栏上方提示原因，每两秒最多一次。取料成功不提示。",
+  "magic_shulker_boxes.option.refillFailureMessages": "提示取料失败",
+  "magic_shulker_boxes.description.schematicRefill": "轻松放置缺少材料时，从背包潜影盒取出。客户端与服务端都需安装本模组；服务端可为所有玩家关闭此功能。",
+  "magic_shulker_boxes.gui.inherit_value": "继承服务端（%s）",
+  "magic_shulker_boxes.gui.inherit_unknown": "继承服务端（未同步）",
+  "magic_shulker_boxes.gui.reset_option": "恢复此项默认值"
 }

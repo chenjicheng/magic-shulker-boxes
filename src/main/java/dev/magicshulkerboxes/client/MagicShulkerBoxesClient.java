@@ -21,6 +21,7 @@ public final class MagicShulkerBoxesClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientSettings.register();
+        SchematicRefillClient.register();
         try {
             if (Files.notExists(path())) ConfigFile.write(path(), new JsonObject());
         } catch (IOException exception) {
@@ -41,6 +42,7 @@ public final class MagicShulkerBoxesClient implements ClientModInitializer {
                 // A correlated GUI reply owns persistence while that save is pending.
                 if (ClientSettings.session.pending()) return;
                 ConfigFile.write(path(), ConfigFile.parsePreferences(payload.json()));
+                SchematicRefillClient.invalidateSettings();
             } catch (IOException exception) {
                 context.player().displayClientMessage(Messages.text(context.client().options.languageCode, "client_failed"), false);
                 MagicShulkerBoxes.LOGGER.error("Cannot save personal settings / 无法保存个人设置", exception);

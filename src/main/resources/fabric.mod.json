@@ -16,7 +16,7 @@
     "client": ["dev.magicshulkerboxes.client.MagicShulkerBoxesClient"],
     "modmenu": ["dev.magicshulkerboxes.client.ModMenuIntegration"]
   },
-  "mixins": ["magic_shulker_boxes.mixins.json"],
+  "mixins": ["magic_shulker_boxes.mixins.json", "magic_shulker_boxes.litematica.mixins.json"],
   "suggests": {
     "modmenu": ">=17.0.0",
     "yet_another_config_lib_v3": ">=3.8.2"

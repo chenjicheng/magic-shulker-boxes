@@ -15,6 +15,10 @@ public class StorageConfig {
     public boolean preferExistingBoxesBeforeMakingSpace = true;
     public boolean includeOffhand = false;
     public boolean matchItemComponents = false;
+    public boolean schematicRefill = true;
+    public boolean refillFullStack = true;
+    public boolean refillMakeSpace = true;
+    public boolean refillFailureMessages = true;
 
     public enum MakeSpaceMode {
         DISABLED, MOVE_TO_BOX, DROP_AND_PICKUP

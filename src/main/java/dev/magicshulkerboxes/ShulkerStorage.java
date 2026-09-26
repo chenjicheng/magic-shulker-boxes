@@ -141,7 +141,7 @@ public final class ShulkerStorage {
         void relocate(ItemStack displaced, int destination, ItemStack filledBox, Runnable commit);
     }
 
-    private static boolean isShulker(ItemStack stack) {
+    static boolean isShulker(ItemStack stack) {
         return !stack.isEmpty() && stack.getItem() instanceof BlockItem block
                 && block.getBlock() instanceof ShulkerBoxBlock;
     }
@@ -169,7 +169,7 @@ public final class ShulkerStorage {
                 : ItemStack.isSameItem(first, second);
     }
 
-    private static int insert(NonNullList<ItemStack> contents, ItemStack incoming) {
+    static int insert(NonNullList<ItemStack> contents, ItemStack incoming) {
         int remaining = incoming.getCount();
         // Fill existing compatible stacks before occupying empty slots, just like a normal container.
         for (ItemStack stack : contents) {

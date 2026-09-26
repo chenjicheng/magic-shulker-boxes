@@ -13,5 +13,9 @@
   "allowMixedItemsWhenMakingSpace": true,
   "preferExistingBoxesBeforeMakingSpace": true,
   "includeOffhand": false,
-  "matchItemComponents": false
+  "matchItemComponents": false,
+  "schematicRefill": true,
+  "refillFullStack": true,
+  "refillMakeSpace": true,
+  "refillFailureMessages": true
 }

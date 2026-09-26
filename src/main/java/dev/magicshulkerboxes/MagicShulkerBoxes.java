@@ -79,5 +79,6 @@ public final class MagicShulkerBoxes implements ModInitializer {
         SettingsCommands.register();
         EditorNetwork.register();
         SettingsNetwork.register();
+        RefillNetwork.register();
     }
 }

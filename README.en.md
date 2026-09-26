@@ -9,12 +9,13 @@ Store pickup overflow in matching, empty, then mixed boxes, with an optional sin
 - Server-only installation works for multiplayer; singleplayer and LAN storage runs on the host.
 - Servers can permit personal preferences while retaining the master switch.
 - Optional Mod Menu + YACL settings in English and Simplified Chinese.
+- 0.2.0-alpha adds Litematica Easy Place refilling from inventory shulker boxes, with optional space-making and failure notices. Both client and server need the new version for this feature.
 
 [Download](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [User guide](https://chenjicheng.github.io/magic-shulker-boxes/en/guide.html) · [Development](https://chenjicheng.github.io/magic-shulker-boxes/en/development.html)
 
 ## Install
 
-Install `magic-shulker-boxes-fabric-0.1.0-alpha+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
+The current source version is `0.2.0-alpha`. Install `magic-shulker-boxes-fabric-0.2.0-alpha+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
 
 The client settings screen additionally needs [Mod Menu 17.0.1](https://modrinth.com/mod/modmenu/version/17.0.1) and [YACL 3.8.2](https://modrinth.com/mod/yacl/version/3.8.2+1.21.11-fabric). Dedicated servers do not need either library. Carpet is optional; enable its stacking rule separately.
 

@@ -53,6 +53,18 @@ npm run docs:preview
 
 ## Test commands
 
+### Schematic refill protocol
+
+`RefillSearch` performs read-only component-exact lookup. Optional mixins bracket Litematica's `WorldUtils.doEasyPlaceAction` and `EasyPlaceUtils.handleEasyPlace`, intercepting `InventoryUtils.schematicWorldPickBlock` only during Easy Place. Normal pick-block is unaffected. `LitematicaMixinPlugin` skips these client targets when Litematica is absent; neither builds nor dedicated servers require its JAR.
+
+The `refill_v1` request contains only a box slot, inner slot and bounded item ID. `RefillNetwork` runs on the server thread, checks game mode, menu/cursor state, server switches and effective preferences, then reads actual items. Each player can make one request per 10 server ticks; delayed duplicates stop if matching materials are already available. `ShulkerRefill` plans extraction, relocation and splitting on copies and commits only a complete valid plan. Failure leaves inventory unchanged. Success uses ordinary inventory synchronization; optional failure notices use a rate-limited action bar.
+
+Refilling never places blocks directly or bypasses Litematica's hotbar protections and placement checks. While awaiting synchronization, it suppresses the generic missing-material warning for that attempt. Holding the placement key continues the original pick-and-place flow.
+
+`RefillSearchTest` samples read-only lookup over 36 full boxes (972 slots), reporting median/P95 without a hardware-dependent pass threshold. These figures do not measure multiplayer load or network latency. `RefillGameTests` exercise real server requests, mode/config refusal and item preservation.
+
+Copy `tests/schematics/MSB-Refill.litematic` into the test instance's `schematics` directory. Load it at `100,101,100`; it contains cobblestone, oak planks and glass. `/function msb_test:refill` prepares a full inventory and platform. Verify extraction and a subsequent placement consuming one item, while the pickaxe, 16 empty boxes and unrelated materials remain intact. With personal settings permitted, `refill_blocked`, `refill_silent`, `refill_disabled` and `refill_enabled` test refusal, notification suppression, disabling and resetting respectively.
+
 Run unit tests only:
 
 ```powershell

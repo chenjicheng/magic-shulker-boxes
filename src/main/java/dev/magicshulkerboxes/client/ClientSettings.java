@@ -44,6 +44,7 @@ public final class ClientSettings {
             try {
                 defaults = ConfigFile.parsePreferences(payload.defaults());
                 session.policy(payload.allowed());
+                SchematicRefillClient.invalidateSettings();
             } catch (IOException exception) { session.connected(); defaults = null; failure(exception); }
         });
         ClientPlayNetworking.registerGlobalReceiver(EditorNetwork.Result.ID, (payload, context) -> {
@@ -52,6 +53,7 @@ public final class ClientSettings {
                 case EditorNetwork.SAVED -> {
                     try {
                         ConfigFile.write(MagicShulkerBoxesClient.path(), ConfigFile.parsePreferences(payload.json()));
+                        SchematicRefillClient.invalidateSettings();
                         notice("gui.saved");
                     } catch (IOException exception) { failure(exception); }
                 }
@@ -72,6 +74,7 @@ public final class ClientSettings {
             var validated = ConfigFile.parsePreferences(values.toString());
             if (session.mode() == SettingsSession.Mode.OFFLINE) {
                 ConfigFile.write(MagicShulkerBoxesClient.path(), validated);
+                SchematicRefillClient.invalidateSettings();
                 notice("gui.saved");
             } else if (ClientPlayNetworking.canSend(EditorNetwork.Save.ID)) {
                 pendingRequest = session.beginSave(revision);

@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "package": "dev.magicshulkerboxes.mixin",
+  "plugin": "dev.magicshulkerboxes.mixin.LitematicaMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["LitematicaInventoryMixin", "LitematicaEasyPlaceMixin", "LitematicaLegacyEasyPlaceMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

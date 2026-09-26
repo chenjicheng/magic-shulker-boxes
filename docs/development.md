@@ -53,6 +53,18 @@ npm run docs:preview
 
 ## 测试命令
 
+### 原理图取料协议
+
+`RefillSearch` 只读查找组件完全匹配的材料。可选 Mixin 包围 Litematica `WorldUtils.doEasyPlaceAction` 和 `EasyPlaceUtils.handleEasyPlace`，仅在轻松放置调用 `InventoryUtils.schematicWorldPickBlock` 时触发取料，普通选取方块不受影响。`LitematicaMixinPlugin` 在未安装 Litematica 时跳过这些客户端目标；构建和专用服务端不依赖其 JAR。
+
+`refill_v1` 请求只包含盒子栏位、盒内栏位和有长度上限的物品 ID。`RefillNetwork` 在服务端线程检查游戏模式、菜单/光标状态、服务器开关和玩家设置，并重新读取真实物品；每位玩家每 10 个服务端 tick 最多处理一次，重复请求遇到背包已有材料时直接停止。`ShulkerRefill` 先在副本中规划取出、腾栏和拆盒，全部可行后才提交；失败不修改背包。成功只走原版背包同步，失败可发送限频快捷栏提示。
+
+取料不会直接放置方块或绕过 Litematica 的快捷栏保护和放置校验。等待同步期间抑制的是本次缺料产生的通用轻松放置警告；继续按住放置键后，由原有流程选物并放置。
+
+`RefillSearchTest` 对 36 个满盒（972 个格子）执行只读查找，并输出本机中位数/P95 采样；数值不作为跨机器性能阈值。它不代表多人服务器负载或网络延迟。`RefillGameTests` 覆盖实际服务端请求、模式/配置拒绝和物品保护。
+
+原理图夹具 `tests/schematics/MSB-Refill.litematic` 包含圆石、橡木木板和玻璃。将其复制到测试实例 `schematics`，加载后把放置原点设为 `100,101,100`。使用下表中的取料场景，先观察满背包取料，再验证放置后数量减一；命令创建的镐、16 个空盒及未选中材料均应保留。
+
 仅执行单元测试：
 
 ```powershell
@@ -81,6 +93,11 @@ npm run docs:preview
 
 | 命令 | 场景与预期 |
 | --- | --- |
+| `/function msb_test:refill` | 满背包、16 个 Carpet 空盒与材料盒；把测试原理图放在 `100,101,100`，轻松放置应取料、腾栏并保留镐和堆叠盒 |
+| `/function msb_test:refill_blocked` | 重置取料场景，禁止腾栏；应提示失败且物品不变，需先允许个人设置 |
+| `/function msb_test:refill_silent` | 在失败场景关闭提示；再次尝试不出现取料提示 |
+| `/function msb_test:refill_disabled` | 关闭取料并开启提示；尝试时说明功能已禁用 |
+| `/function msb_test:refill_enabled` | 清除个人覆盖并恢复取料场景 |
 | `/function msb_test:matching` | 同类蓝盒 63 个圆石变成 64＋4，前面的空盒和杂物盒不变 |
 | `/function msb_test:mixed` | 默认优先复用已有红色杂物盒，16 个堆叠空盒不变 |
 | `/function msb_test:partial` | 蓝盒只剩 1 个容量，拾取 5 个后地面留下 4 个 |

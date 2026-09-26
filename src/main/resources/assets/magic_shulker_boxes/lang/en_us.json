@@ -76,5 +76,22 @@
   "magic_shulker_boxes.gui.unsaved_title": "Unsaved changes",
   "magic_shulker_boxes.gui.back": "Back to editing",
   "magic_shulker_boxes.gui.unsaved_body": "Switching pages will discard this draft. Go back to save it first.",
-  "magic_shulker_boxes.gui.world": "World settings"
+  "magic_shulker_boxes.gui.world": "World settings",
+  "magic_shulker_boxes.description.refillMakeSpace": "If the inventory is full, move a backpack stack directly into the source box to free a slot. Never drops items; respects hotbar and partial-stack protection.",
+  "magic_shulker_boxes.refill.changed": "Cannot refill: box contents changed. Try again.",
+  "magic_shulker_boxes.refill.missing": "Cannot refill: no matching materials in eligible shulker boxes.",
+  "magic_shulker_boxes.option.refillMakeSpace": "Make room for materials",
+  "magic_shulker_boxes.refill.space": "Cannot refill: no safe inventory space; check space-making and stacked-box settings.",
+  "magic_shulker_boxes.refill.unsupported": "Cannot refill: this server needs a compatible Magic Shulker Boxes version.",
+  "magic_shulker_boxes.option.refillFullStack": "Take a full stack",
+  "magic_shulker_boxes.description.refillFullStack": "Take up to one stack from one box slot. Off: take one item per request.",
+  "magic_shulker_boxes.gui.group.refill": "Schematic materials",
+  "magic_shulker_boxes.option.schematicRefill": "Refill materials for Litematica",
+  "magic_shulker_boxes.refill.disabled": "Cannot refill: schematic refilling is disabled.",
+  "magic_shulker_boxes.description.refillFailureMessages": "Show only failed refills above the hotbar, at most once every two seconds. Successful refills are silent.",
+  "magic_shulker_boxes.option.refillFailureMessages": "Show refill failures",
+  "magic_shulker_boxes.description.schematicRefill": "When Easy Place lacks materials, take them from inventory shulker boxes. Both sides need this mod. The server can disable this feature for everyone.",
+  "magic_shulker_boxes.gui.inherit_value": "Inherit server (%s)",
+  "magic_shulker_boxes.gui.inherit_unknown": "Inherit server (unknown)",
+  "magic_shulker_boxes.gui.reset_option": "Reset this option to its default"
 }
