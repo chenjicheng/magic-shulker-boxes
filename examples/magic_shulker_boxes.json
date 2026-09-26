@@ -1,0 +1,17 @@
+{
+  "allowPlayerSettings": false,
+  "enabled": true,
+  "onlyWhenInventoryFull": true,
+  "useMatchingBoxes": true,
+  "useEmptyBoxes": true,
+  "useMixedBoxes": true,
+  "allowOtherSingleTypeBoxes": false,
+  "splitStackedBoxes": true,
+  "makeSpaceMode": "MOVE_TO_BOX",
+  "useHotbarForSpace": false,
+  "allowPartialStacksForSpace": true,
+  "allowMixedItemsWhenMakingSpace": true,
+  "preferExistingBoxesBeforeMakingSpace": true,
+  "includeOffhand": false,
+  "matchItemComponents": false
+}

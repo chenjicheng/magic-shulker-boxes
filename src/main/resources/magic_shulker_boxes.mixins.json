@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "package": "dev.magicshulkerboxes.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["ItemEntityMixin"],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

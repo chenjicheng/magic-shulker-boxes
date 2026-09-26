@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "magic_shulker_boxes_test",
+  "version": "1.0.0",
+  "name": "Magic Shulker Boxes Tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": ["dev.magicshulkerboxes.PickupGameTests"]
+  }
+}

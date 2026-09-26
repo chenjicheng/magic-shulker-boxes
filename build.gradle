@@ -1,0 +1,75 @@
+plugins {
+    id 'fabric-loom' version "${loom_version}"
+}
+
+version = "${project.mod_version}+mc${project.minecraft_version}"
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    // Optional client integrations; a dedicated server never needs either library.
+    modCompileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+    modCompileOnly "maven.modrinth:yacl:${project.yacl_version}"
+    if (providers.gradleProperty('withConfigGui').isPresent()) {
+        modLocalRuntime "maven.modrinth:modmenu:${project.modmenu_version}"
+        modLocalRuntime "maven.modrinth:yacl:${project.yacl_version}"
+    }
+    testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // Optional compatibility test dependency; never included in the distributed mod.
+    if (providers.gradleProperty('carpetJar').isPresent()) {
+        modLocalRuntime files(providers.gradleProperty('carpetJar').get())
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = 'magic_shulker_boxes_test'
+        enableGameTests = true
+        enableClientGameTests = false
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand version: project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+    from('LICENSE') {
+        rename { "${it}_${project.archives_base_name}" }
+    }
+}

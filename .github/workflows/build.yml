@@ -1,0 +1,78 @@
+name: Build and test mod
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Fabric 1.21.11 / ${{ matrix.compatibility }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        compatibility: [vanilla, carpet]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-provider: basic
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      - name: Test release validation
+        run: python3 -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Validate release version
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: python3 scripts/release.py metadata --tag "$RELEASE_TAG"
+      - name: Download verified Carpet compatibility dependency
+        if: matrix.compatibility == 'carpet'
+        run: |
+          mkdir -p .tools
+          curl --fail --location --retry 3 --output .tools/carpet.jar \
+            'https://github.com/gnembon/fabric-carpet/releases/download/1.4.194/fabric-carpet-1.21.11-1.4.194%2Bv251223.jar'
+          echo '1b4d66f0332bda5deee08755e493c2d6ac64d64d5285e1134aa03604975c2521  .tools/carpet.jar' | sha256sum --check --strict
+      - name: Build, unit tests and dedicated-server GameTests
+        env:
+          COMPATIBILITY: ${{ matrix.compatibility }}
+        run: |
+          args=()
+          if [[ "$COMPATIBILITY" == carpet ]]; then
+            args+=('-PcarpetJar=.tools/carpet.jar')
+          fi
+          ./gradlew build --no-daemon --console=plain "${args[@]}"
+      - name: Validate and stage release artifacts
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: python3 scripts/release.py package --tag "$RELEASE_TAG"
+      - name: Upload tested distribution
+        if: matrix.compatibility == 'vanilla'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mod-distribution
+          path: build/release/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-reports-${{ matrix.compatibility }}
+          path: |
+            build/reports/tests/
+            build/test-results/
+            build/run/gameTest/logs/
+          if-no-files-found: warn
+          retention-days: 14
