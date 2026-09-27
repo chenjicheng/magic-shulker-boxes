@@ -55,6 +55,8 @@ npm run docs:preview
 
 ### Schematic refill protocol
 
+`BoxOrder` ranks eligible boxes by the sum of count/stack-limit across their slots, breaking ties by inventory slot. Storage fills fuller boxes within the existing category order; `RefillSearch` and server-side `RefillNetwork` prefer emptier boxes and continue past unsafe sources. A box with 27 partial stacks is not treated as full. Nonstandard larger containers remain excluded.
+
 `RefillSearch` performs read-only component-exact lookup. Optional mixins bracket Litematica's `WorldUtils.doEasyPlaceAction` and `EasyPlaceUtils.handleEasyPlace`, intercepting `InventoryUtils.schematicWorldPickBlock` only during Easy Place. Normal pick-block is unaffected. `LitematicaMixinPlugin` skips these client targets when Litematica is absent; neither builds nor dedicated servers require its JAR.
 
 The `refill_v1` request contains only a box slot, inner slot and bounded item ID. `RefillNetwork` runs on the server thread, checks game mode, menu/cursor state, server switches and effective preferences, then reads actual items. Each player can make one request per 10 server ticks; delayed duplicates stop if matching materials are already available. `ShulkerRefill` plans extraction, relocation and splitting on copies and commits only a complete valid plan. Failure leaves inventory unchanged. Success uses ordinary inventory synchronization; optional failure notices use a rate-limited action bar.
@@ -87,7 +89,7 @@ Run with an official Carpet 1.21.11 release JAR:
 
 Unit reports are in `build/reports/tests/test/index.html`. GameTest results appear in the console and test-run logs. Tests use actual server players, inventories, and item entities. They cover vanilla-first pickup, partial capacity, ownership/delay checks, stacked-box fallback, splitting into a free slot, configuration disabling, both space-making modes, partial stacks, repeated mixed pickups, and recursion prevention.
 
-Additional tests cover per-player persistence and isolation, inheritance from server defaults, server master-switch priority, immediate pickup-policy changes, player command permissions, administrator policy revocation, client attempts to change server policy, bounded network payloads, and matching translation keys/placeholders.
+Additional tests cover per-player persistence and isolation, inheritance from server defaults, independent server restrictions on pickup storage and refilling, immediate pickup-policy changes, player command permissions, administrator policy revocation, client attempts to change server policy, bounded network payloads, and matching translation keys/placeholders.
 
 ### Manual game checks
 
@@ -137,7 +139,7 @@ Relocation reserves capacity for the entire displaced slot before accepting inco
 
 Inventory changes use vanilla synchronization. Optional settings use the `policy_v1` and `preferences_v1` channels, with capability checks before sending. Fabric's object-payload callbacks run on the game thread. A preference payload contains at most 4096 characters and no target UUID: the sender's identity comes from the connection. The server checks its policy, option allowlist, types, enum values, and size, and limits network updates to one per player per 20 ticks. Server-only installations do not require clients to support these channels.
 
-Effective settings follow this order: server master switch off, enforced server policy, then individual field overrides over current server defaults. Player files are isolated by world and UUID, cached, and written through a temporary file with atomic replacement when supported. Malformed files are retained; load failures fall back to server settings and are logged. Reload validates a replacement before changing active settings and clearing caches.
+Effective settings first use `allowPlayerSettings` to select enforced defaults or individual field overrides, then apply the server pickup (`enabled`) and refill (`schematicRefill`) restrictions independently. Both sides share `ConfigFile.apply`. Disabling pickup never bypasses personal refill preferences, and neither server restriction can be overridden by a personal on setting. Player files are isolated by world and UUID, cached, and written through a temporary file with atomic replacement when supported. Malformed files are retained; load failures fall back to server settings and are logged. Reload validates a replacement before changing active settings and clearing caches.
 
 Language resources are in `assets/magic_shulker_boxes/lang`. `translatableWithFallback` provides readable text for clients without this mod, chosen from the language reported by each player. Other mods can still cancel pickup entirely. Mods altering the pickup path or container structure require separate compatibility checks.
 

@@ -27,12 +27,10 @@ public final class SchematicRefillClient {
         settings = new StorageConfig();
         var defaults = ClientSettings.defaults();
         if (defaults != null) settings = ConfigFile.apply(settings, defaults);
-        boolean master = settings.enabled && settings.schematicRefill;
         if (ClientSettings.session.mode() == SettingsSession.Mode.ALLOWED || defaults == null) {
             try { settings = ConfigFile.apply(settings, ConfigFile.readPreferences(MagicShulkerBoxesClient.path())); }
             catch (IOException exception) { settings.schematicRefill = false; ClientSettings.failure(exception); }
         }
-        settings.schematicRefill &= master;
         return settings;
     }
     private static void notice(String reason) {
@@ -48,7 +46,7 @@ public final class SchematicRefillClient {
         var inventory = mc.player.getInventory();
         if (inventory.findSlotMatchingItem(wanted) >= 0 || ItemStack.isSameItemSameComponents(mc.player.getOffhandItem(), wanted)) return false;
         var config = settings();
-        if (!config.enabled || !config.schematicRefill) { notice("disabled"); handled = true; return true; }
+        if (!config.schematicRefill) { notice("disabled"); handled = true; return true; }
         if (!ClientPlayNetworking.canSend(RefillNetwork.Request.ID)) { notice("unsupported"); return false; }
         handled = true;
         if (System.nanoTime() < nextRequest) return true;

@@ -55,13 +55,15 @@ npm run docs:preview
 
 ### 原理图取料协议
 
+`BoxOrder` 对允许使用的盒子按每格数量/堆叠上限之和排序，同分时保留栏位顺序。收纳在原有盒子类别内部先填更满的；`RefillSearch` 和服务端 `RefillNetwork` 从较空的盒子开始取料，无法安全取出时尝试后续来源。27 个非满堆叠不视作满盒，非标准大容器仍跳过。
+
 `RefillSearch` 只读查找组件完全匹配的材料。可选 Mixin 包围 Litematica `WorldUtils.doEasyPlaceAction` 和 `EasyPlaceUtils.handleEasyPlace`，仅在轻松放置调用 `InventoryUtils.schematicWorldPickBlock` 时触发取料，普通选取方块不受影响。`LitematicaMixinPlugin` 在未安装 Litematica 时跳过这些客户端目标；构建和专用服务端不依赖其 JAR。
 
 `refill_v1` 请求只包含盒子栏位、盒内栏位和有长度上限的物品 ID。`RefillNetwork` 在服务端线程检查游戏模式、菜单/光标状态、服务器开关和玩家设置，并重新读取真实物品；每位玩家每 10 个服务端 tick 最多处理一次，重复请求遇到背包已有材料时直接停止。`ShulkerRefill` 先在副本中规划取出、腾栏和拆盒，全部可行后才提交；失败不修改背包。成功只走原版背包同步，失败可发送限频快捷栏提示。
 
 取料不会直接放置方块或绕过 Litematica 的快捷栏保护和放置校验。等待同步期间抑制的是本次缺料产生的通用轻松放置警告；继续按住放置键后，由原有流程选物并放置。
 
-`RefillSearchTest` 对 36 个满盒（972 个格子）执行只读查找，并输出本机中位数/P95 采样；数值不作为跨机器性能阈值。它不代表多人服务器负载或网络延迟。`RefillGameTests` 覆盖实际服务端请求、模式/配置拒绝和物品保护。
+`RefillSearchTest` 对 36 个满盒（972 个格子）执行只读查找，并输出本机中位数/P95 采样；数值不作为跨机器性能阈值。它不代表多人服务器负载或网络延迟。`RefillGameTests` 覆盖实际服务端请求、模式/配置拒绝、入盒关闭时独立取料和物品保护。`ShulkerRefillTest` 覆盖入盒/取料四种开关组合，配置测试覆盖分别继承与服务端限制，`PickupGameTests` 验证取料关闭时真实拾取仍可入盒。
 
 原理图夹具 `tests/schematics/MSB-Refill.litematic` 包含圆石、橡木木板和玻璃。将其复制到测试实例 `schematics`，加载后把放置原点设为 `100,101,100`。使用下表中的取料场景，先观察满背包取料，再验证放置后数量减一；命令创建的镐、16 个空盒及未选中材料均应保留。
 
@@ -111,7 +113,7 @@ npm run docs:preview
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/main/java/dev/magicshulkerboxes/MagicShulkerBoxes.java` | 加载配置；失败时禁用自动收纳 |
+| `src/main/java/dev/magicshulkerboxes/MagicShulkerBoxes.java` | 加载配置；失败时同时禁用自动入盒与取料 |
 | `src/main/java/dev/magicshulkerboxes/ConfigFile.java` | 严格验证与首次创建 JSON 配置 |
 | `src/main/java/dev/magicshulkerboxes/StorageConfig.java` | 配置字段与默认值 |
 | `src/main/java/dev/magicshulkerboxes/ShulkerStorage.java` | 盒子分类、顺序、容量和拆分事务 |
@@ -134,7 +136,7 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v1` 和 `preferences_v1` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查开关、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
 
-有效配置顺序：服务端总开关关闭 → 服务端统一策略 → 玩家逐字段覆盖服务端默认。个人文件在存档中按 UUID 隔离并缓存，写入使用临时文件与原子替换；非法个人文件不被静默覆盖，读取失败时回退服务端配置并记录日志。重载时先验证新配置，成功后替换并清缓存。
+有效配置先根据 `allowPlayerSettings` 选择统一设置或玩家逐字段覆盖，然后分别应用服务端的入盒（`enabled`）与取料（`schematicRefill`）限制。`ConfigFile.apply` 为两端共用的合并逻辑；关闭入盒不会跳过玩家取料偏好，任何一项服务端限制都不能被个人开启覆盖。个人文件在存档中按 UUID 隔离并缓存，写入使用临时文件与原子替换；非法个人文件不被静默覆盖，读取失败时回退服务端配置并记录日志。重载时先验证新配置，成功后替换并清缓存。
 
 测试覆盖服务端开关立即影响真实拾取、普通玩家只改自己、管理员实时开启/撤销策略、恶意策略字段拒绝、玩家间隔离与重启恢复、消息长度及中英文键/格式占位符一致。中英文资源位于 `assets/magic_shulker_boxes/lang`；`translatableWithFallback` 让没有安装客户端模组的玩家也能看到按其上报语言生成的文本。
 

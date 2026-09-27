@@ -4,7 +4,6 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.component.ItemContainerContents;
 
 /** Read-only material lookup; calling it never reserves slots or changes item counts. */
@@ -14,8 +13,7 @@ public final class RefillSearch {
     public static Match find(Container inventory, ItemStack wanted, StorageConfig config) {
         if (wanted.isEmpty()) return null;
         var contents = NonNullList.withSize(27, ItemStack.EMPTY);
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
-            if (slot >= 36 && !(config.includeOffhand && slot == Inventory.SLOT_OFFHAND)) continue;
+        for (int slot : BoxOrder.emptiestFirst(inventory, config)) {
             var box = inventory.getItem(slot);
             if (!ShulkerStorage.isShulker(box)) continue;
             var stored = box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);

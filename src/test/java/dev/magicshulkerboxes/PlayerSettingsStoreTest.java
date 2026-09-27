@@ -11,7 +11,7 @@ class PlayerSettingsStoreTest {
     @TempDir Path directory;
 
     @Test
-    void serverPolicyAndGlobalOffAlwaysWin() throws IOException {
+    void serverPolicyAndPickupDisableAlwaysWin() throws IOException {
         var store = new PlayerSettingsStore(directory);
         var player = UUID.randomUUID();
         store.save(player, ConfigFile.parsePreferences("{\"enabled\":true,\"useEmptyBoxes\":false}"));
@@ -21,6 +21,38 @@ class PlayerSettingsStoreTest {
         assertFalse(store.resolve(player, server).useEmptyBoxes);
         server.enabled = false;
         assertFalse(store.resolve(player, server).enabled);
+    }
+
+    @Test
+    void disablingPickupStillAppliesPersonalRefillAndBehaviorPreferences() throws IOException {
+        var store = new PlayerSettingsStore(directory);
+        var player = UUID.randomUUID();
+        var server = new ServerConfig();
+        server.enabled = false;
+        server.allowPlayerSettings = true;
+        store.save(player, ConfigFile.parsePreferences("{\"schematicRefill\":false,\"refillFullStack\":false}"));
+        var effective = store.resolve(player, server);
+        assertFalse(effective.enabled);
+        assertFalse(effective.schematicRefill, "Personal refill off still applies when pickup is off");
+        assertFalse(effective.refillFullStack, "Pickup does not gate unrelated personal settings");
+        store.save(player, ConfigFile.parsePreferences("{\"enabled\":true,\"schematicRefill\":true}"));
+        effective = store.resolve(player, server);
+        assertFalse(effective.enabled, "Personal pickup on cannot override server pickup off");
+        assertTrue(effective.schematicRefill, "Server pickup off does not disable refill");
+        server.allowPlayerSettings = false;
+        assertTrue(store.resolve(player, server).refillFullStack, "Policy revocation restores server defaults");
+    }
+
+    @Test
+    void serverRefillDisableCannotBeOverriddenButPickupRemainsAvailable() throws IOException {
+        var store = new PlayerSettingsStore(directory);
+        var player = UUID.randomUUID();
+        var server = new ServerConfig();
+        server.schematicRefill = false;
+        server.allowPlayerSettings = true;
+        store.save(player, ConfigFile.parsePreferences("{\"enabled\":true,\"schematicRefill\":true}"));
+        assertTrue(store.resolve(player, server).enabled);
+        assertFalse(store.resolve(player, server).schematicRefill);
     }
 
     @Test

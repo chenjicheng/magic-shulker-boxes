@@ -7,7 +7,7 @@ Automatic shulker storage for **Minecraft Java 1.21.11 · Fabric · Java 21**, l
 Store pickup overflow in matching, empty, then mixed boxes, with an optional single-type fallback. Supports Carpet shulker stacking, safe box splitting, automatic space-making, partial stacks and mixed-box reuse.
 
 - Server-only installation works for multiplayer; singleplayer and LAN storage runs on the host.
-- Servers can permit personal preferences while retaining the master switch.
+- Pickup storage and schematic refilling have independent switches. Servers can permit personal preferences while restricting each feature separately.
 - Optional Mod Menu + YACL settings in English and Simplified Chinese.
 - 0.2.0-alpha adds Litematica Easy Place refilling from inventory shulker boxes, with optional space-making and failure notices. Both client and server need the new version for this feature.
 

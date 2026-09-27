@@ -11,6 +11,48 @@ import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.GameType;
 
 public class RefillGameTests {
+    @GameTest public void serverPrefersLeastFilledBoxEvenWhenClientRequestsFullBox(GameTestHelper helper) {
+        var player = player(helper); var inventory = player.getInventory();
+        var packed = new java.util.ArrayList<ItemStack>();
+        for (int i = 0; i < 27; i++) packed.add(new ItemStack(Items.STONE, 64));
+        var full = new ItemStack(Items.SHULKER_BOX);
+        full.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(packed));
+        inventory.setItem(0, full);
+        var sparse = new ItemStack(Items.SHULKER_BOX);
+        sparse.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(new ItemStack(Items.STONE))));
+        inventory.setItem(35, sparse);
+        check(helper, RefillNetwork.accept(player, new RefillNetwork.Request(0, 0, "minecraft:stone")) == 1,
+                "Server chooses the least filled eligible box, independently of client ordering");
+        check(helper, inventory.getItem(0).get(DataComponents.CONTAINER).stream().mapToInt(ItemStack::getCount).sum() == 1728,
+                "The full box is preserved");
+        check(helper, inventory.getItem(35).get(DataComponents.CONTAINER).stream().allMatch(ItemStack::isEmpty),
+                "The sparse box is emptied first");
+        helper.succeed();
+    }
+
+    @GameTest public void pickupOffDoesNotBlockRefillOrPersonalRefillOff(GameTestHelper helper) throws java.io.IOException {
+        var config = MagicShulkerBoxes.config();
+        boolean oldPickup = config.enabled, oldRefill = config.schematicRefill, oldPolicy = config.allowPlayerSettings;
+        try {
+            config.enabled = false;
+            config.schematicRefill = true;
+            config.allowPlayerSettings = true;
+            var request = new RefillNetwork.Request(9, 0, "minecraft:stone");
+            var allowed = player(helper);
+            check(helper, RefillNetwork.accept(allowed, request) == 12, "Server pickup off must not block refill");
+            var denied = player(helper);
+            MagicShulkerBoxes.players(helper.getLevel().getServer()).save(denied.getUUID(),
+                    ConfigFile.parsePreferences("{\"schematicRefill\":false}"));
+            check(helper, RefillNetwork.accept(denied, request) == 0, "Personal refill off applies while pickup is off");
+            check(helper, materials(denied) == 12, "Disabled refill preserves box contents");
+            helper.succeed();
+        } finally {
+            config.enabled = oldPickup;
+            config.schematicRefill = oldRefill;
+            config.allowPlayerSettings = oldPolicy;
+        }
+    }
+
     @GameTest public void networkRequestUsesRealInventoryAndRejectsRepeats(GameTestHelper helper) {
         var player = player(helper);
         var request = new RefillNetwork.Request(9, 0, "minecraft:stone");

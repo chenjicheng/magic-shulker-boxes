@@ -46,6 +46,22 @@ public class PickupGameTests implements CustomTestMethodInvoker {
     }
 
     @GameTest
+    public void refillOffDoesNotBlockPickup(GameTestHelper helper) {
+        var config = MagicShulkerBoxes.config();
+        boolean previous = config.schematicRefill;
+        try {
+            config.schematicRefill = false;
+            var player = fullPlayer(helper);
+            player.getInventory().setItem(0, box(new ItemStack(Items.COBBLESTONE)));
+            var dropped = drop(helper, 5);
+            dropped.playerTouch(player);
+            check(helper, dropped.isRemoved(), "Pickup still succeeds with refill disabled");
+            check(helper, countContents(player.getInventory().getItem(0)) == 6, "Picked-up items enter the box");
+            helper.succeed();
+        } finally { config.schematicRefill = previous; }
+    }
+
+    @GameTest
     public void vanillaSlotsReceiveItemsBeforeShulkerBoxes(GameTestHelper helper) {
         var player = fullPlayer(helper);
         player.getInventory().setItem(0, box(new ItemStack(Items.COBBLESTONE)));

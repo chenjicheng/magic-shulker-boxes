@@ -22,6 +22,45 @@ class ShulkerStorageTest {
     }
 
     @Test
+    void fillsNearlyFullMatchingBoxBeforeEarlierSparseBox() {
+        var inventory = fullInventory();
+        inventory.setItem(0, box(new ItemStack(Items.STONE)));
+        var packed = new ItemStack[27];
+        java.util.Arrays.setAll(packed, i -> new ItemStack(Items.STONE, i == 26 ? 60 : 64));
+        inventory.setItem(35, box(packed));
+        assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.STONE, 5), new StorageConfig()));
+        assertEquals(1728, countContents(inventory.getItem(35)), "Fill the nearly full box first");
+        assertEquals(2, countContents(inventory.getItem(0)), "Only the remainder enters the sparse box");
+    }
+
+    @Test
+    void mixedBoxFullnessUsesStackLimitsAndSkipsIncompatibleFullBoxes() {
+        var inventory = fullInventory();
+        inventory.setItem(0, box(new ItemStack(Items.STONE, 64), new ItemStack(Items.DIRT, 64)));
+        var packed = new ItemStack[27];
+        java.util.Arrays.setAll(packed, i -> new ItemStack(Items.DIAMOND_PICKAXE));
+        packed[26] = new ItemStack(Items.STONE);
+        inventory.setItem(35, box(packed));
+        // An even fuller mixed box cannot accept any stone and must be skipped.
+        packed[26] = new ItemStack(Items.ENDER_PEARL, 16);
+        inventory.setItem(34, box(packed));
+        assertEquals(3, ShulkerStorage.store(inventory, new ItemStack(Items.STONE, 3), new StorageConfig()));
+        assertEquals(30, countContents(inventory.getItem(35)));
+        assertEquals(128, countContents(inventory.getItem(0)));
+        assertEquals(42, countContents(inventory.getItem(34)));
+    }
+
+    @Test
+    void sixteenStackItemsContributeTheirOwnStackLimitToFullness() {
+        var inventory = fullInventory();
+        inventory.setItem(0, box(new ItemStack(Items.STONE, 64), new ItemStack(Items.DIRT)));
+        inventory.setItem(35, box(new ItemStack(Items.ENDER_PEARL, 16), new ItemStack(Items.STONE, 32)));
+        assertEquals(1, ShulkerStorage.store(inventory, new ItemStack(Items.STONE), new StorageConfig()));
+        assertEquals(49, countContents(inventory.getItem(35)), "1.5 occupied stacks precede 1 + 1/64 stacks");
+        assertEquals(65, countContents(inventory.getItem(0)));
+    }
+
+    @Test
     void matchingBoxWinsEvenWhenEmptyAndMixedBoxesHaveEarlierSlots() {
         var inventory = fullInventory();
         inventory.setItem(0, box());

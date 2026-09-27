@@ -50,7 +50,10 @@ public final class SettingsGui {
             var category = ConfigCategory.createBuilder().name(text("gui.personal"))
                     .option(LabelOption.create(text("gui.status." + ClientSettings.session.mode().name())));
             if (defaults != null && defaults.has("enabled") && !defaults.get("enabled").getAsBoolean()) {
-                category.option(LabelOption.create(text("gui.global_off")));
+                category.option(LabelOption.create(text("gui.pickup_off")));
+            }
+            if (defaults != null && defaults.has("schematicRefill") && !defaults.get("schematicRefill").getAsBoolean()) {
+                category.option(LabelOption.create(text("gui.refill_off")));
             }
             for (String section : List.of("pickup", "boxes", "space", "refill")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));

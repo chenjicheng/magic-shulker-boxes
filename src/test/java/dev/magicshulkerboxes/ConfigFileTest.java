@@ -12,6 +12,29 @@ class ConfigFileTest {
     @TempDir Path directory;
 
     @Test
+    void clientAndServerOverridesKeepFeatureLimitsIndependent() throws IOException {
+        for (boolean pickup : new boolean[]{false, true}) {
+            for (boolean refill : new boolean[]{false, true}) {
+                var defaults = ConfigFile.parseServer("{\"enabled\":" + pickup + ",\"schematicRefill\":" + refill + "}");
+                for (boolean personalPickup : new boolean[]{false, true}) {
+                    for (boolean personalRefill : new boolean[]{false, true}) {
+                        var personal = ConfigFile.parsePreferences("{\"enabled\":" + personalPickup
+                                + ",\"schematicRefill\":" + personalRefill + "}");
+                        var effective = ConfigFile.apply(defaults, personal);
+                        assertEquals(pickup && personalPickup, effective.enabled);
+                        assertEquals(refill && personalRefill, effective.schematicRefill);
+                        assertEquals(pickup, defaults.enabled, "Overrides never mutate server defaults");
+                        assertEquals(refill, defaults.schematicRefill);
+                    }
+                }
+                var inherited = ConfigFile.apply(defaults, ConfigFile.parsePreferences("{}"));
+                assertEquals(pickup, inherited.enabled);
+                assertEquals(refill, inherited.schematicRefill);
+            }
+        }
+    }
+
+    @Test
     void firstLoadWritesDefaults() throws IOException {
         var path = directory.resolve("config/magic_shulker_boxes.json");
         var config = ConfigFile.load(path);

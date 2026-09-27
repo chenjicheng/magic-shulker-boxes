@@ -35,7 +35,7 @@ public final class PlayerSettingsStore {
     }
 
     public StorageConfig resolve(UUID player, ServerConfig server) throws IOException {
-        if (!server.enabled || !server.allowPlayerSettings) return server;
+        if (!server.allowPlayerSettings) return server;
         var overrides = read(player);
         return overrides.isEmpty() ? server : ConfigFile.apply(server, overrides);
     }

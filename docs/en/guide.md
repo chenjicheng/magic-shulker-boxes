@@ -11,7 +11,7 @@ When a player picks up a ground item, the normal inventory receives it first. An
 3. A mixed box containing two or more item types.
 4. A box containing a different single type, if this optional fallback is enabled.
 
-All eligible boxes in one category are tried before moving to the next. Within a category, inventory slot order applies. Storage can accept part of a pickup; the remainder stays on the ground.
+All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
 
 ## Installation
 
@@ -31,9 +31,11 @@ Open **Mods → Magic Shulker Boxes → Configure**. Labels and descriptions fol
 - **Personal**: boolean options offer Inherit / On / Off; the space-making mode also offers Inherit. Resetting to Inherit removes that override. Cancel or leaving without saving does not write the file.
 - **Title screen**: edit local preferences, which upload when joining a server that allows them.
 - **In game**: the server must run a version of this mod supporting the GUI protocol and allow personal settings. A save waits for server acknowledgement before updating the local file. Rejections, rate limits and timeouts display feedback. Enforced server policy locks personal editing.
-- **World settings / Local defaults**: available only at the title screen or to the singleplayer / LAN host. Edit this instance's shared defaults, including the master switch and permission to use personal settings. Saves apply immediately. Remote multiplayer clients cannot access this page.
+- **World settings / Local defaults**: available only at the title screen or to the singleplayer / LAN host. Edit this instance's shared defaults, including independent pickup and refill switches and permission to use personal settings. Saves apply immediately. Remote multiplayer clients cannot access this page.
 
-The two pages save independently. Switching with unsaved edits prompts to discard or return to editing. Reopen the personal editor after a connection or server-policy change; stale drafts cannot be submitted. Option names are fixed labels, with a separate value button on the right. Click to cycle values, right-click to cycle backward, and use the adjacent reset button to restore the option default. Personal preferences include inheritance; world settings select explicit values. Inherited options show the received value directly, such as “Inherit server (On)”. Offline or unavailable defaults are marked “unknown”; values refresh when the server synchronizes its settings, while stale drafts still require reopening. Descriptions also show received server defaults, and a disabled master switch is clearly indicated. Older servers still support the existing `/msb` commands. With Mod Menu but without YACL, the configuration entry displays a missing-dependency message.
+The two pages save independently. Switching with unsaved edits prompts to discard or return to editing. Reopen the personal editor after a connection or server-policy change; stale drafts cannot be submitted. Option names are fixed labels, with a separate value button on the right. Click to cycle values, right-click to cycle backward, and use the adjacent reset button to restore the option default. Personal preferences include inheritance; world settings select explicit values. Inherited options show the received value directly, such as “Inherit server (On)”. Offline or unavailable defaults are marked “unknown”; values refresh when the server synchronizes its settings, while stale drafts still require reopening. Descriptions also show received server defaults. Server restrictions on pickup storage and refilling are indicated separately. Older servers still support the existing `/msb` commands. With Mod Menu but without YACL, the configuration entry displays a missing-dependency message.
+
+**Store picked-up items in boxes** (`enabled`) and **Refill materials for Litematica** (`schematicRefill`) are independent: use either feature, both, or neither. Existing configuration keys are retained. `enabled=false` disables pickup storage only; set `schematicRefill=false` too to disable both features. Both client and server must run a version supporting independent switches.
 
 ## Schematic material refilling (0.2.0-alpha)
 
@@ -43,18 +45,20 @@ Enable Litematica Easy Place, aim at a schematic block and use its placement key
 
 When full, space-making moves a backpack stack directly into the source box without dropping items. Hotbar slots are protected by default; `useHotbarForSpace`, `allowPartialStacksForSpace` and `allowMixedItemsWhenMakingSpace` also apply. Shulker boxes are never nested. A stacked source needs a separate free slot for one modified box. With no safe space, nothing changes. Carpet normally stacks only empty boxes, which contain no materials to extract.
 
+Refilling prefers non-full boxes, starting with the least filled to help empty one box before opening another. Full boxes remain fallback sources; unsafe sources are skipped. Client lookup and server extraction enforce the same order, with inventory slot order breaking ties.
+
 The menu has a **Schematic materials** group:
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `schematicRefill` | `true` | Enable refilling; players cannot override a server-wide disable |
+| `schematicRefill` | `true` | Enable refilling independently of `enabled`; players cannot override a server-wide disable |
 | `refillFullStack` | `true` | Take up to one stack from one box slot; off takes one item |
-| `refillMakeSpace` | `true` | Direct relocation when full, independent of pickup drop-and-recollect behavior |
+| `refillMakeSpace` | `true` | Direct relocation when full, even with pickup storage disabled; independent of pickup drop mode |
 | `refillFailureMessages` | `true` | **Only failed refills** produce an action-bar notice, at most once every two seconds; success is silent |
 
 Notices distinguish missing matching materials, unsafe inventory space, disabled refilling and unsupported servers. Turning notices off does not affect refilling. Personal overrides still require `allowPlayerSettings`.
 
-Matching includes item components, so renamed or otherwise different materials are not mistaken for the required stack. Only ordinary inventory and optionally offhand boxes are searched, excluding ender chests and nested containers. The client searches during missing-material attempts and sends at most two requests per second. The server verifies actual contents, game mode and menu state. Clients never provide authoritative item data or edit the inventory ahead of confirmation.
+Client material lookup compares complete item components, including custom names. Only ordinary inventory and optionally offhand boxes are searched, excluding ender chests and nested containers. The client searches during missing-material attempts and sends at most two requests per second. The server verifies actual contents, game mode and menu state. Clients never provide authoritative item data or edit the inventory ahead of confirmation.
 
 ## Carpet stacking
 
@@ -87,7 +91,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `allowPlayerSettings` | `false` | Server policy only: allow individual player overrides; otherwise enforce this file for everyone |
-| `enabled` | `true` | Master switch; server `false` always disables storage for everyone |
+| `enabled` | `true` | Enable pickup storage only, independently of refilling; server `false` disables pickup storage for everyone |
 | `onlyWhenInventoryFull` | `true` | Store only vanilla inventory overflow; `false` tries boxes first |
 | `useMatchingBoxes` | `true` | Use matching single-type boxes |
 | `useEmptyBoxes` | `true` | Use empty boxes |
@@ -104,7 +108,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 
 Multiple stacks of cobblestone still count as one type. Actual stack merging always compares components, independently of the classification option, and respects each item's maximum stack size.
 
-All options except `makeSpaceMode` require JSON booleans. Its value must be one of the three strings listed above. Omitted fields use defaults. Invalid JSON, unknown keys, invalid modes, and incorrect types are rejected without overwriting the file. Invalid server configuration disables automatic storage at startup; a failed runtime reload retains the previous active configuration.
+All options except `makeSpaceMode` require JSON booleans. Its value must be one of the three strings listed above. Omitted fields use defaults. Invalid JSON, unknown keys, invalid modes, and incorrect types are rejected without overwriting the file. Invalid server configuration disables both pickup storage and refilling at startup; a failed runtime reload retains the previous active configuration.
 
 Pickup storage handles only ground-item pickup. Chest transfers, crafting, item-giving commands, and manual dropping do not directly trigger storage. Ender chests and nested containers are not searched.
 
@@ -120,7 +124,7 @@ Servers enforce their own settings by default. Administrators can change and per
 /msb admin reload
 ```
 
-These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. Server `enabled=false` remains authoritative even when personal settings are allowed.
+These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. Server `enabled=false` disables pickup storage for everyone, while `schematicRefill=false` disables refilling. Players cannot override either restriction. Disabling one feature does not bypass personal preferences for the other.
 
 Once permitted, ordinary players can use these commands without a client installation:
 
@@ -128,6 +132,7 @@ Once permitted, ordinary players can use these commands without a client install
 /msb
 /msb show
 /msb set enabled false
+/msb set schematicRefill true
 /msb set makeSpaceMode MOVE_TO_BOX
 /msb set allowPartialStacksForSpace true
 /msb reset

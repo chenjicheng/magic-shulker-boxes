@@ -14,7 +14,7 @@ public final class ShulkerRefill {
     public static int take(Container inventory, int boxSlot, int contentSlot, Item expected, StorageConfig config) {
         int size = Math.min(36, inventory.getContainerSize());
         boolean offhand = config.includeOffhand && boxSlot == Inventory.SLOT_OFFHAND && boxSlot < inventory.getContainerSize();
-        if (!config.enabled || !config.schematicRefill || boxSlot < 0 || (boxSlot >= size && !offhand)
+        if (!config.schematicRefill || boxSlot < 0 || (boxSlot >= size && !offhand)
                 || contentSlot < 0 || contentSlot >= 27) return 0;
         var box = inventory.getItem(boxSlot);
         if (!ShulkerStorage.isShulker(box) || (box.getCount() > 1 && !config.splitStackedBoxes)) return 0;

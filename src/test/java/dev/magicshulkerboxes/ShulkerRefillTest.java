@@ -88,9 +88,27 @@ class ShulkerRefillTest {
         assertEquals(0, ShulkerRefill.take(inv, 35, 0, Items.DIAMOND, config));
         config.schematicRefill = false;
         assertEquals(0, ShulkerRefill.take(inv, 35, 0, Items.STONE, config));
-        config.schematicRefill = true; config.enabled = false;
-        assertEquals(0, ShulkerRefill.take(inv, 35, 0, Items.STONE, config));
         assertEquals(12, contents(inv.getItem(35)).stream().findFirst().orElse(ItemStack.EMPTY).getCount());
+    }
+
+    @Test void pickupAndRefillSwitchesControlOnlyTheirOwnDirection() {
+        for (boolean pickup : new boolean[]{false, true}) {
+            for (boolean refill : new boolean[]{false, true}) {
+                var config = new StorageConfig();
+                config.enabled = pickup;
+                config.schematicRefill = refill;
+                var receiving = full();
+                receiving.setItem(35, box());
+                var dropped = new ItemStack(Items.STONE, 5);
+                assertEquals(pickup ? 5 : 0, ShulkerStorage.store(receiving, dropped, config));
+                assertEquals(pickup ? 0 : 5, dropped.getCount());
+                var supplying = new SimpleContainer(41);
+                supplying.setItem(9, box(new ItemStack(Items.STONE, 12)));
+                assertEquals(refill ? 12 : 0, ShulkerRefill.take(supplying, 9, 0, Items.STONE, config),
+                        "Refill depends only on its own switch; pickup=" + pickup);
+                assertEquals(refill ? 0 : 12, contents(supplying.getItem(9)).stream().mapToInt(ItemStack::getCount).sum());
+            }
+        }
     }
 
     @Test void makingSpaceRespectsMixedItemProtection() {

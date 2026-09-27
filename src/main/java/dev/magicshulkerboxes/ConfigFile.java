@@ -42,10 +42,14 @@ public final class ConfigFile {
         return GSON.fromJson(validate(json, new ServerConfig()), ServerConfig.class);
     }
 
+    /** Apply personal preferences while retaining each server-side feature limit independently. */
     public static StorageConfig apply(StorageConfig defaults, JsonObject overrides) {
         var merged = GSON.toJsonTree(defaults).getAsJsonObject();
         overrides.entrySet().forEach(entry -> merged.add(entry.getKey(), entry.getValue().deepCopy()));
-        return GSON.fromJson(merged, StorageConfig.class);
+        var effective = GSON.fromJson(merged, StorageConfig.class);
+        effective.enabled &= defaults.enabled;
+        effective.schematicRefill &= defaults.schematicRefill;
+        return effective;
     }
 
     public static Set<String> optionNames() {

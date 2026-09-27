@@ -73,7 +73,8 @@ public final class MagicShulkerBoxes implements ModInitializer {
             // Invalid config must not silently enable behavior the administrator tried to turn off.
             config = new ServerConfig();
             config.enabled = false;
-            LOGGER.error("Cannot load {}. Automatic storage is disabled / 无法加载配置，自动收纳已禁用。", path, exception);
+            config.schematicRefill = false;
+            LOGGER.error("Cannot load {}. Automatic pickup storage and refill are disabled / 无法加载配置，自动入盒和取料已禁用。", path, exception);
         }
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> { PLAYERS.remove(server); WARNED.clear(); });
         SettingsCommands.register();

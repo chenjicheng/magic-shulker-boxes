@@ -55,7 +55,8 @@ public final class SettingsCommands {
     private static int show(CommandSourceStack source, boolean details) {
         reply(source, "title");
         reply(source, "policy", Messages.text(language(source), MagicShulkerBoxes.config().allowPlayerSettings ? "policy.personal" : "policy.server"));
-        if (!MagicShulkerBoxes.config().enabled) reply(source, "global_off");
+        if (!MagicShulkerBoxes.config().enabled) reply(source, "pickup_off");
+        if (!MagicShulkerBoxes.config().schematicRefill) reply(source, "refill_off");
         if (details) {
             var effective = source.getPlayer() == null ? MagicShulkerBoxes.config() : MagicShulkerBoxes.configFor(source.getPlayer());
             ConfigFile.options(effective).entrySet().forEach(entry -> reply(source, "setting",

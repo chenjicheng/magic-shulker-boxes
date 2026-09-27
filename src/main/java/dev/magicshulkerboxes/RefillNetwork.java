@@ -42,7 +42,7 @@ public final class RefillNetwork {
         if (last != null && now - last < 10) return 0;
         REQUESTS.put(player, now);
         var config = MagicShulkerBoxes.configFor(player);
-        if (!MagicShulkerBoxes.config().enabled || !MagicShulkerBoxes.config().schematicRefill || !config.enabled || !config.schematicRefill) {
+        if (!MagicShulkerBoxes.config().schematicRefill || !config.schematicRefill) {
             failure(player, config, "disabled", now); return 0;
         }
         var mode = player.gameMode.getGameModeForPlayer();
@@ -65,17 +65,17 @@ public final class RefillNetwork {
         if (wanted.isEmpty() || !wanted.is(item)) { failure(player, config, "changed", now); return 0; }
         // A delayed or repeated request must not keep pulling stacks after the first refill arrived.
         if (inventory.findSlotMatchingItem(wanted) >= 0 || ItemStack.isSameItemSameComponents(player.getOffhandItem(), wanted)) return 0;
-        int moved = ShulkerRefill.take(inventory, request.boxSlot(), request.contentSlot(), item, config);
-        // One blocked source (for example a stacked box with no split slot) must not hide another usable box.
-        for (int slot = 0; slot < inventory.getContainerSize() && moved == 0; slot++) {
-            if (slot >= 36 && !(config.includeOffhand && slot == net.minecraft.world.entity.player.Inventory.SLOT_OFFHAND)) continue;
+        int moved = 0;
+        // Enforce the same least-filled-first order even for stale or manually selected client slots.
+        // A blocked source (for example a stacked box with no split slot) must not hide a usable box.
+        for (int slot : BoxOrder.emptiestFirst(inventory, config)) {
+            if (moved > 0) break;
             var alternative = inventory.getItem(slot);
             if (!ShulkerStorage.isShulker(alternative)) continue;
             var data = alternative.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
             if (data.stream().count() > 27) continue;
             data.copyInto(contents);
             for (int inner = 0; inner < 27 && moved == 0; inner++) {
-                if (slot == request.boxSlot() && inner == request.contentSlot()) continue;
                 if (ItemStack.isSameItemSameComponents(contents.get(inner), wanted)) {
                     moved = ShulkerRefill.take(inventory, slot, inner, item, config);
                 }

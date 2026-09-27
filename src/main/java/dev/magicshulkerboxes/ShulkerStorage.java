@@ -35,11 +35,11 @@ public final class ShulkerStorage {
 
     private static void storePass(Container inventory, ItemStack incoming, StorageConfig config,
                                   boolean makeSpace, RelocationHandler dropHandler) {
+        var orderedSlots = BoxOrder.fullestFirst(inventory, config);
         for (BoxKind kind : BoxKind.values()) {
             if (!kind.enabled(config)) continue;
-            for (int slot = 0; slot < inventory.getContainerSize() && !incoming.isEmpty(); slot++) {
-                if (slot >= Inventory.INVENTORY_SIZE
-                        && !(config.includeOffhand && slot == Inventory.SLOT_OFFHAND)) continue;
+            for (int slot : orderedSlots) {
+                if (incoming.isEmpty()) break;
                 ItemStack box = inventory.getItem(slot);
                 if (!isShulker(box)) continue;
 

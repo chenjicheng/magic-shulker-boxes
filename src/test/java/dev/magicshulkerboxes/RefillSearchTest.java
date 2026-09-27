@@ -15,6 +15,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RefillSearchTest {
     @BeforeAll static void bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); }
+    @Test void prefersLeastFilledBoxInsteadOfFirstInventorySlot() {
+        var inv = new SimpleContainer(41);
+        var packed = new ItemStack[27]; java.util.Arrays.setAll(packed, i -> new ItemStack(Items.STONE, 64));
+        inv.setItem(0, box(packed));
+        inv.setItem(10, box(new ItemStack(Items.STONE, 32)));
+        inv.setItem(35, box(new ItemStack(Items.STONE)));
+        assertEquals(new RefillSearch.Match(35, 0), RefillSearch.find(inv, new ItemStack(Items.STONE), new StorageConfig()));
+        assertEquals(1, inv.getItem(35).get(DataComponents.CONTAINER).stream().mapToInt(ItemStack::getCount).sum());
+    }
+
+    @Test void occupiedSlotsWithPartialStacksAreStillLessFull() {
+        var inv = new SimpleContainer(41);
+        var packed = new ItemStack[27]; java.util.Arrays.setAll(packed, i -> new ItemStack(Items.STONE, 64));
+        inv.setItem(0, box(packed));
+        java.util.Arrays.setAll(packed, i -> new ItemStack(Items.STONE));
+        inv.setItem(35, box(packed));
+        assertEquals(new RefillSearch.Match(35, 0), RefillSearch.find(inv, new ItemStack(Items.STONE), new StorageConfig()));
+    }
+
     @Test void matchesComponentsAndRespectsOffhandPolicy() {
         var inv = new SimpleContainer(41);
         var named = new ItemStack(Items.STONE); named.set(DataComponents.CUSTOM_NAME, Component.literal("Keep"));
