@@ -2,7 +2,7 @@
 
 **简体中文** | [English](README.en.md)
 
-适用于 **Minecraft Java 1.21.11 · Fabric · Java 21** 的潜影盒自动收纳模组，采用 MIT 许可证。首个公开版本为 **0.1.0-alpha**。
+适用于 **Minecraft Java 1.21.11 · Fabric · Java 21** 的潜影盒自动收纳模组，采用 MIT 许可证。当前版本为 **0.3.0-alpha**。
 
 背包满了时，把拾取余量依次放入同类专用盒、空盒、杂物盒；可开启其他单类盒兜底。兼容 Carpet 堆叠潜影盒，支持安全拆盒、自动腾栏、零散物品和杂物盒复用。
 
@@ -15,7 +15,9 @@
 
 ## 安装
 
-当前源码版本为 `0.2.0-alpha`。安装 `magic-shulker-boxes-fabric-0.2.0-alpha+mc1.21.11.jar` 和 Fabric API，使用 Fabric Loader 0.18.4 或更新版。不要安装 `-sources.jar`。升级前移走旧版 JAR，避免重复加载。
+安装 `magic-shulker-boxes-fabric-0.3.0-alpha+mc1.21.11.jar` 和 Fabric API，使用 Fabric Loader 0.18.4 或更新版。不要安装 `-sources.jar`。升级前移走旧版 JAR，避免重复加载。
+
+从 0.2.0-alpha 升级时，取料需客户端与服务端同时更新；新版不再接受旧取料协议。`enabled=false` 只关闭拾取入盒，如需同时关闭取料，再设置 `schematicRefill=false`。完整变更见 [0.3.0-alpha 发布说明](docs/releases/0.3.0-alpha.md)。
 
 客户端设置界面另需 [Mod Menu 17.0.1](https://modrinth.com/mod/modmenu/version/17.0.1) 和 [YACL 3.8.2](https://modrinth.com/mod/yacl/version/3.8.2+1.21.11-fabric)；专用服务端无需这两项。Carpet 可选，其堆叠规则需自行开启。
 

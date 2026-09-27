@@ -39,9 +39,9 @@ The two pages save independently. Switching with unsaved edits prompts to discar
 
 After a ten-second confirmation timeout, further saves pause while the client queries the server's saved preferences. Late confirmations remain valid. If writing the local file fails, gameplay and the editor still use confirmed server values and explicitly report the local failure. Unresolved saves leave recovery markers scoped to the server and player. Reconnecting or restarting queries the server before uploading any old local file. Reopen the editor after synchronization completes.
 
-## Schematic material refilling (0.2.0-alpha)
+## Schematic material refilling
 
-Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes 0.2.0-alpha on both sides. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.3.0-alpha** on both sides. When upgrading from 0.2.0-alpha, update both sides; the new version no longer accepts the old refill protocol. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
 
 Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 

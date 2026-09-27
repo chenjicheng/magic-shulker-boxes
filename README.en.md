@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-Automatic shulker storage for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The first public release is **0.1.0-alpha**.
+Automatic shulker storage for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.3.0-alpha**.
 
 Store pickup overflow in matching, empty, then mixed boxes, with an optional single-type fallback. Supports Carpet shulker stacking, safe box splitting, automatic space-making, partial stacks and mixed-box reuse.
 
@@ -15,7 +15,9 @@ Store pickup overflow in matching, empty, then mixed boxes, with an optional sin
 
 ## Install
 
-The current source version is `0.2.0-alpha`. Install `magic-shulker-boxes-fabric-0.2.0-alpha+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
+Install `magic-shulker-boxes-fabric-0.3.0-alpha+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
+
+When upgrading from 0.2.0-alpha, update both client and server for refilling; the old refill protocol is no longer accepted. `enabled=false` now disables pickup storage only; also set `schematicRefill=false` to disable refilling. See the [0.3.0-alpha release notes](docs/releases/0.3.0-alpha.md).
 
 The client settings screen additionally needs [Mod Menu 17.0.1](https://modrinth.com/mod/modmenu/version/17.0.1) and [YACL 3.8.2](https://modrinth.com/mod/yacl/version/3.8.2+1.21.11-fabric). Dedicated servers do not need either library. Carpet is optional; enable its stacking rule separately.
 
