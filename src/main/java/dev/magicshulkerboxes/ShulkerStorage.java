@@ -19,7 +19,7 @@ public final class ShulkerStorage {
 
     public static int store(Container inventory, ItemStack incoming, StorageConfig config,
                             boolean allowMakingSpace, RelocationHandler dropHandler) {
-        if (!config.enabled || incoming.isEmpty() || !incoming.getItem().canFitInsideContainerItems()
+        if (!config.pickupStorageEnabled || incoming.isEmpty() || !incoming.getItem().canFitInsideContainerItems()
                 || isShulker(incoming)) {
             return 0;
         }

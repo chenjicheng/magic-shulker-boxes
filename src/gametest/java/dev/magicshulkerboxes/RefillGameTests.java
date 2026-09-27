@@ -32,9 +32,9 @@ public class RefillGameTests {
 
     @GameTest public void pickupOffDoesNotBlockRefillOrPersonalRefillOff(GameTestHelper helper) throws java.io.IOException {
         var config = MagicShulkerBoxes.config();
-        boolean oldPickup = config.enabled, oldRefill = config.schematicRefill, oldPolicy = config.allowPlayerSettings;
+        boolean oldPickup = config.pickupStorageEnabled, oldRefill = config.schematicRefill, oldPolicy = config.allowPlayerSettings;
         try {
-            config.enabled = false;
+            config.pickupStorageEnabled = false;
             config.schematicRefill = true;
             config.allowPlayerSettings = true;
             var request = request(helper, 9, 0, "minecraft:stone");
@@ -47,9 +47,29 @@ public class RefillGameTests {
             check(helper, materials(denied) == 12, "Disabled refill preserves box contents");
             helper.succeed();
         } finally {
-            config.enabled = oldPickup;
+            config.pickupStorageEnabled = oldPickup;
             config.schematicRefill = oldRefill;
             config.allowPlayerSettings = oldPolicy;
+        }
+    }
+
+    @GameTest public void personalRefillCanExtractWhenServerDefaultIsOff(GameTestHelper helper) throws java.io.IOException {
+        var config = MagicShulkerBoxes.config();
+        boolean previousRefill = config.schematicRefill, previousPolicy = config.allowPlayerSettings;
+        try {
+            config.schematicRefill = false;
+            config.allowPlayerSettings = true;
+            var player = player(helper);
+            MagicShulkerBoxes.players(helper.getLevel().getServer()).save(player.getUUID(),
+                    ConfigFile.parsePreferences("{\"schematicRefill\":true}"));
+            check(helper, MagicShulkerBoxes.configFor(player).schematicRefill, "Personal refill overrides the server default");
+            check(helper, RefillNetwork.accept(player, request(helper, 9, 0, "minecraft:stone")) == 12,
+                    "Allowed personal refill extracts materials from the box");
+            check(helper, materials(player) == 0, "Personal refill conserves box contents");
+            helper.succeed();
+        } finally {
+            config.schematicRefill = previousRefill;
+            config.allowPlayerSettings = previousPolicy;
         }
     }
 

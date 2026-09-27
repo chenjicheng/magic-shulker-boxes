@@ -20,7 +20,7 @@ abstract class ItemEntityMixin {
     private boolean magicShulkerBoxes$storePickup(Inventory inventory, ItemStack incoming, Operation<Boolean> original) {
         var config = inventory.player instanceof ServerPlayer player
                 ? MagicShulkerBoxes.configFor(player) : MagicShulkerBoxes.config();
-        if (!config.enabled) return original.call(inventory, incoming);
+        if (!config.pickupStorageEnabled) return original.call(inventory, incoming);
         int relocated = PickupRelocation.collectReserved(inventory, incoming);
         if (relocated >= 0) return incoming.isEmpty() || original.call(inventory, incoming) || relocated > 0;
         var source = (ItemEntity) (Object) this;

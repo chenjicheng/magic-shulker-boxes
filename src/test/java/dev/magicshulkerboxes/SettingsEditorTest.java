@@ -52,14 +52,14 @@ class SettingsEditorTest {
     }
     @Test
     void editsAreDetachedAndInheritanceRemovesOnlyTheSelectedOverride() throws Exception {
-        var original = ConfigFile.parsePreferences("{\"enabled\":false,\"useMixedBoxes\":true,\"makeSpaceMode\":\"DROP_AND_PICKUP\"}");
+        var original = ConfigFile.parsePreferences("{\"pickupStorageEnabled\":false,\"useMixedBoxes\":true,\"makeSpaceMode\":\"DROP_AND_PICKUP\"}");
         var draft = new SettingsDraft(original);
-        assertEquals(SettingsDraft.Toggle.OFF, draft.toggle("enabled"));
+        assertEquals(SettingsDraft.Toggle.OFF, draft.toggle("pickupStorageEnabled"));
         assertEquals(SettingsDraft.Space.DROP_AND_PICKUP, draft.space());
-        draft.toggle("enabled", SettingsDraft.Toggle.INHERIT);
+        draft.toggle("pickupStorageEnabled", SettingsDraft.Toggle.INHERIT);
         draft.toggle("useHotbarForSpace", SettingsDraft.Toggle.ON);
         draft.space(SettingsDraft.Space.INHERIT);
-        assertFalse(draft.values().has("enabled"));
+        assertFalse(draft.values().has("pickupStorageEnabled"));
         assertFalse(draft.values().has("makeSpaceMode"));
         assertTrue(draft.values().get("useMixedBoxes").getAsBoolean());
         assertTrue(draft.values().get("useHotbarForSpace").getAsBoolean());

@@ -12,23 +12,23 @@ class ConfigFileTest {
     @TempDir Path directory;
 
     @Test
-    void clientAndServerOverridesKeepFeatureLimitsIndependent() throws IOException {
+    void personalFeatureChoicesOverrideDefaultsIndependently() throws IOException {
         for (boolean pickup : new boolean[]{false, true}) {
             for (boolean refill : new boolean[]{false, true}) {
-                var defaults = ConfigFile.parseServer("{\"enabled\":" + pickup + ",\"schematicRefill\":" + refill + "}");
+                var defaults = ConfigFile.parseServer("{\"pickupStorageEnabled\":" + pickup + ",\"schematicRefill\":" + refill + "}");
                 for (boolean personalPickup : new boolean[]{false, true}) {
                     for (boolean personalRefill : new boolean[]{false, true}) {
-                        var personal = ConfigFile.parsePreferences("{\"enabled\":" + personalPickup
+                        var personal = ConfigFile.parsePreferences("{\"pickupStorageEnabled\":" + personalPickup
                                 + ",\"schematicRefill\":" + personalRefill + "}");
                         var effective = ConfigFile.apply(defaults, personal);
-                        assertEquals(pickup && personalPickup, effective.enabled);
-                        assertEquals(refill && personalRefill, effective.schematicRefill);
-                        assertEquals(pickup, defaults.enabled, "Overrides never mutate server defaults");
+                        assertEquals(personalPickup, effective.pickupStorageEnabled);
+                        assertEquals(personalRefill, effective.schematicRefill);
+                        assertEquals(pickup, defaults.pickupStorageEnabled, "Overrides never mutate server defaults");
                         assertEquals(refill, defaults.schematicRefill);
                     }
                 }
                 var inherited = ConfigFile.apply(defaults, ConfigFile.parsePreferences("{}"));
-                assertEquals(pickup, inherited.enabled);
+                assertEquals(pickup, inherited.pickupStorageEnabled);
                 assertEquals(refill, inherited.schematicRefill);
             }
         }
@@ -38,7 +38,7 @@ class ConfigFileTest {
     void firstLoadWritesDefaults() throws IOException {
         var path = directory.resolve("config/magic_shulker_boxes.json");
         var config = ConfigFile.load(path);
-        assertFalse(config.enabled);
+        assertFalse(config.pickupStorageEnabled);
         assertFalse(config.allowPlayerSettings);
         assertTrue(config.onlyWhenInventoryFull);
         assertFalse(config.allowOtherSingleTypeBoxes);
@@ -49,7 +49,7 @@ class ConfigFileTest {
     @Test
     void acceptsPartialConfigWithoutOverwritingUsersFile() throws IOException {
         var path = directory.resolve("config.json");
-        var json = "{\"configVersion\":1,\"allowOtherSingleTypeBoxes\":true,\"useEmptyBoxes\":false}";
+        var json = "{\"configVersion\":2,\"allowOtherSingleTypeBoxes\":true,\"useEmptyBoxes\":false}";
         Files.writeString(path, json);
         var config = ConfigFile.load(path);
         assertTrue(config.allowOtherSingleTypeBoxes);
@@ -62,13 +62,13 @@ class ConfigFileTest {
     void acceptsAllSpaceModesAndRejectsUnknownOrMistypedValues() throws IOException {
         var path = directory.resolve("config.json");
         for (var mode : StorageConfig.MakeSpaceMode.values()) {
-            Files.writeString(path, "{\"configVersion\":1,\"makeSpaceMode\":\"" + mode + "\",\"useHotbarForSpace\":true}");
+            Files.writeString(path, "{\"configVersion\":2,\"makeSpaceMode\":\"" + mode + "\",\"useHotbarForSpace\":true}");
             var config = ConfigFile.load(path);
             assertEquals(mode, config.makeSpaceMode);
             assertTrue(config.useHotbarForSpace);
         }
         for (var value : new String[] {"\"unknown\"", "true", "null", "1"}) {
-            Files.writeString(path, "{\"configVersion\":1,\"makeSpaceMode\":" + value + "}");
+            Files.writeString(path, "{\"configVersion\":2,\"makeSpaceMode\":" + value + "}");
             assertThrows(IOException.class, () -> ConfigFile.load(path));
         }
     }
@@ -76,8 +76,8 @@ class ConfigFileTest {
     @Test
     void rejectsBrokenOrMistypedConfigWithoutOverwritingIt() throws IOException {
         var path = directory.resolve("config.json");
-        for (var json : new String[] {"{", "null", "[]", "{\"configVersion\":1,\"enabled\":\"false\"}",
-                "{\"configVersion\":1,\"enabled\":null}", "{\"configVersion\":1,\"useEmptyBox\":true}"}) {
+        for (var json : new String[] {"{", "null", "[]", "{\"configVersion\":2,\"pickupStorageEnabled\":\"false\"}",
+                "{\"configVersion\":2,\"pickupStorageEnabled\":null}", "{\"configVersion\":2,\"useEmptyBox\":true}"}) {
             Files.writeString(path, json);
             assertThrows(IOException.class, () -> ConfigFile.load(path), json);
             assertEquals(json, Files.readString(path));

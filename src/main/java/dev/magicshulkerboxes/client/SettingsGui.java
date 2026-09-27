@@ -51,7 +51,7 @@ public final class SettingsGui {
                     .option(LabelOption.create(text("gui.status." + ClientSettings.session.mode().name())));
             if (ClientSettings.session.pending()) category.option(LabelOption.create(text(
                     ClientSettings.session.recovering() ? "gui.recovering" : "gui.pending")));
-            if (defaults != null && defaults.has("enabled") && !defaults.get("enabled").getAsBoolean()) {
+            if (defaults != null && defaults.has("pickupStorageEnabled") && !defaults.get("pickupStorageEnabled").getAsBoolean()) {
                 category.option(LabelOption.create(text("gui.pickup_off")));
             }
             if (defaults != null && defaults.has("schematicRefill") && !defaults.get("schematicRefill").getAsBoolean()) {

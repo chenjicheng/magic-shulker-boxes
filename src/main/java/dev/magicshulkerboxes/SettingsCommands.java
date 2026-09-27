@@ -53,12 +53,12 @@ public final class SettingsCommands {
     }
 
     private static int show(CommandSourceStack source, boolean details) {
+        var effective = source.getPlayer() == null ? MagicShulkerBoxes.config() : MagicShulkerBoxes.configFor(source.getPlayer());
         reply(source, "title");
         reply(source, "policy", Messages.text(language(source), MagicShulkerBoxes.config().allowPlayerSettings ? "policy.personal" : "policy.server"));
-        if (!MagicShulkerBoxes.config().enabled) reply(source, "pickup_off");
-        if (!MagicShulkerBoxes.config().schematicRefill) reply(source, "refill_off");
+        if (!effective.pickupStorageEnabled) reply(source, "pickup_off");
+        if (!effective.schematicRefill) reply(source, "refill_off");
         if (details) {
-            var effective = source.getPlayer() == null ? MagicShulkerBoxes.config() : MagicShulkerBoxes.configFor(source.getPlayer());
             ConfigFile.options(effective).entrySet().forEach(entry -> reply(source, "setting",
                     Messages.text(language(source), "option." + entry.getKey()), entry.getKey(), entry.getValue().getAsString()));
         } else reply(source, "help");

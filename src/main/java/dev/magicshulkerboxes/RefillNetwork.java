@@ -25,7 +25,7 @@ public final class RefillNetwork {
     private static final Map<ServerPlayer, Integer> REQUESTS = new WeakHashMap<>();
     private static final Map<ServerPlayer, Integer> NOTICES = new WeakHashMap<>();
     public record Request(int boxSlot, int contentSlot, String item, String fingerprint) implements CustomPacketPayload {
-        public static final Type<Request> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "refill_v2"));
+        public static final Type<Request> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "refill_v3"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Request> CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, Request::boxSlot, ByteBufCodecs.VAR_INT, Request::contentSlot,
                 ByteBufCodecs.stringUtf8(256), Request::item,
@@ -44,7 +44,7 @@ public final class RefillNetwork {
         if (last != null && now - last < 10) return 0;
         REQUESTS.put(player, now);
         var config = MagicShulkerBoxes.configFor(player);
-        if (!MagicShulkerBoxes.config().schematicRefill || !config.schematicRefill) {
+        if (!config.schematicRefill) {
             failure(player, config, "disabled", now); return 0;
         }
         var mode = player.gameMode.getGameModeForPlayer();

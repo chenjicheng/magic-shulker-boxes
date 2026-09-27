@@ -49,9 +49,9 @@ class PreferenceSyncTest {
         var sync = new PreferenceSync(file, blocked);
         assertThrows(IOException.class, () -> sync.prepareSave("server/player"));
         var normal = new PreferenceSync(file, directory.resolve("recovery"));
-        normal.receive("server/player", ConfigFile.parsePreferences("{\"enabled\":false}"));
-        ConfigFile.writePreferences(file, ConfigFile.parsePreferences("{\"enabled\":true}"));
+        normal.receive("server/player", ConfigFile.parsePreferences("{\"pickupStorageEnabled\":false}"));
+        ConfigFile.writePreferences(file, ConfigFile.parsePreferences("{\"pickupStorageEnabled\":true}"));
         normal.disconnected();
-        assertTrue(normal.values().get("enabled").getAsBoolean());
+        assertTrue(normal.values().get("pickupStorageEnabled").getAsBoolean());
     }
 }

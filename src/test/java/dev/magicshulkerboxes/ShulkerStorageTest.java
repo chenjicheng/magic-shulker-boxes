@@ -202,9 +202,9 @@ class ShulkerStorageTest {
         inventory.setItem(2, box(new ItemStack(Items.DIRT), new ItemStack(Items.STONE)));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
         var config = pickupEnabled();
-        config.enabled = false;
+        config.pickupStorageEnabled = false;
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
-        config.enabled = true;
+        config.pickupStorageEnabled = true;
         config.useMatchingBoxes = false;
         config.useEmptyBoxes = false;
         config.useMixedBoxes = false;
@@ -470,7 +470,7 @@ class ShulkerStorageTest {
 
     private static StorageConfig pickupEnabled() {
         var config = new StorageConfig();
-        config.enabled = true;
+        config.pickupStorageEnabled = true;
         return config;
     }
 

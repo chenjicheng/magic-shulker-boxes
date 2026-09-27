@@ -11,7 +11,7 @@ class SettingsNetworkTest {
     void editorMessagesRoundTripAndRejectOversizedPreferences() {
         var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
         try {
-            var state = new EditorNetwork.State(true, "{\"enabled\":false}");
+            var state = new EditorNetwork.State(true, "{\"pickupStorageEnabled\":false}");
             EditorNetwork.State.CODEC.encode(buffer, state);
             assertEquals(state, EditorNetwork.State.CODEC.decode(buffer));
             var save = new EditorNetwork.Save(12, "{}");
@@ -31,7 +31,7 @@ class SettingsNetworkTest {
     void boundedWireFormatRoundTripsPreferencesAndPolicy() {
         var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
         try {
-            var preferences = new SettingsNetwork.Preferences("{\"enabled\":false}");
+            var preferences = new SettingsNetwork.Preferences("{\"pickupStorageEnabled\":false}");
             SettingsNetwork.Preferences.CODEC.encode(buffer, preferences);
             assertEquals(preferences, SettingsNetwork.Preferences.CODEC.decode(buffer));
             SettingsNetwork.Policy.CODEC.encode(buffer, new SettingsNetwork.Policy(true));

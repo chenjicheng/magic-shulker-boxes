@@ -4,7 +4,7 @@
 
 Automatic shulker storage for **Minecraft Java 1.21.11 / Fabric / Java 21**.
 
-**Pickup storage is off by default.** Singleplayer hosts can enable it in World settings. Multiplayer administrators can set `enabled=true` in the server configuration and run `/msb admin reload`. Material refilling has its own switch.
+**Pickup storage is off by default.** Singleplayer hosts can enable it in World settings. Multiplayer administrators can set `pickupStorageEnabled=true` in the server configuration and run `/msb admin reload`, or allow players to enable it individually. Material refilling has its own switch.
 
 When a player picks up a ground item, the normal inventory receives it first. Any overflow is stored in this order:
 
@@ -15,13 +15,19 @@ When a player picks up a ground item, the normal inventory receives it first. An
 
 All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
 
+## Upgrading to 0.3.2: personal switches and the renamed setting
+
+When the server allows personal settings (`allowPlayerSettings=true`), `pickupStorageEnabled` and `schematicRefill` are **server defaults** that players may independently override. With personal settings disabled, everyone uses the server values. The former `enabled` key is now `pickupStorageEnabled`; current files, commands and network settings accept only the new name.
+
+On first read, a valid 0.3.1 `configVersion: 1` file is copied unchanged to `<original filename>.pre-0.3.2.bak` alongside it, then rewritten once with `configVersion: 2`. The original switch value and all other valid choices are retained. This covers shared server settings, online and offline player files, and client preferences. Failed or conflicting backups and invalid fields leave the original intact with an error. Personal settings and refilling use new channels; update both client and server to 0.3.2 for those features. Server-only pickup storage still needs no client mod.
+
 ## Upgrading to 0.3.1: back up and reset old settings
 
 Configuration files from 0.3.0-alpha and earlier have no version marker. On first read, 0.3.1 makes an exact backup named `<original filename>.pre-0.3.1.bak` alongside each file, then resets all options. This covers `config/magic_shulker_boxes.json`, client `config/magic_shulker_boxes-client.json`, and world `data/magic_shulker_boxes/players/<UUID>.json`. Server startup processes existing player files, including offline players; client startup processes local preferences.
 
-Server settings return to defaults: `enabled=false` and `allowPlayerSettings=false`. Personal overrides are cleared, restoring server inheritance. Refilling remains independently controlled by `schematicRefill`, defaulting to `true`. New files contain `configVersion: 1`; subsequent choices survive restarts. Keep that marker. Backups are neither automatically restored nor used at runtime. To restore selected choices, copy the desired options into the new file while retaining its version marker.
+In 0.3.1, server settings returned to defaults: the old `enabled=false` and `allowPlayerSettings=false`. Personal overrides were cleared to inherit the server values. Refilling remained independent under `schematicRefill`, defaulting to `true`. That version wrote `configVersion: 1` files; 0.3.2 migrates them to version 2 as described above. Keep the version marker. Backups are neither automatically restored nor used at runtime. To recover selected choices, copy them into the current file while retaining its version marker.
 
-Backup failures or an existing backup with different contents leave the original untouched and log an error. Malformed JSON, unknown configuration versions and invalid current-version options are also retained and reported. Personal synchronization uses a new protocol: **update both sides to 0.3.1 to use personal settings**. Old clients cannot re-upload old preferences. Players using server-only pickup storage still need no client installation.
+Backup failures or an existing backup with different contents leave the original untouched and log an error. Malformed JSON, unknown configuration versions and invalid current-version options are also retained and reported. Update both sides to 0.3.2 for personal settings; old clients cannot re-upload old preferences. Players using server-only pickup storage still need no client installation.
 
 ## Installation
 
@@ -43,15 +49,15 @@ Open **Mods → Magic Shulker Boxes → Configure**. Labels and descriptions fol
 - **In game**: the server must support the GUI and recovery-query protocols and allow personal settings. A save waits for server acknowledgement before updating the local file. Rejections, rate limits and timeouts display feedback. Enforced server policy locks personal editing.
 - **World settings / Local defaults**: available only at the title screen or to the singleplayer / LAN host. Edit this instance's shared defaults, including independent pickup and refill switches and permission to use personal settings. Saves apply immediately. Remote multiplayer clients cannot access this page.
 
-The two pages save independently. Switching with unsaved edits prompts to discard or return to editing. Reopen the personal editor after a connection or server-policy change; stale drafts cannot be submitted. Option names are fixed labels, with a separate value button on the right. Click to cycle values, right-click to cycle backward, and use the adjacent reset button to restore the option default. Personal preferences include inheritance; world settings select explicit values. Inherited options show the received value directly, such as “Inherit server (On)”. Offline or unavailable defaults are marked “unknown”; values refresh when the server synchronizes its settings, while stale drafts still require reopening. Descriptions also show received server defaults. Server restrictions on pickup storage and refilling are indicated separately. Older servers still support the existing `/msb` commands. With Mod Menu but without YACL, the configuration entry displays a missing-dependency message.
+The two pages save independently. Switching with unsaved edits prompts to discard or return to editing. Reopen the personal editor after a connection or server-policy change; stale drafts cannot be submitted. Option names are fixed labels, with a separate value button on the right. Click to cycle values, right-click to cycle backward, and use the adjacent reset button to restore the option default. Personal preferences include inheritance; world settings select explicit values. Inherited options show the received value directly, such as “Inherit server (On)”. Offline or unavailable defaults are marked “unknown”; values refresh when the server synchronizes its settings, while stale drafts still require reopening. Descriptions also show received server defaults. An off server default for either feature is indicated separately. With Mod Menu but without YACL, the configuration entry displays a missing-dependency message.
 
-**Store picked-up items in boxes** (`enabled`) and **Refill materials for Litematica** (`schematicRefill`) are independent: use either feature, both, or neither. Existing configuration keys are retained. `enabled=false` disables pickup storage only; set `schematicRefill=false` too to disable both features. Both client and server must run a version supporting independent switches.
+**Store picked-up items in boxes** (`pickupStorageEnabled`) and **Refill materials for Litematica** (`schematicRefill`) are independent: use either feature, both, or neither. `pickupStorageEnabled=false` disables pickup storage only. To disable both features for everyone, disallow personal settings and also set `schematicRefill=false`.
 
 After a ten-second confirmation timeout, further saves pause while the client queries the server's saved preferences. Late confirmations remain valid. If writing the local file fails, gameplay and the editor still use confirmed server values and explicitly report the local failure. Unresolved saves leave recovery markers scoped to the server and player. Reconnecting or restarting queries the server before uploading any old local file. Reopen the editor after synchronization completes.
 
 ## Schematic material refilling
 
-Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.3.1** on both sides. The old 0.2.0-alpha refill protocol is no longer accepted; personal settings require this release's new synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.3.2** on both sides. Older refill protocols are no longer accepted; personal settings require this release's new synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
 
 Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 
@@ -63,7 +69,7 @@ The menu has a **Schematic materials** group:
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `schematicRefill` | `true` | Enable refilling independently of `enabled`; players cannot override a server-wide disable |
+| `schematicRefill` | `true` | Enable refilling independently; players can override the server default when personal settings are allowed |
 | `refillFullStack` | `true` | Take up to one stack from one box slot; off takes one item |
 | `refillMakeSpace` | `true` | Direct relocation when full, even with pickup storage disabled; independent of pickup drop mode |
 | `refillFailureMessages` | `true` | **Only failed refills** produce an action-bar notice, at most once every two seconds; success is silent |
@@ -103,7 +109,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `allowPlayerSettings` | `false` | Server policy only: allow individual player overrides; otherwise enforce this file for everyone |
-| `enabled` | `false` | Off by default; enables pickup storage independently of refilling; server `false` disables pickup storage for everyone |
+| `pickupStorageEnabled` | `false` | Off by default; enables pickup storage independently of refilling; players can override the server default when personal settings are allowed |
 | `onlyWhenInventoryFull` | `true` | Store only vanilla inventory overflow; `false` tries boxes first |
 | `useMatchingBoxes` | `true` | Use matching single-type boxes |
 | `useEmptyBoxes` | `true` | Use empty boxes |
@@ -136,14 +142,14 @@ Servers enforce their own settings by default. Administrators can change and per
 /msb admin reload
 ```
 
-These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. Server `enabled=false` disables pickup storage for everyone, while `schematicRefill=false` disables refilling. Players cannot override either restriction. Disabling one feature does not bypass personal preferences for the other.
+These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. With `allowPlayerSettings=false`, the server pickup and refill switches apply to everyone. With it set to `true`, both server values become defaults that players may override independently. A failed reload leaves the previous active settings in place.
 
 Once permitted, ordinary players can use these commands without a client installation:
 
 ```text
 /msb
 /msb show
-/msb set enabled false
+/msb set pickupStorageEnabled false
 /msb set schematicRefill true
 /msb set makeSpaceMode MOVE_TO_BOX
 /msb set allowPartialStacksForSpace true

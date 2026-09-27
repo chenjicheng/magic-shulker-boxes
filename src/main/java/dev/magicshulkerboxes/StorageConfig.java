@@ -1,8 +1,8 @@
 package dev.magicshulkerboxes;
 
 public class StorageConfig {
-    // Retain the persisted key; this switch controls pickup storage only.
-    public boolean enabled = false;
+    // Pickup storage and schematic refilling are independent personal choices.
+    public boolean pickupStorageEnabled = false;
     public boolean onlyWhenInventoryFull = true;
     public boolean useMatchingBoxes = true;
     public boolean useEmptyBoxes = true;

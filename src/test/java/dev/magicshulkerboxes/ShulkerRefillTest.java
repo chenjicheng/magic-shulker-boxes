@@ -95,7 +95,7 @@ class ShulkerRefillTest {
         for (boolean pickup : new boolean[]{false, true}) {
             for (boolean refill : new boolean[]{false, true}) {
                 var config = new StorageConfig();
-                config.enabled = pickup;
+                config.pickupStorageEnabled = pickup;
                 config.schematicRefill = refill;
                 var receiving = full();
                 receiving.setItem(35, box());

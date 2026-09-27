@@ -30,9 +30,9 @@ public class ConfigMigrationGameTests {
         Files.writeString(path, "{\"enabled\":true,\"includeOffhand\":true}");
         var store = MagicShulkerBoxes.players(helper.getLevel().getServer());
         var config = MagicShulkerBoxes.config();
-        boolean pickup = config.enabled, allowed = config.allowPlayerSettings;
+        boolean pickup = config.pickupStorageEnabled, allowed = config.allowPlayerSettings;
         try {
-            config.enabled = new ServerConfig().enabled;
+            config.pickupStorageEnabled = new ServerConfig().pickupStorageEnabled;
             config.allowPlayerSettings = true;
             store.migrateExisting();
             helper.assertTrue(store.read(player.getUUID()).isEmpty(), Component.literal("Old personal overrides reset to inheritance"));
@@ -41,24 +41,26 @@ public class ConfigMigrationGameTests {
             dropped.setNoPickUpDelay(); dropped.playerTouch(player);
             helper.assertTrue(!dropped.isRemoved() && dropped.getItem().getCount() == 5,
                     Component.literal("New defaults never automatically collect overflow"));
-            config.enabled = true;
+            config.pickupStorageEnabled = true;
             dropped.playerTouch(player);
             helper.assertTrue(dropped.isRemoved(), Component.literal("Explicitly enabling storage still works after migration"));
-            var result = EditorNetwork.save(player, new EditorNetwork.Save(1, "{\"enabled\":false}"));
+            var result = EditorNetwork.save(player, new EditorNetwork.Save(1, "{\"pickupStorageEnabled\":false}"));
             helper.assertTrue(result.status() == EditorNetwork.SAVED, Component.literal("New GUI protocol saves normally"));
             store.clearCache();
-            helper.assertTrue(!store.read(player.getUUID()).get("enabled").getAsBoolean(),
+            helper.assertTrue(!store.read(player.getUUID()).get("pickupStorageEnabled").getAsBoolean(),
                     Component.literal("New versioned preference survives reloading"));
             helper.succeed();
-        } finally { config.enabled = pickup; config.allowPlayerSettings = allowed; }
+        } finally { config.pickupStorageEnabled = pickup; config.allowPlayerSettings = allowed; }
     }
 
     @GameTest public void onlyCurrentSettingsReceiversAreRegistered(GameTestHelper helper) {
         var channels = ServerPlayNetworking.getGlobalReceivers();
-        for (var id : List.of(SettingsNetwork.Preferences.ID.id(), EditorNetwork.Save.ID.id(), EditorNetwork.Query.ID.id())) {
+        for (var id : List.of(SettingsNetwork.Preferences.ID.id(), EditorNetwork.Save.ID.id(),
+                EditorNetwork.Query.ID.id(), RefillNetwork.Request.ID.id())) {
             helper.assertTrue(channels.contains(id), Component.literal("Current settings channel is registered: " + id));
         }
-        for (var old : List.of("preferences_v1", "editor_save_v1", "editor_query_v1")) {
+        for (var old : List.of("preferences_v1", "editor_save_v1", "editor_query_v1",
+                "preferences_v2", "editor_save_v2", "editor_query_v2", "refill_v2")) {
             helper.assertTrue(!channels.contains(Identifier.fromNamespaceAndPath("magic_shulker_boxes", old)),
                     Component.literal("Old client cannot re-upload legacy settings: " + old));
         }

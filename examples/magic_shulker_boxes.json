@@ -1,7 +1,7 @@
 {
-  "configVersion": 1,
+  "configVersion": 2,
   "allowPlayerSettings": false,
-  "enabled": false,
+  "pickupStorageEnabled": false,
   "onlyWhenInventoryFull": true,
   "useMatchingBoxes": true,
   "useEmptyBoxes": true,

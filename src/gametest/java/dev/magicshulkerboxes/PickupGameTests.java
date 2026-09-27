@@ -19,12 +19,12 @@ import net.minecraft.world.level.GameType;
 public class PickupGameTests implements CustomTestMethodInvoker {
     @Override
     public void invokeTestMethod(GameTestHelper helper, Method method) throws ReflectiveOperationException {
-        boolean pickup = MagicShulkerBoxes.config().enabled;
+        boolean pickup = MagicShulkerBoxes.config().pickupStorageEnabled;
         try {
             // These fixtures test opted-in pickup; shipping defaults are tested separately.
-            MagicShulkerBoxes.config().enabled = true;
+            MagicShulkerBoxes.config().pickupStorageEnabled = true;
             invokeWithCarpet(helper, method);
-        } finally { MagicShulkerBoxes.config().enabled = pickup; }
+        } finally { MagicShulkerBoxes.config().pickupStorageEnabled = pickup; }
     }
 
     private void invokeWithCarpet(GameTestHelper helper, Method method) throws ReflectiveOperationException {
@@ -176,9 +176,9 @@ public class PickupGameTests implements CustomTestMethodInvoker {
     @GameTest
     public void disabledConfigLeavesFullInventoryPickupOnGround(GameTestHelper helper) {
         var config = MagicShulkerBoxes.config();
-        boolean previous = config.enabled;
+        boolean previous = config.pickupStorageEnabled;
         try {
-            config.enabled = false;
+            config.pickupStorageEnabled = false;
             var player = fullPlayer(helper);
             player.getInventory().setItem(0, box());
             var drop = drop(helper, 5);
@@ -187,7 +187,7 @@ public class PickupGameTests implements CustomTestMethodInvoker {
             check(helper, countContents(player.getInventory().getItem(0)) == 0, "Box remains empty");
             helper.succeed();
         } finally {
-            config.enabled = previous;
+            config.pickupStorageEnabled = previous;
         }
     }
 
@@ -261,7 +261,7 @@ public class PickupGameTests implements CustomTestMethodInvoker {
         var settings = MagicShulkerBoxes.players(helper.getLevel().getServer());
         try {
             player.getInventory().setItem(0, box());
-            settings.save(player.getUUID(), ConfigFile.parsePreferences("{\"enabled\":false}"));
+            settings.save(player.getUUID(), ConfigFile.parsePreferences("{\"pickupStorageEnabled\":false}"));
             config.allowPlayerSettings = false;
             var first = drop(helper, 5);
             first.playerTouch(player);
@@ -279,6 +279,34 @@ public class PickupGameTests implements CustomTestMethodInvoker {
     }
 
     @GameTest
+    public void personalPickupCanCollectWhenServerDefaultIsOff(GameTestHelper helper) throws java.io.IOException {
+        var player = fullPlayer(helper);
+        var config = MagicShulkerBoxes.config();
+        boolean previousPickup = config.pickupStorageEnabled;
+        boolean previousPolicy = config.allowPlayerSettings;
+        var store = MagicShulkerBoxes.players(helper.getLevel().getServer());
+        try {
+            config.pickupStorageEnabled = false;
+            config.allowPlayerSettings = false;
+            store.save(player.getUUID(), ConfigFile.parsePreferences("{\"pickupStorageEnabled\":true}"));
+            player.getInventory().setItem(0, box(new ItemStack(Items.COBBLESTONE)));
+            var drop = drop(helper, 5);
+            drop.playerTouch(player);
+            check(helper, !drop.isRemoved(), "Server policy off keeps the shared pickup default");
+
+            config.allowPlayerSettings = true;
+            drop.playerTouch(player);
+            check(helper, drop.isRemoved(), "Allowed personal pickup collects the item entity");
+            check(helper, countContents(player.getInventory().getItem(0)) == 6, "Personal pickup stores the overflow in the box");
+            helper.succeed();
+        } finally {
+            store.save(player.getUUID(), new com.google.gson.JsonObject());
+            config.pickupStorageEnabled = previousPickup;
+            config.allowPlayerSettings = previousPolicy;
+        }
+    }
+
+    @GameTest
     public void ordinaryPlayersCanOnlyChangeTheirOwnAllowedSettings(GameTestHelper helper) throws Exception {
         var player = fullPlayer(helper);
         var config = MagicShulkerBoxes.config();
@@ -288,10 +316,10 @@ public class PickupGameTests implements CustomTestMethodInvoker {
         var source = player.createCommandSourceStack().withPermission(net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS);
         try {
             config.allowPlayerSettings = false;
-            check(helper, commands.execute("msb set enabled false", source) == 0, "Server gate rejects personal edits");
+            check(helper, commands.execute("msb set pickupStorageEnabled false", source) == 0, "Server gate rejects personal edits");
             config.allowPlayerSettings = true;
-            check(helper, commands.execute("msb set enabled false", source) == 1, "Ordinary player can set own preference");
-            check(helper, !MagicShulkerBoxes.configFor(player).enabled, "Command affects effective settings");
+            check(helper, commands.execute("msb set pickupStorageEnabled false", source) == 1, "Ordinary player can set own preference");
+            check(helper, !MagicShulkerBoxes.configFor(player).pickupStorageEnabled, "Command affects effective settings");
             try {
                 commands.execute("msb admin player-settings false", source);
                 check(helper, false, "Ordinary player must not access admin branch");
@@ -299,7 +327,7 @@ public class PickupGameTests implements CustomTestMethodInvoker {
                 check(helper, config.allowPlayerSettings, "Unauthorized command did not change server policy");
             }
             check(helper, commands.execute("msb reset", source) == 1, "Player can reset personal overrides");
-            check(helper, MagicShulkerBoxes.configFor(player).enabled, "Reset inherits server configuration");
+            check(helper, MagicShulkerBoxes.configFor(player).pickupStorageEnabled, "Reset inherits server configuration");
             helper.succeed();
         } finally {
             config.allowPlayerSettings = previous;
@@ -316,10 +344,10 @@ public class PickupGameTests implements CustomTestMethodInvoker {
         var source = player.createCommandSourceStack().withPermission(net.minecraft.server.permissions.PermissionSet.ALL_PERMISSIONS);
         try {
             check(helper, commands.execute("msb admin player-settings false", source) == 1, "Admin can disable personal settings");
-            check(helper, !SettingsNetwork.accept(player, "{\"enabled\":false}"), "Forged sync is ignored while policy is disabled");
+            check(helper, !SettingsNetwork.accept(player, "{\"pickupStorageEnabled\":false}"), "Forged sync is ignored while policy is disabled");
             check(helper, commands.execute("msb admin player-settings true", source) == 1, "Admin can enable personal settings");
-            check(helper, SettingsNetwork.accept(player, "{\"enabled\":false}"), "Allowed network preference is accepted");
-            check(helper, !MagicShulkerBoxes.configFor(player).enabled, "Network preference applies to sending player");
+            check(helper, SettingsNetwork.accept(player, "{\"pickupStorageEnabled\":false}"), "Allowed network preference is accepted");
+            check(helper, !MagicShulkerBoxes.configFor(player).pickupStorageEnabled, "Network preference applies to sending player");
             try {
                 SettingsNetwork.accept(player, "{\"allowPlayerSettings\":false}");
                 check(helper, false, "A client cannot submit server policy");
@@ -327,7 +355,7 @@ public class PickupGameTests implements CustomTestMethodInvoker {
                 check(helper, MagicShulkerBoxes.config().allowPlayerSettings, "Server policy unchanged");
             }
             check(helper, commands.execute("msb admin player-settings false", source) == 1, "Admin can revoke personal settings immediately");
-            check(helper, MagicShulkerBoxes.configFor(player).enabled, "Server default resumes immediately after revocation");
+            check(helper, MagicShulkerBoxes.configFor(player).pickupStorageEnabled, "Server default resumes immediately after revocation");
             helper.succeed();
         } finally {
             store.save(player.getUUID(), new com.google.gson.JsonObject());
@@ -343,11 +371,11 @@ public class PickupGameTests implements CustomTestMethodInvoker {
         var store = MagicShulkerBoxes.players(helper.getLevel().getServer());
         try {
             config.allowPlayerSettings = false;
-            check(helper, EditorNetwork.save(player, new EditorNetwork.Save(1, "{\"enabled\":false}")).status() == EditorNetwork.LOCKED, "GUI request obeys server policy");
+            check(helper, EditorNetwork.save(player, new EditorNetwork.Save(1, "{\"pickupStorageEnabled\":false}")).status() == EditorNetwork.LOCKED, "GUI request obeys server policy");
             config.allowPlayerSettings = true;
-            var result = EditorNetwork.save(player, new EditorNetwork.Save(2, "{\"enabled\":false}"));
+            var result = EditorNetwork.save(player, new EditorNetwork.Save(2, "{\"pickupStorageEnabled\":false}"));
             check(helper, result.status() == EditorNetwork.SAVED && result.request() == 2, "Saved reply identifies the exact request");
-            check(helper, !MagicShulkerBoxes.configFor(player).enabled, "GUI save changes actual effective settings");
+            check(helper, !MagicShulkerBoxes.configFor(player).pickupStorageEnabled, "GUI save changes actual effective settings");
             check(helper, EditorNetwork.save(player, new EditorNetwork.Save(3, "{}")).status() == EditorNetwork.BUSY, "Repeated GUI saves report busy instead of silently dropping");
             var another = fullPlayer(helper);
             check(helper, EditorNetwork.save(another, new EditorNetwork.Save(4, "{\"allowPlayerSettings\":false}")).status() == EditorNetwork.INVALID, "GUI cannot change server policy");

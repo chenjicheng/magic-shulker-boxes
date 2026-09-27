@@ -20,7 +20,7 @@ public final class ConfigFile {
     private ConfigFile() {}
 
     public static final int MAX_PREFERENCES_LENGTH = 4096;
-    private static final int CONFIG_VERSION = 1;
+    private static final int CONFIG_VERSION = 2;
     private static final String VERSION_KEY = "configVersion";
 
     public static JsonObject parsePreferences(String json) throws IOException {
@@ -36,14 +36,11 @@ public final class ConfigFile {
         return GSON.fromJson(validate(json, new ServerConfig()), ServerConfig.class);
     }
 
-    /** Apply personal preferences while retaining each server-side feature limit independently. */
+    /** Merge personal choices with server defaults after the server has allowed personal settings. */
     public static StorageConfig apply(StorageConfig defaults, JsonObject overrides) {
         var merged = GSON.toJsonTree(defaults).getAsJsonObject();
         overrides.entrySet().forEach(entry -> merged.add(entry.getKey(), entry.getValue().deepCopy()));
-        var effective = GSON.fromJson(merged, StorageConfig.class);
-        effective.enabled &= defaults.enabled;
-        effective.schematicRefill &= defaults.schematicRefill;
-        return effective;
+        return GSON.fromJson(merged, StorageConfig.class);
     }
 
     public static Set<String> optionNames() {
@@ -96,20 +93,43 @@ public final class ConfigFile {
         } catch (JsonParseException exception) { throw new IOException("Invalid settings JSON", exception); }
         if (document.has(VERSION_KEY)) {
             var version = document.remove(VERSION_KEY);
-            if (!version.isJsonPrimitive() || !version.getAsJsonPrimitive().isNumber()
-                    || !version.getAsString().equals(Integer.toString(CONFIG_VERSION))) {
+            if (!version.isJsonPrimitive() || !version.getAsJsonPrimitive().isNumber()) {
+                throw new IOException("Unsupported configVersion; file kept unchanged: " + path);
+            }
+            if (version.getAsString().equals("1")) return migrateVersionOne(path, document, defaults);
+            if (!version.getAsString().equals(Integer.toString(CONFIG_VERSION))) {
                 throw new IOException("Unsupported configVersion; file kept unchanged: " + path);
             }
             return document;
         }
         // 0.3.0 and earlier had no schema marker and cannot be distinguished reliably.
         // The upgrade policy deliberately resets all of them, preserving exact original bytes first.
-        var backup = path.resolveSibling(path.getFileName() + ".pre-0.3.1.bak");
-        if (Files.notExists(backup)) Files.copy(path, backup);
-        if (Files.mismatch(path, backup) != -1) throw new IOException("Conflicting migration backup; original kept: " + backup);
+        var backup = backupOriginal(path, ".pre-0.3.1.bak");
         writeDocument(path, defaults);
         MagicShulkerBoxes.LOGGER.warn("Reset legacy settings; backup: {} / 旧配置已重置，备份：{}", backup, backup);
         return defaults;
+    }
+
+    /** Version 1 stored the pickup switch as `enabled`; migrate the file, not the runtime schema. */
+    private static JsonObject migrateVersionOne(Path path, JsonObject old, JsonObject defaults) throws IOException {
+        if (old.has("pickupStorageEnabled")) {
+            throw new IOException("Version 1 file contains a version 2 option; file kept unchanged: " + path);
+        }
+        var migrated = old.deepCopy();
+        var pickup = migrated.remove("enabled");
+        if (pickup != null) migrated.add("pickupStorageEnabled", pickup);
+        validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
+        var backup = backupOriginal(path, ".pre-0.3.2.bak");
+        writeDocument(path, migrated);
+        MagicShulkerBoxes.LOGGER.info("Renamed pickup setting; backup: {} / 已重命名入盒设置，备份：{}", backup, backup);
+        return migrated;
+    }
+
+    private static Path backupOriginal(Path path, String suffix) throws IOException {
+        var backup = path.resolveSibling(path.getFileName() + suffix);
+        if (Files.notExists(backup)) Files.copy(path, backup);
+        if (Files.mismatch(path, backup) != -1) throw new IOException("Conflicting migration backup; original kept: " + backup);
+        return backup;
     }
 
     /** Replace only after a complete write, preserving the old file if writing fails. */

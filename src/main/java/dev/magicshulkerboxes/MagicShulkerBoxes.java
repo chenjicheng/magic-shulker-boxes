@@ -72,7 +72,7 @@ public final class MagicShulkerBoxes implements ModInitializer {
         } catch (IOException exception) {
             // Invalid config must not silently enable behavior the administrator tried to turn off.
             config = new ServerConfig();
-            config.enabled = false;
+            config.pickupStorageEnabled = false;
             config.schematicRefill = false;
             LOGGER.error("Cannot load {}. Automatic pickup storage and refill are disabled / 无法加载配置，自动入盒和取料已禁用。", path, exception);
         }
