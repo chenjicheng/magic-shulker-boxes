@@ -43,12 +43,14 @@ public final class SettingsGui {
 
     public static Screen personal(Screen parent) {
         try {
-            var draft = new SettingsDraft(ConfigFile.readPreferences(MagicShulkerBoxesClient.path()));
+            var draft = new SettingsDraft(ClientSettings.preferences());
             long revision = ClientSettings.session.revision();
             var defaults = ClientSettings.defaults();
             var editable = new ArrayList<Option<?>>();
             var category = ConfigCategory.createBuilder().name(text("gui.personal"))
                     .option(LabelOption.create(text("gui.status." + ClientSettings.session.mode().name())));
+            if (ClientSettings.session.pending()) category.option(LabelOption.create(text(
+                    ClientSettings.session.recovering() ? "gui.recovering" : "gui.pending")));
             if (defaults != null && defaults.has("enabled") && !defaults.get("enabled").getAsBoolean()) {
                 category.option(LabelOption.create(text("gui.pickup_off")));
             }

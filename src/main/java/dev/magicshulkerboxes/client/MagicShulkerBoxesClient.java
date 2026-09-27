@@ -3,7 +3,6 @@ package dev.magicshulkerboxes.client;
 import com.google.gson.JsonObject;
 import dev.magicshulkerboxes.ConfigFile;
 import dev.magicshulkerboxes.MagicShulkerBoxes;
-import dev.magicshulkerboxes.Messages;
 import dev.magicshulkerboxes.SettingsNetwork;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,25 +27,11 @@ public final class MagicShulkerBoxesClient implements ClientModInitializer {
             MagicShulkerBoxes.LOGGER.error("Cannot create personal settings / 无法创建个人设置", exception);
         }
         ClientPlayNetworking.registerGlobalReceiver(SettingsNetwork.Policy.ID, (payload, context) -> {
-            if (!payload.allowed() || !ClientPlayNetworking.canSend(SettingsNetwork.Preferences.ID)) return;
-            try {
-                var overrides = ConfigFile.readPreferences(path());
-                ClientPlayNetworking.send(new SettingsNetwork.Preferences(overrides.toString()));
-            } catch (IOException exception) {
-                context.player().displayClientMessage(Messages.text(context.client().options.languageCode, "client_failed"), false);
-                MagicShulkerBoxes.LOGGER.error("Cannot send personal settings / 无法同步个人设置", exception);
-            }
+            ClientSettings.synchronize(payload.allowed());
         });
         ClientPlayNetworking.registerGlobalReceiver(SettingsNetwork.Preferences.ID, (payload, context) -> {
-            try {
-                // A correlated GUI reply owns persistence while that save is pending.
-                if (ClientSettings.session.pending()) return;
-                ConfigFile.write(path(), ConfigFile.parsePreferences(payload.json()));
-                SchematicRefillClient.invalidateSettings();
-            } catch (IOException exception) {
-                context.player().displayClientMessage(Messages.text(context.client().options.languageCode, "client_failed"), false);
-                MagicShulkerBoxes.LOGGER.error("Cannot save personal settings / 无法保存个人设置", exception);
-            }
+            // A correlated GUI reply owns reconciliation while a save or query is pending.
+            if (!ClientSettings.session.pending()) ClientSettings.receivePreferences(payload.json());
         });
     }
 }

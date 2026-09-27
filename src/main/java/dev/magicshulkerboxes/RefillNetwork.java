@@ -8,6 +8,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.HashSet;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -18,16 +19,17 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.GameType;
 
-/** Only slot indices and an item identifier cross the wire; item data always comes from the server. */
+/** Slot indices, an item ID and a bounded fingerprint cross the wire; extracted data is server-owned. */
 public final class RefillNetwork {
     private RefillNetwork() {}
     private static final Map<ServerPlayer, Integer> REQUESTS = new WeakHashMap<>();
     private static final Map<ServerPlayer, Integer> NOTICES = new WeakHashMap<>();
-    public record Request(int boxSlot, int contentSlot, String item) implements CustomPacketPayload {
-        public static final Type<Request> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "refill_v1"));
+    public record Request(int boxSlot, int contentSlot, String item, String fingerprint) implements CustomPacketPayload {
+        public static final Type<Request> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "refill_v2"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Request> CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, Request::boxSlot, ByteBufCodecs.VAR_INT, Request::contentSlot,
-                ByteBufCodecs.stringUtf8(256), Request::item, Request::new);
+                ByteBufCodecs.stringUtf8(256), Request::item,
+                ByteBufCodecs.stringUtf8(64), Request::fingerprint, Request::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }
     }
     public static void register() {
@@ -62,7 +64,10 @@ public final class RefillNetwork {
         if (stored.stream().count() > 27) return 0;
         var contents = NonNullList.withSize(27, ItemStack.EMPTY); stored.copyInto(contents);
         var wanted = contents.get(request.contentSlot());
-        if (wanted.isEmpty() || !wanted.is(item)) { failure(player, config, "changed", now); return 0; }
+        if (wanted.isEmpty() || !wanted.is(item) || request.fingerprint().length() != 64
+                || !request.fingerprint().equals(ItemFingerprint.of(wanted, player.registryAccess()))) {
+            failure(player, config, "changed", now); return 0;
+        }
         // A delayed or repeated request must not keep pulling stacks after the first refill arrived.
         if (inventory.findSlotMatchingItem(wanted) >= 0 || ItemStack.isSameItemSameComponents(player.getOffhandItem(), wanted)) return 0;
         int moved = 0;
@@ -75,8 +80,12 @@ public final class RefillNetwork {
             var data = alternative.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
             if (data.stream().count() > 27) continue;
             data.copyInto(contents);
+            // Equal components AND counts have identical capacity outcomes in the same box.
+            // Different counts remain candidates: extracting a smaller stack may free a whole slot.
+            var triedCounts = new HashSet<Integer>();
             for (int inner = 0; inner < 27 && moved == 0; inner++) {
-                if (ItemStack.isSameItemSameComponents(contents.get(inner), wanted)) {
+                if (ItemStack.isSameItemSameComponents(contents.get(inner), wanted)
+                        && triedCounts.add(contents.get(inner).getCount())) {
                     moved = ShulkerRefill.take(inventory, slot, inner, item, config);
                 }
             }

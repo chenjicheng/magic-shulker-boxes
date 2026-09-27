@@ -5,6 +5,6 @@
   "name": "Magic Shulker Boxes Tests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["dev.magicshulkerboxes.PickupGameTests", "dev.magicshulkerboxes.RefillGameTests"]
+    "fabric-gametest": ["dev.magicshulkerboxes.PickupGameTests", "dev.magicshulkerboxes.RefillGameTests", "dev.magicshulkerboxes.RefillRegressionGameTests"]
   }
 }

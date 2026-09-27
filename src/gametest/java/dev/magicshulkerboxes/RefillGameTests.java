@@ -21,7 +21,7 @@ public class RefillGameTests {
         var sparse = new ItemStack(Items.SHULKER_BOX);
         sparse.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(new ItemStack(Items.STONE))));
         inventory.setItem(35, sparse);
-        check(helper, RefillNetwork.accept(player, new RefillNetwork.Request(0, 0, "minecraft:stone")) == 1,
+        check(helper, RefillNetwork.accept(player, request(helper, 0, 0, "minecraft:stone")) == 1,
                 "Server chooses the least filled eligible box, independently of client ordering");
         check(helper, inventory.getItem(0).get(DataComponents.CONTAINER).stream().mapToInt(ItemStack::getCount).sum() == 1728,
                 "The full box is preserved");
@@ -37,7 +37,7 @@ public class RefillGameTests {
             config.enabled = false;
             config.schematicRefill = true;
             config.allowPlayerSettings = true;
-            var request = new RefillNetwork.Request(9, 0, "minecraft:stone");
+            var request = request(helper, 9, 0, "minecraft:stone");
             var allowed = player(helper);
             check(helper, RefillNetwork.accept(allowed, request) == 12, "Server pickup off must not block refill");
             var denied = player(helper);
@@ -55,7 +55,7 @@ public class RefillGameTests {
 
     @GameTest public void networkRequestUsesRealInventoryAndRejectsRepeats(GameTestHelper helper) {
         var player = player(helper);
-        var request = new RefillNetwork.Request(9, 0, "minecraft:stone");
+        var request = request(helper, 9, 0, "minecraft:stone");
         check(helper, player.isAlive(), "Fixture is alive");
         // Mojang's mock overrides gameMode() to CREATIVE; its real server game-mode controller is configurable.
         check(helper, player.gameMode.getGameModeForPlayer() == GameType.SURVIVAL, "Fixture is a survival player");
@@ -70,9 +70,9 @@ public class RefillGameTests {
     }
 
     @GameTest public void disabledSpectatorAndForgedItemRequestsCannotExtract(GameTestHelper helper) {
-        var request = new RefillNetwork.Request(9, 0, "minecraft:stone");
+        var request = request(helper, 9, 0, "minecraft:stone");
         var forged = player(helper);
-        check(helper, RefillNetwork.accept(forged, new RefillNetwork.Request(9, 0, "minecraft:diamond")) == 0, "Client item claim is checked");
+        check(helper, RefillNetwork.accept(forged, request(helper, 9, 0, "minecraft:diamond")) == 0, "Client item claim is checked");
         for (var mode : List.of(GameType.SPECTATOR, GameType.CREATIVE)) {
             var other = player(helper); other.setGameMode(mode);
             check(helper, RefillNetwork.accept(other, request) == 0, "Game mode cannot extract: " + mode);
@@ -91,12 +91,12 @@ public class RefillGameTests {
     @GameTest public void openContainerCursorAndBadIndicesCannotExtract(GameTestHelper helper) {
         for (int slot : new int[]{-1, 36, 40, Integer.MAX_VALUE}) {
             var player = player(helper);
-            check(helper, RefillNetwork.accept(player, new RefillNetwork.Request(slot, 0, "minecraft:stone")) == 0, "Invalid box index refused");
+            check(helper, RefillNetwork.accept(player, request(helper, slot, 0, "minecraft:stone")) == 0, "Invalid box index refused");
             check(helper, materials(player) == 12, "Invalid index preserves materials");
         }
         var carried = player(helper);
         carried.inventoryMenu.setCarried(new ItemStack(Items.DIAMOND));
-        check(helper, RefillNetwork.accept(carried, new RefillNetwork.Request(9, 0, "minecraft:stone")) == 0, "Cursor stack blocks refill");
+        check(helper, RefillNetwork.accept(carried, request(helper, 9, 0, "minecraft:stone")) == 0, "Cursor stack blocks refill");
         check(helper, materials(carried) == 12, "Cursor refusal preserves materials");
         helper.succeed();
     }
@@ -108,7 +108,7 @@ public class RefillGameTests {
             var config = MagicShulkerBoxes.config(); boolean old = config.includeOffhand;
             try {
                 config.includeOffhand = false;
-                check(helper, RefillNetwork.accept(player, new RefillNetwork.Request(slot, 0, "minecraft:stone")) == 0,
+                check(helper, RefillNetwork.accept(player, request(helper, slot, 0, "minecraft:stone")) == 0,
                         "Excluded source must not trigger extraction from a different box");
             } finally { config.includeOffhand = old; }
             check(helper, materials(player) == 12, "Excluded source preserves the valid material box");
@@ -126,7 +126,7 @@ public class RefillGameTests {
         for (int i = 0; i < 36; i++) inv.setItem(i, new ItemStack(Items.DIRT, 64));
         inv.setItem(9, first); first.setCount(3);
         inv.setItem(10, first.copyWithCount(1));
-        check(helper, RefillNetwork.accept(player, new RefillNetwork.Request(9, 0, "minecraft:stone")) == 12, "Later usable box can supply materials");
+        check(helper, RefillNetwork.accept(player, request(helper, 9, 0, "minecraft:stone")) == 12, "Later usable box can supply materials");
         check(helper, inv.getItem(9).getCount() == 3, "Unusable stacked source remains unchanged");
         check(helper, inv.getItem(11).is(Items.STONE), "Full inventory received materials safely");
         helper.succeed();
@@ -140,4 +140,8 @@ public class RefillGameTests {
         return player;
     }
     private static void check(GameTestHelper helper, boolean value, String reason) { helper.assertTrue(value, Component.literal(reason)); }
+    private static RefillNetwork.Request request(GameTestHelper helper, int boxSlot, int contentSlot, String item) {
+        var stack = new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse(item)));
+        return new RefillNetwork.Request(boxSlot, contentSlot, item, ItemFingerprint.of(stack, helper.getLevel().registryAccess()));
+    }
 }

@@ -59,7 +59,7 @@ npm run docs:preview
 
 `RefillSearch` 只读查找组件完全匹配的材料。可选 Mixin 包围 Litematica `WorldUtils.doEasyPlaceAction` 和 `EasyPlaceUtils.handleEasyPlace`，仅在轻松放置调用 `InventoryUtils.schematicWorldPickBlock` 时触发取料，普通选取方块不受影响。`LitematicaMixinPlugin` 在未安装 Litematica 时跳过这些客户端目标；构建和专用服务端不依赖其 JAR。
 
-`refill_v1` 请求只包含盒子栏位、盒内栏位和有长度上限的物品 ID。`RefillNetwork` 在服务端线程检查游戏模式、菜单/光标状态、服务器开关和玩家设置，并重新读取真实物品；每位玩家每 10 个服务端 tick 最多处理一次，重复请求遇到背包已有材料时直接停止。`ShulkerRefill` 先在副本中规划取出、腾栏和拆盒，全部可行后才提交；失败不修改背包。成功只走原版背包同步，失败可发送限频快捷栏提示。
+`refill_v2` 请求包含盒子栏位、盒内栏位、有长度上限的物品 ID 和 64 字符 SHA-256 指纹。`ItemFingerprint` 使用原版 `HashOps`、物品编解码器及注册表上下文计算与数量无关的规范化指纹；无法编码或含临时组件时拒绝，不接收完整客户端物品数据。旧 `refill_v1` 不再注册。`RefillNetwork` 在服务端线程检查来源指纹、游戏模式、菜单/光标状态、服务器开关和玩家设置，并重新读取真实物品；每位玩家每 10 个服务端 tick 最多处理一次，重复请求遇到背包已有材料时直接停止。相同盒内组件和数量相同的候选只规划一次，数量不同仍分别尝试。`ShulkerRefill` 先在副本中规划取出、腾栏和拆盒，全部可行后才提交；失败不修改背包。成功只走原版背包同步，失败可发送限频快捷栏提示。
 
 取料不会直接放置方块或绕过 Litematica 的快捷栏保护和放置校验。等待同步期间抑制的是本次缺料产生的通用轻松放置警告；继续按住放置键后，由原有流程选物并放置。
 
@@ -146,9 +146,11 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 `ModMenuIntegration` 提供配置入口，检查 YACL 是否加载后才引用 `SettingsGui`。GUI 库使用 `modCompileOnly`，不会打包进本模组；开发启动可加 `-PwithConfigGui`。默认 GameTest 不加载 GUI 依赖，以检查纯服务端兼容。
 
-YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，继承会删除键。`SettingsSession` 用连接与策略修订号隔离打开的编辑器和待确认保存；仅匹配请求的回复可写本地文件。`ClientSettings` 负责客户端持久化、通知、超时和本地服务端提交。
+YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，继承会删除键。`SettingsSession` 用连接与策略修订号隔离打开的编辑器和待确认保存；超时保留请求号并发起恢复查询，重复或旧连接回复不能写入。`PreferenceSync` 在发送保存前写入服务器地址/存档路径与玩家 UUID 对应的哈希文件名恢复标记，位于 `config/magic_shulker_boxes-recovery/`；标记不包含设置值或明文地址。收到确认后先更新内存快照，再写个人文件并清除标记。失败时内存仍跟随服务端，重连/进程重启遇到标记时先查询，不自动上传旧文件。`ClientSettings` 协调通知、超时和本地服务端提交。
 
-`EditorNetwork` 增加三个可选通道：`editor_state_v1`（策略和默认值）、`editor_save_v1`（请求号和覆盖项）、`editor_result_v1`（对应确认或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核策略并限制每玩家每 20 tick 一次 GUI 保存，限流返回明确状态。旧同步通道保留兼容。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
+`EditorNetwork` 使用 `editor_state_v1`（策略和默认值）、`editor_save_v1`（请求号和覆盖项）、`editor_query_v1`（只读恢复查询请求号）及 `editor_result_v1`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧同步通道保留；新版 GUI 保存要求对端支持查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
+
+`RefillRegressionGameTests` 覆盖请求途中改名、未变化的改名材料、保存超时后查询、玩家隔离及限流，以及满背包只取一个时的重复失败规划。测试在支持线程分配计数的 JVM 上限制该夹具每请求分配低于 4 MiB，同时记录耗时；不使用机器相关的耗时阈值。`PreferenceSyncTest` 注入本地文件替换失败并验证内存状态、恢复标记和重启行为。
 
 验收除单元测试和 Carpet GameTest 外，还应检查 Mod Menu 主菜单入口、YACL 中英文布局、保存/取消/继承、服务端锁定与撤销、单人主机统一配置。`SettingsEditorTest` 覆盖草稿隔离、继承和旧确认拒绝；GUI 保存 GameTest 验证实际玩家有效配置、策略字段拒绝和明确限流。
 

@@ -28,7 +28,7 @@ public final class SchematicRefillClient {
         var defaults = ClientSettings.defaults();
         if (defaults != null) settings = ConfigFile.apply(settings, defaults);
         if (ClientSettings.session.mode() == SettingsSession.Mode.ALLOWED || defaults == null) {
-            try { settings = ConfigFile.apply(settings, ConfigFile.readPreferences(MagicShulkerBoxesClient.path())); }
+            try { settings = ConfigFile.apply(settings, ClientSettings.preferences()); }
             catch (IOException exception) { settings.schematicRefill = false; ClientSettings.failure(exception); }
         }
         return settings;
@@ -53,7 +53,10 @@ public final class SchematicRefillClient {
         nextRequest = System.nanoTime() + 500_000_000L;
         var match = RefillSearch.find(inventory, wanted, config);
         if (match != null) {
-            ClientPlayNetworking.send(new RefillNetwork.Request(match.boxSlot(), match.contentSlot(), BuiltInRegistries.ITEM.getKey(wanted.getItem()).toString()));
+            var fingerprint = ItemFingerprint.of(wanted, mc.player.registryAccess());
+            if (fingerprint.isEmpty()) { notice("changed"); return true; }
+            ClientPlayNetworking.send(new RefillNetwork.Request(match.boxSlot(), match.contentSlot(),
+                    BuiltInRegistries.ITEM.getKey(wanted.getItem()).toString(), fingerprint));
             return true;
         }
         notice("missing");

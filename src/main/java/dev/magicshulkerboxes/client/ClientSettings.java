@@ -12,11 +12,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.level.storage.LevelResource;
 
 /** Client-thread coordinator; neither optional GUI library is referenced here. */
 public final class ClientSettings {
     static final SettingsSession session = new SettingsSession();
     private static JsonObject defaults;
+    private static PreferenceSync preferences;
     private static int pendingRequest;
     private static long deadline;
     private static final SystemToast.SystemToastId TOAST = new SystemToast.SystemToastId(8000);
@@ -36,10 +38,52 @@ public final class ClientSettings {
     }
     static JsonObject defaults() { return defaults == null ? null : defaults.deepCopy(); }
     static Path localPath() { return FabricLoader.getInstance().getConfigDir().resolve("magic_shulker_boxes.json"); }
+    private static PreferenceSync sync() {
+        if (preferences == null) preferences = new PreferenceSync(MagicShulkerBoxesClient.path(),
+                FabricLoader.getInstance().getConfigDir().resolve("magic_shulker_boxes-recovery"));
+        return preferences;
+    }
+    static JsonObject preferences() throws IOException { return sync().values(); }
+    private static String serverKey() {
+        var client = Minecraft.getInstance();
+        var server = client.getSingleplayerServer();
+        String address = server != null ? "local:" + server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize()
+                : "remote:" + (client.getCurrentServer() != null ? client.getCurrentServer().ip
+                : client.getConnection().getConnection().getRemoteAddress().toString());
+        return address + "/" + client.player.getUUID();
+    }
+    static boolean receivePreferences(String json) {
+        try {
+            sync().receive(serverKey(), ConfigFile.parsePreferences(json));
+            return true;
+        } catch (IOException exception) {
+            MagicShulkerBoxes.LOGGER.error("Server preferences received but local persistence failed / 已收到服务端设置，但本地保存失败", exception);
+            notice("gui.server_saved_local_failed");
+            return false;
+        } finally {
+            SchematicRefillClient.invalidateSettings();
+            session.preferencesChanged();
+        }
+    }
+    private static void refresh() {
+        if (!ClientPlayNetworking.canSend(EditorNetwork.Query.ID)) { notice("gui.recovery_unavailable"); return; }
+        if (session.pending()) return;
+        pendingRequest = session.beginRefresh();
+        deadline = System.nanoTime() + 10_000_000_000L;
+        ClientPlayNetworking.send(new EditorNetwork.Query(pendingRequest));
+        notice("gui.recovering");
+    }
+    static void synchronize(boolean allowed) {
+        // Recover before any automatic upload, including after a disconnect or process restart.
+        if (sync().needsRecovery(serverKey())) { refresh(); return; }
+        if (!allowed || !ClientPlayNetworking.canSend(SettingsNetwork.Preferences.ID)) return;
+        try { ClientPlayNetworking.send(new SettingsNetwork.Preferences(preferences().toString())); }
+        catch (IOException exception) { failure(exception); }
+    }
 
     public static void register() {
-        ClientPlayConnectionEvents.INIT.register((handler, client) -> { session.connected(); defaults = null; });
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> { session.disconnected(); defaults = null; });
+        ClientPlayConnectionEvents.INIT.register((handler, client) -> { session.connected(); defaults = null; sync().disconnected(); });
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> { session.disconnected(); defaults = null; sync().disconnected(); });
         ClientPlayNetworking.registerGlobalReceiver(EditorNetwork.State.ID, (payload, context) -> {
             try {
                 defaults = ConfigFile.parsePreferences(payload.defaults());
@@ -48,23 +92,26 @@ public final class ClientSettings {
             } catch (IOException exception) { session.connected(); defaults = null; failure(exception); }
         });
         ClientPlayNetworking.registerGlobalReceiver(EditorNetwork.Result.ID, (payload, context) -> {
-            if (!session.acknowledge(payload.request())) return;
+            boolean recovering = session.recovering();
+            if (!session.acknowledgeResult(payload.request(), payload.status())) return;
             switch (payload.status()) {
-                case EditorNetwork.SAVED -> {
-                    try {
-                        ConfigFile.write(MagicShulkerBoxesClient.path(), ConfigFile.parsePreferences(payload.json()));
-                        SchematicRefillClient.invalidateSettings();
-                        notice("gui.saved");
-                    } catch (IOException exception) { failure(exception); }
+                case EditorNetwork.SAVED, EditorNetwork.SNAPSHOT -> {
+                    if (receivePreferences(payload.json())) {
+                        notice(payload.status() == EditorNetwork.SAVED ? "gui.saved" : "gui.recovered");
+                    }
                 }
                 case EditorNetwork.LOCKED -> { session.policy(false); notice("locked"); }
                 case EditorNetwork.INVALID -> notice("invalid");
-                case EditorNetwork.BUSY -> notice("gui.busy");
+                case EditorNetwork.BUSY, EditorNetwork.QUERY_BUSY -> notice("gui.busy");
                 default -> notice("gui.failed");
             }
+            if (payload.status() != EditorNetwork.SAVED && payload.status() != EditorNetwork.SNAPSHOT && !recovering) refresh();
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (session.pending() && System.nanoTime() > deadline && session.acknowledge(pendingRequest)) notice("gui.timeout");
+            if (session.pending() && System.nanoTime() > deadline && session.timeout(pendingRequest)) {
+                notice("gui.timeout");
+                if (ClientPlayNetworking.canSend(EditorNetwork.Query.ID)) ClientPlayNetworking.send(new EditorNetwork.Query(pendingRequest));
+            }
         });
     }
 
@@ -76,12 +123,14 @@ public final class ClientSettings {
                 ConfigFile.write(MagicShulkerBoxesClient.path(), validated);
                 SchematicRefillClient.invalidateSettings();
                 notice("gui.saved");
-            } else if (ClientPlayNetworking.canSend(EditorNetwork.Save.ID)) {
+            } else if (ClientPlayNetworking.canSend(EditorNetwork.Save.ID) && ClientPlayNetworking.canSend(EditorNetwork.Query.ID)) {
+                if (sync().needsRecovery(serverKey())) { refresh(); return; }
+                sync().prepareSave(serverKey());
                 pendingRequest = session.beginSave(revision);
                 deadline = System.nanoTime() + 10_000_000_000L;
                 ClientPlayNetworking.send(new EditorNetwork.Save(pendingRequest, validated.toString()));
                 notice("gui.pending");
-            } else notice("gui.stale");
+            } else notice("gui.recovery_unavailable");
         } catch (IOException exception) { failure(exception); }
     }
 

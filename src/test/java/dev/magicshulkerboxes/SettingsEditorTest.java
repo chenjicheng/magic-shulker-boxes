@@ -6,6 +6,39 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SettingsEditorTest {
+    @Test void lateSaveRejectionDoesNotDiscardTheRecoverySnapshot() {
+        var session = new SettingsSession(); session.connected(); session.policy(true);
+        int request = session.beginSave(session.revision());
+        session.timeout(request);
+        assertFalse(session.acknowledgeResult(request, EditorNetwork.BUSY));
+        assertTrue(session.pending(), "A late save rejection is not the result of the recovery query");
+        assertTrue(session.acknowledgeResult(request, EditorNetwork.SNAPSHOT));
+        assertFalse(session.acknowledgeResult(request, EditorNetwork.SAVED));
+        int retry = session.beginRefresh();
+        assertTrue(session.acknowledgeResult(retry, EditorNetwork.QUERY_BUSY), "A query's own rejection ends that attempt");
+        assertFalse(session.pending());
+        retry = session.beginRefresh();
+        assertTrue(session.acknowledgeResult(retry, EditorNetwork.QUERY_FAILED));
+        assertFalse(session.pending(), "Failed queries allow a subsequent recovery attempt");
+    }
+
+    @Test void timeoutKeepsLateConfirmationAndLocksFurtherEditsUntilReconciled() {
+        var session = new SettingsSession(); session.connected(); session.policy(true);
+        int request = session.beginSave(session.revision());
+        assertTrue(session.timeout(request));
+        assertFalse(session.timeout(request), "Only one recovery query per deadline");
+        assertTrue(session.pending());
+        assertTrue(session.recovering());
+        assertFalse(session.editable(session.revision()));
+        assertTrue(session.acknowledge(request), "A late save or snapshot can still reconcile the session");
+        int refresh = session.beginRefresh();
+        session.disconnected(); session.connected(); session.policy(true);
+        int current = session.beginRefresh();
+        assertNotEquals(refresh, current);
+        assertFalse(session.acknowledge(refresh), "Old connection cannot overwrite the new one");
+        assertTrue(session.acknowledge(current));
+    }
+
     @Test
     void localHostMayKeepEditingAfterItsOwnPolicyUpdateButNotAfterReconnect() {
         var session = new SettingsSession();

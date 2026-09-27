@@ -20,6 +20,9 @@ class SettingsNetworkTest {
             var result = new EditorNetwork.Result(12, EditorNetwork.SAVED, "{}");
             EditorNetwork.Result.CODEC.encode(buffer, result);
             assertEquals(result, EditorNetwork.Result.CODEC.decode(buffer));
+            var query = new EditorNetwork.Query(15);
+            EditorNetwork.Query.CODEC.encode(buffer, query);
+            assertEquals(query, EditorNetwork.Query.CODEC.decode(buffer));
             assertThrows(io.netty.handler.codec.EncoderException.class,
                     () -> EditorNetwork.Save.CODEC.encode(buffer, new EditorNetwork.Save(13, "x".repeat(4097))));
         } finally { buffer.release(); }

@@ -17,9 +17,11 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 /** Optional GUI protocol. Request IDs prevent stale replies from committing client files. */
 public final class EditorNetwork {
-    public static final int SAVED = 0, LOCKED = 1, INVALID = 2, BUSY = 3, FAILED = 4;
+    public static final int SAVED = 0, LOCKED = 1, INVALID = 2, BUSY = 3, FAILED = 4, SNAPSHOT = 5,
+            QUERY_BUSY = 6, QUERY_FAILED = 7;
     private EditorNetwork() {}
     private static final Map<UUID, Integer> LAST_SAVE = new HashMap<>();
+    private static final Map<UUID, Integer> LAST_QUERY = new HashMap<>();
     private static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> id(String path) {
         return new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", path));
     }
@@ -42,15 +44,29 @@ public final class EditorNetwork {
                 ByteBufCodecs.stringUtf8(4096), Result::json, Result::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }
     }
+    public record Query(int request) implements CustomPacketPayload {
+        public static final Type<Query> ID = id("editor_query_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, Query> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, Query::request, Query::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return ID; }
+    }
     public static void register() {
         PayloadTypeRegistry.playS2C().register(State.ID, State.CODEC);
         PayloadTypeRegistry.playS2C().register(Result.ID, Result.CODEC);
         PayloadTypeRegistry.playC2S().register(Save.ID, Save.CODEC);
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> LAST_SAVE.remove(handler.player.getUUID()));
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> LAST_SAVE.clear());
+        PayloadTypeRegistry.playC2S().register(Query.ID, Query.CODEC);
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            LAST_SAVE.remove(handler.player.getUUID()); LAST_QUERY.remove(handler.player.getUUID());
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> { LAST_SAVE.clear(); LAST_QUERY.clear(); });
         ServerPlayNetworking.registerGlobalReceiver(Save.ID, (payload, context) -> {
             if (ServerPlayNetworking.canSend(context.player(), Result.ID)) {
                 ServerPlayNetworking.send(context.player(), save(context.player(), payload));
+            }
+        });
+        ServerPlayNetworking.registerGlobalReceiver(Query.ID, (payload, context) -> {
+            if (ServerPlayNetworking.canSend(context.player(), Result.ID)) {
+                ServerPlayNetworking.send(context.player(), query(context.player(), payload));
             }
         });
     }
@@ -78,6 +94,21 @@ public final class EditorNetwork {
         } catch (IOException exception) {
             MagicShulkerBoxes.LOGGER.error("Cannot save GUI preferences / 无法保存界面设置", exception);
             return new Result(payload.request(), FAILED, "{}");
+        }
+    }
+
+    /** Read only the authenticated player's persisted preferences, even if personal edits are now locked. */
+    public static Result query(ServerPlayer player, Query payload) {
+        int now = player.level().getServer().getTickCount();
+        var last = LAST_QUERY.get(player.getUUID());
+        if (last != null && now - last < 20) return new Result(payload.request(), QUERY_BUSY, "{}");
+        LAST_QUERY.put(player.getUUID(), now);
+        try {
+            var values = MagicShulkerBoxes.players(player.level().getServer()).read(player.getUUID());
+            return new Result(payload.request(), SNAPSHOT, values.toString());
+        } catch (IOException exception) {
+            MagicShulkerBoxes.LOGGER.error("Cannot reconcile preferences / 无法重新同步个人设置", exception);
+            return new Result(payload.request(), QUERY_FAILED, "{}");
         }
     }
 }
