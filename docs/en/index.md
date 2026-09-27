@@ -9,7 +9,7 @@ hero:
       text: Install and configure
       link: /en/guide
     - theme: alt
-      text: Download Alpha
+      text: Download mod
       link: https://github.com/chenjicheng/magic-shulker-boxes/releases
 features:
   - title: Ordered storage
@@ -20,4 +20,4 @@ features:
     details: Servers can allow player settings, with a bilingual Mod Menu + YACL client screen.
 ---
 
-The current version is **0.3.0-alpha**. Read the [release notes](../releases/0.3.0-alpha.md) or the [development, testing and release guide](development.md).
+The current version is **0.3.1**. Read the [release notes](../releases/0.3.1.md) or the [development, testing and release guide](development.md).

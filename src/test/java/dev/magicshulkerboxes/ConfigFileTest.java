@@ -38,7 +38,7 @@ class ConfigFileTest {
     void firstLoadWritesDefaults() throws IOException {
         var path = directory.resolve("config/magic_shulker_boxes.json");
         var config = ConfigFile.load(path);
-        assertTrue(config.enabled);
+        assertFalse(config.enabled);
         assertFalse(config.allowPlayerSettings);
         assertTrue(config.onlyWhenInventoryFull);
         assertFalse(config.allowOtherSingleTypeBoxes);
@@ -49,7 +49,7 @@ class ConfigFileTest {
     @Test
     void acceptsPartialConfigWithoutOverwritingUsersFile() throws IOException {
         var path = directory.resolve("config.json");
-        var json = "{\"allowOtherSingleTypeBoxes\":true,\"useEmptyBoxes\":false}";
+        var json = "{\"configVersion\":1,\"allowOtherSingleTypeBoxes\":true,\"useEmptyBoxes\":false}";
         Files.writeString(path, json);
         var config = ConfigFile.load(path);
         assertTrue(config.allowOtherSingleTypeBoxes);
@@ -62,13 +62,13 @@ class ConfigFileTest {
     void acceptsAllSpaceModesAndRejectsUnknownOrMistypedValues() throws IOException {
         var path = directory.resolve("config.json");
         for (var mode : StorageConfig.MakeSpaceMode.values()) {
-            Files.writeString(path, "{\"makeSpaceMode\":\"" + mode + "\",\"useHotbarForSpace\":true}");
+            Files.writeString(path, "{\"configVersion\":1,\"makeSpaceMode\":\"" + mode + "\",\"useHotbarForSpace\":true}");
             var config = ConfigFile.load(path);
             assertEquals(mode, config.makeSpaceMode);
             assertTrue(config.useHotbarForSpace);
         }
         for (var value : new String[] {"\"unknown\"", "true", "null", "1"}) {
-            Files.writeString(path, "{\"makeSpaceMode\":" + value + "}");
+            Files.writeString(path, "{\"configVersion\":1,\"makeSpaceMode\":" + value + "}");
             assertThrows(IOException.class, () -> ConfigFile.load(path));
         }
     }
@@ -76,8 +76,8 @@ class ConfigFileTest {
     @Test
     void rejectsBrokenOrMistypedConfigWithoutOverwritingIt() throws IOException {
         var path = directory.resolve("config.json");
-        for (var json : new String[] {"{", "null", "[]", "{\"enabled\":\"false\"}",
-                "{\"enabled\":null}", "{\"useEmptyBox\":true}"}) {
+        for (var json : new String[] {"{", "null", "[]", "{\"configVersion\":1,\"enabled\":\"false\"}",
+                "{\"configVersion\":1,\"enabled\":null}", "{\"configVersion\":1,\"useEmptyBox\":true}"}) {
             Files.writeString(path, json);
             assertThrows(IOException.class, () -> ConfigFile.load(path), json);
             assertEquals(json, Files.readString(path));

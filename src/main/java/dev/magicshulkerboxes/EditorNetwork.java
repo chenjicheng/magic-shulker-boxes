@@ -26,26 +26,26 @@ public final class EditorNetwork {
         return new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", path));
     }
     public record State(boolean allowed, String defaults) implements CustomPacketPayload {
-        public static final Type<State> ID = id("editor_state_v1");
+        public static final Type<State> ID = id("editor_state_v2");
         public static final StreamCodec<RegistryFriendlyByteBuf, State> CODEC = StreamCodec.composite(
                 ByteBufCodecs.BOOL, State::allowed, ByteBufCodecs.stringUtf8(4096), State::defaults, State::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }
     }
     public record Save(int request, String json) implements CustomPacketPayload {
-        public static final Type<Save> ID = id("editor_save_v1");
+        public static final Type<Save> ID = id("editor_save_v2");
         public static final StreamCodec<RegistryFriendlyByteBuf, Save> CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, Save::request, ByteBufCodecs.stringUtf8(4096), Save::json, Save::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }
     }
     public record Result(int request, int status, String json) implements CustomPacketPayload {
-        public static final Type<Result> ID = id("editor_result_v1");
+        public static final Type<Result> ID = id("editor_result_v2");
         public static final StreamCodec<RegistryFriendlyByteBuf, Result> CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, Result::request, ByteBufCodecs.VAR_INT, Result::status,
                 ByteBufCodecs.stringUtf8(4096), Result::json, Result::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }
     }
     public record Query(int request) implements CustomPacketPayload {
-        public static final Type<Query> ID = id("editor_query_v1");
+        public static final Type<Query> ID = id("editor_query_v2");
         public static final StreamCodec<RegistryFriendlyByteBuf, Query> CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, Query::request, Query::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }

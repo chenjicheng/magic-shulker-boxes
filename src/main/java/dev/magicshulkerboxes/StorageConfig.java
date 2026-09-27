@@ -2,7 +2,7 @@ package dev.magicshulkerboxes;
 
 public class StorageConfig {
     // Retain the persisted key; this switch controls pickup storage only.
-    public boolean enabled = true;
+    public boolean enabled = false;
     public boolean onlyWhenInventoryFull = true;
     public boolean useMatchingBoxes = true;
     public boolean useEmptyBoxes = true;

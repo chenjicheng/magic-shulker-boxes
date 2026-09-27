@@ -3,6 +3,7 @@ package dev.magicshulkerboxes;
 import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +30,7 @@ public final class PlayerSettingsStore {
 
     public void save(UUID player, JsonObject overrides) throws IOException {
         var validated = ConfigFile.parsePreferences(overrides.toString());
-        ConfigFile.write(directory.resolve(player + ".json"), validated);
+        ConfigFile.writePreferences(directory.resolve(player + ".json"), validated);
         cached.put(player, validated.deepCopy());
         failures.remove(player);
     }
@@ -41,4 +42,22 @@ public final class PlayerSettingsStore {
     }
 
     public void clearCache() { cached.clear(); failures.clear(); }
+
+    /** Process offline players too; a bad file is isolated and never prevents other migrations. */
+    public void migrateExisting() throws IOException {
+        if (Files.notExists(directory)) return;
+        try (var files = Files.newDirectoryStream(directory, "*.json")) {
+            for (var path : files) {
+                UUID player;
+                var name = path.getFileName().toString();
+                try { player = UUID.fromString(name.substring(0, name.length() - 5)); }
+                catch (IllegalArgumentException exception) { continue; }
+                if (!name.equals(player + ".json")) continue;
+                try { read(player); }
+                catch (IOException exception) {
+                    MagicShulkerBoxes.LOGGER.error("Cannot migrate player settings; file preserved / 无法迁移玩家设置，保留原文件: {}", path, exception);
+                }
+            }
+        }
+    }
 }

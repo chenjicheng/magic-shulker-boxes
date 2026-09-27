@@ -60,7 +60,7 @@ public final class MagicShulkerBoxes implements ModInitializer {
     /** Call on the server thread when a world is running. Publish only after the file is safely replaced. */
     public static void replaceConfig(ServerConfig replacement) throws IOException {
         var validated = ConfigFile.parseServer(ConfigFile.json(replacement));
-        ConfigFile.write(configPath(), validated);
+        ConfigFile.writeServer(configPath(), validated);
         config = validated;
     }
 
@@ -76,6 +76,10 @@ public final class MagicShulkerBoxes implements ModInitializer {
             config.schematicRefill = false;
             LOGGER.error("Cannot load {}. Automatic pickup storage and refill are disabled / 无法加载配置，自动入盒和取料已禁用。", path, exception);
         }
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            try { players(server).migrateExisting(); }
+            catch (IOException exception) { LOGGER.error("Cannot scan player settings / 无法扫描玩家设置", exception); }
+        });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> { PLAYERS.remove(server); WARNED.clear(); });
         SettingsCommands.register();
         EditorNetwork.register();

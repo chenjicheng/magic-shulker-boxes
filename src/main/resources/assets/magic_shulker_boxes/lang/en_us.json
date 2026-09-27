@@ -40,7 +40,7 @@
   "magic_shulker_boxes.option.allowPlayerSettings": "Allow personal settings",
   "magic_shulker_boxes.description.allowPartialStacksForSpace": "Allow partial stacks such as three stones to free a slot. When off, only stacks at their maximum size are considered.",
   "magic_shulker_boxes.gui.space.INHERIT": "Inherit",
-  "magic_shulker_boxes.description.enabled": "Automatically store picked-up items in carried shulker boxes. This controls pickup storage only, independently of schematic refilling. Players cannot enable storage if the server disables it.",
+  "magic_shulker_boxes.description.enabled": "Automatically store picked-up items in carried shulker boxes; off by default. This controls pickup storage only, independently of schematic refilling. Players cannot enable storage if the server disables it.",
   "magic_shulker_boxes.gui.status.UNSUPPORTED": "This server does not provide the settings GUI protocol. Try /msb commands.",
   "magic_shulker_boxes.gui.stale": "The connection or policy changed. Reopen the settings screen.",
   "magic_shulker_boxes.description.matchItemComponents": "Compare names, enchantments and other components when classifying boxes. Actual stack merging always compares components.",

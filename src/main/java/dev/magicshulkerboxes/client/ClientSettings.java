@@ -120,7 +120,7 @@ public final class ClientSettings {
         try {
             var validated = ConfigFile.parsePreferences(values.toString());
             if (session.mode() == SettingsSession.Mode.OFFLINE) {
-                ConfigFile.write(MagicShulkerBoxesClient.path(), validated);
+                ConfigFile.writePreferences(MagicShulkerBoxesClient.path(), validated);
                 SchematicRefillClient.invalidateSettings();
                 notice("gui.saved");
             } else if (ClientPlayNetworking.canSend(EditorNetwork.Save.ID) && ClientPlayNetworking.canSend(EditorNetwork.Query.ID)) {

@@ -15,7 +15,7 @@ class PreferenceSyncTest {
         var file = directory.resolve("preferences.json");
         var recovery = directory.resolve("recovery");
         var sync = new PreferenceSync(file, recovery);
-        ConfigFile.write(file, ConfigFile.parsePreferences("{\"schematicRefill\":true}"));
+        ConfigFile.writePreferences(file, ConfigFile.parsePreferences("{\"schematicRefill\":true}"));
         sync.prepareSave("server-a/player-a");
         var restarted = new PreferenceSync(file, recovery);
         assertTrue(restarted.needsRecovery("server-a/player-a"));
@@ -50,7 +50,7 @@ class PreferenceSyncTest {
         assertThrows(IOException.class, () -> sync.prepareSave("server/player"));
         var normal = new PreferenceSync(file, directory.resolve("recovery"));
         normal.receive("server/player", ConfigFile.parsePreferences("{\"enabled\":false}"));
-        ConfigFile.write(file, ConfigFile.parsePreferences("{\"enabled\":true}"));
+        ConfigFile.writePreferences(file, ConfigFile.parsePreferences("{\"enabled\":true}"));
         normal.disconnected();
         assertTrue(normal.values().get("enabled").getAsBoolean());
     }

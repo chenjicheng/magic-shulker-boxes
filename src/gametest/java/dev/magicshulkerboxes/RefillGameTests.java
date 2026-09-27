@@ -60,7 +60,7 @@ public class RefillGameTests {
         // Mojang's mock overrides gameMode() to CREATIVE; its real server game-mode controller is configurable.
         check(helper, player.gameMode.getGameModeForPlayer() == GameType.SURVIVAL, "Fixture is a survival player");
         check(helper, player.containerMenu == player.inventoryMenu && player.inventoryMenu.getCarried().isEmpty(), "Fixture has ordinary inventory open");
-        check(helper, MagicShulkerBoxes.configFor(player).enabled && MagicShulkerBoxes.configFor(player).schematicRefill, "Fixture enables refilling");
+        check(helper, MagicShulkerBoxes.configFor(player).schematicRefill, "Fixture enables refilling independently of pickup");
         check(helper, player.getInventory().findSlotMatchingItem(new ItemStack(Items.STONE)) < 0, "Fixture has no loose stone");
         int moved = RefillNetwork.accept(player, request);
         check(helper, moved == 12, "Real server inventory receives source materials; moved=" + moved);

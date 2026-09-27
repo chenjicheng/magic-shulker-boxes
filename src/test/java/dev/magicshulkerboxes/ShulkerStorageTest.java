@@ -28,7 +28,7 @@ class ShulkerStorageTest {
         var packed = new ItemStack[27];
         java.util.Arrays.setAll(packed, i -> new ItemStack(Items.STONE, i == 26 ? 60 : 64));
         inventory.setItem(35, box(packed));
-        assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.STONE, 5), new StorageConfig()));
+        assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.STONE, 5), pickupEnabled()));
         assertEquals(1728, countContents(inventory.getItem(35)), "Fill the nearly full box first");
         assertEquals(2, countContents(inventory.getItem(0)), "Only the remainder enters the sparse box");
     }
@@ -44,7 +44,7 @@ class ShulkerStorageTest {
         // An even fuller mixed box cannot accept any stone and must be skipped.
         packed[26] = new ItemStack(Items.ENDER_PEARL, 16);
         inventory.setItem(34, box(packed));
-        assertEquals(3, ShulkerStorage.store(inventory, new ItemStack(Items.STONE, 3), new StorageConfig()));
+        assertEquals(3, ShulkerStorage.store(inventory, new ItemStack(Items.STONE, 3), pickupEnabled()));
         assertEquals(30, countContents(inventory.getItem(35)));
         assertEquals(128, countContents(inventory.getItem(0)));
         assertEquals(42, countContents(inventory.getItem(34)));
@@ -55,7 +55,7 @@ class ShulkerStorageTest {
         var inventory = fullInventory();
         inventory.setItem(0, box(new ItemStack(Items.STONE, 64), new ItemStack(Items.DIRT)));
         inventory.setItem(35, box(new ItemStack(Items.ENDER_PEARL, 16), new ItemStack(Items.STONE, 32)));
-        assertEquals(1, ShulkerStorage.store(inventory, new ItemStack(Items.STONE), new StorageConfig()));
+        assertEquals(1, ShulkerStorage.store(inventory, new ItemStack(Items.STONE), pickupEnabled()));
         assertEquals(49, countContents(inventory.getItem(35)), "1.5 occupied stacks precede 1 + 1/64 stacks");
         assertEquals(65, countContents(inventory.getItem(0)));
     }
@@ -68,7 +68,7 @@ class ShulkerStorageTest {
         inventory.setItem(35, box(new ItemStack(Items.COBBLESTONE, 63)));
         var incoming = new ItemStack(Items.COBBLESTONE, 3);
 
-        assertEquals(3, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(3, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertTrue(incoming.isEmpty());
         assertEquals(66, countContents(inventory.getItem(35)));
         assertEquals(0, countContents(inventory.getItem(0)));
@@ -86,7 +86,7 @@ class ShulkerStorageTest {
         inventory.setItem(2, box(nearlyFull));
         var incoming = new ItemStack(Items.COBBLESTONE, 10);
 
-        assertEquals(10, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(10, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(1728, countContents(inventory.getItem(2)));
         assertEquals(9, countContents(inventory.getItem(1)));
         assertEquals(2, countContents(inventory.getItem(0)));
@@ -100,7 +100,7 @@ class ShulkerStorageTest {
         stacked.setCount(16);
         inventory.setItem(1, box(new ItemStack(Items.DIRT), new ItemStack(Items.STONE)));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         config.makeSpaceMode = StorageConfig.MakeSpaceMode.DISABLED;
 
         assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
@@ -119,7 +119,7 @@ class ShulkerStorageTest {
         inventory.setItem(4, ItemStack.EMPTY);
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
 
-        assertEquals(5, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(5, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(15, stacked.getCount());
         assertEquals(0, countContents(stacked));
         assertEquals(1, inventory.getItem(4).getCount());
@@ -133,7 +133,7 @@ class ShulkerStorageTest {
         var inventory = fullInventory();
         inventory.setItem(0, box(new ItemStack(Items.DIRT)));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = new StorageConfig();
+        var config = pickupEnabled();
 
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
         assertEquals(5, incoming.getCount());
@@ -151,7 +151,7 @@ class ShulkerStorageTest {
         inventory.setItem(0, box(contents));
         var incoming = new ItemStack(Items.COBBLESTONE, 10);
 
-        assertEquals(3, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(3, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(7, incoming.getCount());
         assertEquals(1728, countContents(inventory.getItem(0)));
     }
@@ -161,7 +161,7 @@ class ShulkerStorageTest {
         var inventory = fullInventory();
         inventory.setItem(0, box());
         var incoming = new ItemStack(Items.RED_SHULKER_BOX);
-        assertEquals(0, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(0, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(1, incoming.getCount());
     }
 
@@ -171,7 +171,7 @@ class ShulkerStorageTest {
         inventory.setItem(0, box(new ItemStack(Items.COBBLESTONE, 63)));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
         incoming.set(DataComponents.CUSTOM_NAME, Component.literal("特殊圆石"));
-        assertEquals(5, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(5, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         var contents = inventory.getItem(0).get(DataComponents.CONTAINER).stream().toList();
         assertEquals(63, contents.get(0).getCount());
         assertEquals("特殊圆石", contents.get(1).getHoverName().getString());
@@ -188,7 +188,7 @@ class ShulkerStorageTest {
         stacked.setCount(2);
         inventory.setItem(1, ItemStack.EMPTY);
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        assertEquals(0, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(0, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(2, stacked.getCount());
         assertTrue(inventory.getItem(1).isEmpty());
         assertEquals(5, incoming.getCount());
@@ -201,7 +201,7 @@ class ShulkerStorageTest {
         inventory.setItem(1, box());
         inventory.setItem(2, box(new ItemStack(Items.DIRT), new ItemStack(Items.STONE)));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         config.enabled = false;
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
         config.enabled = true;
@@ -222,7 +222,7 @@ class ShulkerStorageTest {
         inventory.setItem(0, stacked);
         stacked.setCount(16);
         inventory.setItem(1, ItemStack.EMPTY);
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         config.splitStackedBoxes = false;
         assertEquals(0, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), config));
         assertEquals(16, stacked.getCount());
@@ -235,7 +235,7 @@ class ShulkerStorageTest {
         inventory.setItem(36, box());
         inventory.setItem(40, box());
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
         config.includeOffhand = true;
         assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
@@ -249,7 +249,7 @@ class ShulkerStorageTest {
         inventory.setItem(0, box(new ItemStack(Items.COBBLESTONE)));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
         incoming.set(DataComponents.CUSTOM_NAME, Component.literal("named"));
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         config.matchItemComponents = true;
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
         config.matchItemComponents = false;
@@ -260,12 +260,12 @@ class ShulkerStorageTest {
     void respectsSixteenItemAndUnstackableLimits() {
         var inventory = fullInventory();
         inventory.setItem(0, box(new ItemStack(Items.ENDER_PEARL, 15)));
-        assertEquals(3, ShulkerStorage.store(inventory, new ItemStack(Items.ENDER_PEARL, 3), new StorageConfig()));
+        assertEquals(3, ShulkerStorage.store(inventory, new ItemStack(Items.ENDER_PEARL, 3), pickupEnabled()));
         var contents = inventory.getItem(0).get(DataComponents.CONTAINER).stream().toList();
         assertEquals(16, contents.get(0).getCount());
         assertEquals(2, contents.get(1).getCount());
         inventory.setItem(1, box());
-        assertEquals(2, ShulkerStorage.store(inventory, new ItemStack(Items.DIAMOND_PICKAXE, 2), new StorageConfig()));
+        assertEquals(2, ShulkerStorage.store(inventory, new ItemStack(Items.DIAMOND_PICKAXE, 2), pickupEnabled()));
         contents = inventory.getItem(1).get(DataComponents.CONTAINER).stream().toList();
         assertEquals(1, contents.get(0).getCount());
         assertEquals(1, contents.get(1).getCount());
@@ -278,7 +278,7 @@ class ShulkerStorageTest {
         for (int i = 0; i < 28; i++) contents[i] = new ItemStack(Items.COBBLESTONE);
         inventory.setItem(0, box(contents));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        assertEquals(0, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(0, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(28, countContents(inventory.getItem(0)));
     }
 
@@ -293,7 +293,7 @@ class ShulkerStorageTest {
         inventory.setItem(9, named);
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
 
-        assertEquals(5, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(5, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(15, stacked.getCount());
         assertEquals(0, countContents(stacked));
         assertEquals(1, inventory.getItem(9).getCount());
@@ -312,7 +312,7 @@ class ShulkerStorageTest {
         inventory.setItem(0, stacked);
         stacked.setCount(16);
         inventory.setItem(20, new ItemStack(Items.COBBLESTONE, 64));
-        assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), new StorageConfig()));
+        assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), pickupEnabled()));
         assertEquals(69, countContents(inventory.getItem(20)));
         assertTrue(inventory.getItem(9).is(Items.STONE));
     }
@@ -328,7 +328,7 @@ class ShulkerStorageTest {
         for (int i = 0; i < 27; i++) full[i] = new ItemStack(Items.STONE, 64);
         for (int i = 10; i < 36; i++) inventory.setItem(i, box(full));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
         assertEquals(16, stacked.getCount());
         config.useHotbarForSpace = true;
@@ -348,7 +348,7 @@ class ShulkerStorageTest {
         stacked.setCount(2);
         inventory.setItem(9, new ItemStack(Items.COBBLESTONE, 64));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        assertEquals(0, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(0, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(2, stacked.getCount());
         assertEquals(1665, countContents(stacked));
         assertEquals(64, inventory.getItem(9).getCount());
@@ -366,7 +366,7 @@ class ShulkerStorageTest {
         stacked.setCount(2);
         inventory.setItem(9, new ItemStack(Items.COBBLESTONE, 60));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        assertEquals(3, ShulkerStorage.store(inventory, incoming, new StorageConfig()));
+        assertEquals(3, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(2, incoming.getCount());
         assertEquals(1, stacked.getCount());
         assertEquals(1665, countContents(stacked));
@@ -379,7 +379,7 @@ class ShulkerStorageTest {
         var stacked = box(new ItemStack(Items.COBBLESTONE));
         inventory.setItem(0, stacked);
         stacked.setCount(2);
-        assertEquals(0, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), new StorageConfig()));
+        assertEquals(0, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), pickupEnabled()));
         assertEquals(2, stacked.getCount());
         assertEquals(1, countContents(stacked));
     }
@@ -394,7 +394,7 @@ class ShulkerStorageTest {
         for (int i = 1; i < 36; i++) inventory.setItem(i, box(new ItemStack(Items.DIRT)));
         inventory.setItem(9, new ItemStack(Items.STONE, 3));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         config.allowPartialStacksForSpace = false;
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
         config.allowPartialStacksForSpace = true;
@@ -417,7 +417,7 @@ class ShulkerStorageTest {
         inventory.setItem(0, stacked);
         stacked.setCount(16);
         inventory.setItem(1, box(new ItemStack(Items.DIRT), new ItemStack(Items.STONE)));
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), config));
         assertEquals(16, stacked.getCount());
         config.preferExistingBoxesBeforeMakingSpace = false;
@@ -433,7 +433,7 @@ class ShulkerStorageTest {
         var stacked = box();
         inventory.setItem(0, stacked);
         stacked.setCount(16);
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         config.makeSpaceMode = StorageConfig.MakeSpaceMode.DROP_AND_PICKUP;
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
         int[] attempts = {0};
@@ -454,7 +454,7 @@ class ShulkerStorageTest {
         inventory.setItem(0, stacked);
         stacked.setCount(16);
         inventory.setItem(9, new ItemStack(Items.STONE, 3));
-        var config = new StorageConfig();
+        var config = pickupEnabled();
         config.makeSpaceMode = StorageConfig.MakeSpaceMode.DROP_AND_PICKUP;
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
         assertEquals(5, ShulkerStorage.store(inventory, incoming, config, true, (displaced, slot, filled, commit) -> {
@@ -466,6 +466,12 @@ class ShulkerStorageTest {
         }));
         assertEquals(15, stacked.getCount());
         assertEquals(0, countContents(inventory.getItem(9)));
+    }
+
+    private static StorageConfig pickupEnabled() {
+        var config = new StorageConfig();
+        config.enabled = true;
+        return config;
     }
 
     static SimpleContainer fullInventory() {

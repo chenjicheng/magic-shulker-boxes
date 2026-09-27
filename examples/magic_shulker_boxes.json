@@ -1,6 +1,7 @@
 {
+  "configVersion": 1,
   "allowPlayerSettings": false,
-  "enabled": true,
+  "enabled": false,
   "onlyWhenInventoryFull": true,
   "useMatchingBoxes": true,
   "useEmptyBoxes": true,

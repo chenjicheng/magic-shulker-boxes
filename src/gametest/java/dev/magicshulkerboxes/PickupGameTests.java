@@ -19,6 +19,15 @@ import net.minecraft.world.level.GameType;
 public class PickupGameTests implements CustomTestMethodInvoker {
     @Override
     public void invokeTestMethod(GameTestHelper helper, Method method) throws ReflectiveOperationException {
+        boolean pickup = MagicShulkerBoxes.config().enabled;
+        try {
+            // These fixtures test opted-in pickup; shipping defaults are tested separately.
+            MagicShulkerBoxes.config().enabled = true;
+            invokeWithCarpet(helper, method);
+        } finally { MagicShulkerBoxes.config().enabled = pickup; }
+    }
+
+    private void invokeWithCarpet(GameTestHelper helper, Method method) throws ReflectiveOperationException {
         if (!FabricLoader.getInstance().isModLoaded("carpet")) {
             method.invoke(this, helper);
             return;

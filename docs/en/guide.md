@@ -4,6 +4,8 @@
 
 Automatic shulker storage for **Minecraft Java 1.21.11 / Fabric / Java 21**.
 
+**Pickup storage is off by default.** Singleplayer hosts can enable it in World settings. Multiplayer administrators can set `enabled=true` in the server configuration and run `/msb admin reload`. Material refilling has its own switch.
+
 When a player picks up a ground item, the normal inventory receives it first. Any overflow is stored in this order:
 
 1. A box containing only the same item type.
@@ -12,6 +14,14 @@ When a player picks up a ground item, the normal inventory receives it first. An
 4. A box containing a different single type, if this optional fallback is enabled.
 
 All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
+
+## Upgrading to 0.3.1: back up and reset old settings
+
+Configuration files from 0.3.0-alpha and earlier have no version marker. On first read, 0.3.1 makes an exact backup named `<original filename>.pre-0.3.1.bak` alongside each file, then resets all options. This covers `config/magic_shulker_boxes.json`, client `config/magic_shulker_boxes-client.json`, and world `data/magic_shulker_boxes/players/<UUID>.json`. Server startup processes existing player files, including offline players; client startup processes local preferences.
+
+Server settings return to defaults: `enabled=false` and `allowPlayerSettings=false`. Personal overrides are cleared, restoring server inheritance. Refilling remains independently controlled by `schematicRefill`, defaulting to `true`. New files contain `configVersion: 1`; subsequent choices survive restarts. Keep that marker. Backups are neither automatically restored nor used at runtime. To restore selected choices, copy the desired options into the new file while retaining its version marker.
+
+Backup failures or an existing backup with different contents leave the original untouched and log an error. Malformed JSON, unknown configuration versions and invalid current-version options are also retained and reported. Personal synchronization uses a new protocol: **update both sides to 0.3.1 to use personal settings**. Old clients cannot re-upload old preferences. Players using server-only pickup storage still need no client installation.
 
 ## Installation
 
@@ -41,7 +51,7 @@ After a ten-second confirmation timeout, further saves pause while the client qu
 
 ## Schematic material refilling
 
-Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.3.0-alpha** on both sides. When upgrading from 0.2.0-alpha, update both sides; the new version no longer accepts the old refill protocol. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.3.1** on both sides. The old 0.2.0-alpha refill protocol is no longer accepted; personal settings require this release's new synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
 
 Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 
@@ -93,7 +103,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `allowPlayerSettings` | `false` | Server policy only: allow individual player overrides; otherwise enforce this file for everyone |
-| `enabled` | `true` | Enable pickup storage only, independently of refilling; server `false` disables pickup storage for everyone |
+| `enabled` | `false` | Off by default; enables pickup storage independently of refilling; server `false` disables pickup storage for everyone |
 | `onlyWhenInventoryFull` | `true` | Store only vanilla inventory overflow; `false` tries boxes first |
 | `useMatchingBoxes` | `true` | Use matching single-type boxes |
 | `useEmptyBoxes` | `true` | Use empty boxes |

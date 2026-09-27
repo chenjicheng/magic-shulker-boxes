@@ -1,11 +1,9 @@
 package dev.magicshulkerboxes.client;
 
-import com.google.gson.JsonObject;
 import dev.magicshulkerboxes.ConfigFile;
 import dev.magicshulkerboxes.MagicShulkerBoxes;
 import dev.magicshulkerboxes.SettingsNetwork;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -22,7 +20,7 @@ public final class MagicShulkerBoxesClient implements ClientModInitializer {
         ClientSettings.register();
         SchematicRefillClient.register();
         try {
-            if (Files.notExists(path())) ConfigFile.write(path(), new JsonObject());
+            ConfigFile.readPreferences(path());
         } catch (IOException exception) {
             MagicShulkerBoxes.LOGGER.error("Cannot create personal settings / 无法创建个人设置", exception);
         }

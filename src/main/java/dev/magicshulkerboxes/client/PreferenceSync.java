@@ -45,7 +45,7 @@ public final class PreferenceSync {
         uncertain.add(server);
         // Publish the server value in memory even if either local write subsequently fails.
         ConfigFile.write(marker(server), new JsonObject());
-        ConfigFile.write(preferences, confirmed);
+        ConfigFile.writePreferences(preferences, confirmed);
         Files.deleteIfExists(marker(server));
         uncertain.remove(server);
     }

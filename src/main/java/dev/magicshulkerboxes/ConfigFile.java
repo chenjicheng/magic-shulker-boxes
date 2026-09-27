@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.util.Set;
@@ -21,6 +20,8 @@ public final class ConfigFile {
     private ConfigFile() {}
 
     public static final int MAX_PREFERENCES_LENGTH = 4096;
+    private static final int CONFIG_VERSION = 1;
+    private static final String VERSION_KEY = "configVersion";
 
     public static JsonObject parsePreferences(String json) throws IOException {
         if (json.length() > MAX_PREFERENCES_LENGTH) throw new IOException("Player settings exceed 4096 characters");
@@ -28,14 +29,7 @@ public final class ConfigFile {
     }
 
     public static ServerConfig load(Path path) throws IOException {
-        var defaults = new ServerConfig();
-        if (Files.notExists(path)) {
-            Files.createDirectories(path.toAbsolutePath().getParent());
-            Files.writeString(path, GSON.toJson(defaults) + System.lineSeparator(), StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE_NEW);
-            return defaults;
-        }
-        return parseServer(Files.readString(path, StandardCharsets.UTF_8));
+        return parseServer(readDocument(path, GSON.toJsonTree(new ServerConfig()).getAsJsonObject()).toString());
     }
 
     public static ServerConfig parseServer(String json) throws IOException {
@@ -65,9 +59,57 @@ public final class ConfigFile {
     public static String json(Object value) { return GSON.toJson(value); }
 
     public static JsonObject readPreferences(Path path) throws IOException {
-        if (Files.notExists(path)) return new JsonObject();
-        if (Files.size(path) > MAX_PREFERENCES_LENGTH) throw new IOException("Player settings file exceeds 4096 bytes");
-        return parsePreferences(Files.readString(path, StandardCharsets.UTF_8));
+        if (Files.exists(path) && Files.size(path) > MAX_PREFERENCES_LENGTH) throw new IOException("Player settings file exceeds 4096 bytes");
+        return parsePreferences(readDocument(path, new JsonObject()).toString());
+    }
+
+    /** Disk metadata never enters gameplay options, GUI drafts or network payloads. */
+    public static void writePreferences(Path path, JsonObject values) throws IOException {
+        var validated = parsePreferences(values.toString());
+        if (!Files.notExists(path)) readPreferences(path);
+        writeDocument(path, validated);
+    }
+
+    public static void writeServer(Path path, ServerConfig values) throws IOException {
+        var validated = parseServer(json(values));
+        if (!Files.notExists(path)) load(path);
+        writeDocument(path, GSON.toJsonTree(validated).getAsJsonObject());
+    }
+
+    private static void writeDocument(Path path, JsonObject values) throws IOException {
+        var document = new JsonObject();
+        document.addProperty(VERSION_KEY, CONFIG_VERSION);
+        values.entrySet().forEach(entry -> document.add(entry.getKey(), entry.getValue().deepCopy()));
+        write(path, document);
+    }
+
+    private static JsonObject readDocument(Path path, JsonObject defaults) throws IOException {
+        if (Files.notExists(path)) {
+            writeDocument(path, defaults);
+            return defaults;
+        }
+        final JsonObject document;
+        try {
+            var parsed = GSON.fromJson(Files.readString(path, StandardCharsets.UTF_8), JsonElement.class);
+            if (parsed == null || !parsed.isJsonObject()) throw new IOException("Config must be a JSON object");
+            document = parsed.getAsJsonObject();
+        } catch (JsonParseException exception) { throw new IOException("Invalid settings JSON", exception); }
+        if (document.has(VERSION_KEY)) {
+            var version = document.remove(VERSION_KEY);
+            if (!version.isJsonPrimitive() || !version.getAsJsonPrimitive().isNumber()
+                    || !version.getAsString().equals(Integer.toString(CONFIG_VERSION))) {
+                throw new IOException("Unsupported configVersion; file kept unchanged: " + path);
+            }
+            return document;
+        }
+        // 0.3.0 and earlier had no schema marker and cannot be distinguished reliably.
+        // The upgrade policy deliberately resets all of them, preserving exact original bytes first.
+        var backup = path.resolveSibling(path.getFileName() + ".pre-0.3.1.bak");
+        if (Files.notExists(backup)) Files.copy(path, backup);
+        if (Files.mismatch(path, backup) != -1) throw new IOException("Conflicting migration backup; original kept: " + backup);
+        writeDocument(path, defaults);
+        MagicShulkerBoxes.LOGGER.warn("Reset legacy settings; backup: {} / 旧配置已重置，备份：{}", backup, backup);
+        return defaults;
     }
 
     /** Replace only after a complete write, preserving the old file if writing fails. */

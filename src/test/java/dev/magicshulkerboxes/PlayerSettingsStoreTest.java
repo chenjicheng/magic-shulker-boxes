@@ -48,6 +48,7 @@ class PlayerSettingsStoreTest {
         var store = new PlayerSettingsStore(directory);
         var player = UUID.randomUUID();
         var server = new ServerConfig();
+        server.enabled = true;
         server.schematicRefill = false;
         server.allowPlayerSettings = true;
         store.save(player, ConfigFile.parsePreferences("{\"enabled\":true,\"schematicRefill\":true}"));

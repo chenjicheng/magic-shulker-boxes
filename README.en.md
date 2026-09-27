@@ -2,9 +2,9 @@
 
 [简体中文](README.md) | **English**
 
-Automatic shulker storage for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.3.0-alpha**.
+Automatic shulker storage for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.3.1**.
 
-Store pickup overflow in matching, empty, then mixed boxes, with an optional single-type fallback. Supports Carpet shulker stacking, safe box splitting, automatic space-making, partial stacks and mixed-box reuse.
+After enabling pickup storage, store overflow in matching, empty, then mixed boxes, with an optional single-type fallback. Pickup storage is off by default. Supports Carpet shulker stacking, safe box splitting, automatic space-making, partial stacks and mixed-box reuse.
 
 - Server-only installation works for multiplayer; singleplayer and LAN storage runs on the host.
 - Pickup storage and schematic refilling have independent switches. Servers can permit personal preferences while restricting each feature separately.
@@ -15,9 +15,9 @@ Store pickup overflow in matching, empty, then mixed boxes, with an optional sin
 
 ## Install
 
-Install `magic-shulker-boxes-fabric-0.3.0-alpha+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
+Install `magic-shulker-boxes-fabric-0.3.1+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
 
-When upgrading from 0.2.0-alpha, update both client and server for refilling; the old refill protocol is no longer accepted. `enabled=false` now disables pickup storage only; also set `schematicRefill=false` to disable refilling. See the [0.3.0-alpha release notes](docs/releases/0.3.0-alpha.md).
+Upgrading to 0.3.1 backs up and resets all unversioned server, player and client settings. Pickup storage defaults to `enabled=false`; personal overrides are cleared to inherit server settings. A `configVersion: 1` marker preserves subsequent choices without repeated resets. Update both sides for personal settings. See the [0.3.1 release notes](docs/releases/0.3.1.md) for details and backup locations.
 
 The client settings screen additionally needs [Mod Menu 17.0.1](https://modrinth.com/mod/modmenu/version/17.0.1) and [YACL 3.8.2](https://modrinth.com/mod/yacl/version/3.8.2+1.21.11-fabric). Dedicated servers do not need either library. Carpet is optional; enable its stacking rule separately.
 
