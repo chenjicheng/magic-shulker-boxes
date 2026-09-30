@@ -37,6 +37,7 @@ public final class ClientSettings {
         notice("gui.failed");
     }
     static JsonObject defaults() { return defaults == null ? null : defaults.deepCopy(); }
+    static boolean craftingSupported() { return defaults != null && defaults.has("craftRefill"); }
     static Path localPath() { return FabricLoader.getInstance().getConfigDir().resolve("magic_shulker_boxes.json"); }
     private static PreferenceSync sync() {
         if (preferences == null) preferences = new PreferenceSync(MagicShulkerBoxesClient.path(),

@@ -55,6 +55,7 @@ fabricApi {
         modId = 'magic_shulker_boxes_test'
         enableGameTests = true
         enableClientGameTests = providers.gradleProperty('withIpn').isPresent() || providers.gradleProperty('clientSmoke').isPresent()
+                || providers.gradleProperty('craftClient').isPresent()
     }
 }
 
@@ -64,8 +65,9 @@ if (providers.gradleProperty('withIpn').isPresent()) {
 }
 
 processGametestResources {
-    def clientTest = providers.gradleProperty('withIpn').isPresent()
-            ? 'dev.magicshulkerboxes.IpnClientGameTests' : 'dev.magicshulkerboxes.ClientSmokeGameTests'
+    def clientTest = providers.gradleProperty('withIpn').isPresent() ? 'dev.magicshulkerboxes.IpnClientGameTests'
+            : providers.gradleProperty('craftClient').isPresent() ? 'dev.magicshulkerboxes.CraftingClientGameTests'
+            : 'dev.magicshulkerboxes.ClientSmokeGameTests'
     inputs.property 'clientTest', clientTest
     filesMatching('fabric.mod.json') { expand clientTest: clientTest }
 }

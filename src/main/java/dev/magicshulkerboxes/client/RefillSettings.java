@@ -8,7 +8,11 @@ import java.io.IOException;
 final class RefillSettings {
     private static StorageConfig cached;
     private RefillSettings() {}
-    static void invalidate() { cached = null; }
+    static void invalidate() {
+        cached = null;
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player != null) player.getInventory().setChanged();
+    }
     static StorageConfig get() {
         if (cached != null) return cached;
         cached = new StorageConfig();
@@ -17,7 +21,7 @@ final class RefillSettings {
         if (ClientSettings.session.mode() == SettingsSession.Mode.ALLOWED || defaults == null) {
             try { cached = ConfigFile.apply(cached, ClientSettings.preferences()); }
             catch (IOException exception) {
-                cached.schematicRefill = false; cached.ipnRefill = false; ClientSettings.failure(exception);
+                cached.schematicRefill = false; cached.ipnRefill = false; cached.craftRefill = false; ClientSettings.failure(exception);
             }
         }
         return cached;

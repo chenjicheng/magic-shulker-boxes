@@ -61,6 +61,20 @@ npm run docs:preview
 
 ## 测试命令
 
+### 合成取料与真实客户端验证
+
+`CraftingMenuMixin` 将原版 `AbstractCraftingMenu.handlePlacement` 包在一个 `CraftingRecipeSources` 事务中。`ServerPlaceRecipeMixin` 只在这一作用域补充材料统计和原版背包查找失败后的取物，继续复用原版配方选择、布局和批量数量。来源盒自身属于配方材料时不同时读取其内部。旧合成格返背包先按完整组件与容量预检；来源变化在副本中规划，整次放置成功才提交。组件合并或拆盒提交冲突回退库存和合成格，作用域通过 `finally` 清理。
+
+`CraftingResultMixin` 捕获原版取出成品前的输入及配方余留物，原版先完成成品、消耗与余留物处理，然后 `CraftingRefill` 在副本中补足整套耗空格子。Shift 回调可能传入数量为零的旧结果堆叠，以有效原输入配方为依据。取出后再次校验玩家与菜单，避免给已关闭的菜单补货。
+
+没有新增取料网络请求。原版请求校验配方与活动菜单，服务器读取真实物品。`CraftingInventoryClientMixin` 仅为兼容服务器的配方书增加可用材料统计；通过服务器默认值中 `craftRefill` 的存在判断能力，再应用有效设置。只读观察外层数量及容器组件引用变化，触发原版配方书重算。`craftRefill` 不依赖其他补货开关或 IPN，继承现有个人设置策略。
+
+```powershell
+.\gradlew.bat runClientGameTest -PcraftClient
+```
+
+`CraftingRefillTest` 覆盖多材料原子补货、组件和余留物、满背包与堆叠盒。`CraftingGameTests` 运行真实 2×2/3×3、配方批量、普通/Shift 合成、空间与组件回退、蛋糕空桶及个人覆盖。`CraftingClientGameTests` 使用原版配方点击和物品点击请求，验证配方书盒内统计/刷新、两种网格、连续补货和服务端确认的成品数量；客户端预测完成不代替服务端验收。
+
 ### IPN 来源扩展与客户端验证
 
 可选接入固定对照 IPN 2.2.6、libIPN 6.6.3（Fabric 1.21.11）。这两项及 Kotlin 均为编译/测试依赖，不打包进发行 JAR。`magic_shulker_boxes.ipn.mixins.json` 只在客户端安装 IPN 时应用；专用服务端和无 IPN 客户端保留原有行为。

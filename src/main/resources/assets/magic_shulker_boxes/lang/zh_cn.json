@@ -100,6 +100,9 @@
   "magic_shulker_boxes.gui.inherit_value": "继承服务端（%s）",
   "magic_shulker_boxes.gui.inherit_unknown": "继承服务端（未同步）",
   "magic_shulker_boxes.gui.reset_option": "恢复此项默认值",
+  "magic_shulker_boxes.gui.group.craft": "合成补货",
+  "magic_shulker_boxes.option.craftRefill": "从潜影盒补充合成材料",
+  "magic_shulker_boxes.description.craftRefill": "点击配方时，从随身潜影盒补充 2×2 或 3×3 合成材料；取出成品后，全部缺失材料可用时补回原输入排列。保留合成余留物，沿用原版配方填充规则。与自动入盒、原理图取料和 IPN 独立。不依赖 IPN，由服务端执行；兼容客户端还能在配方书显示盒内材料可合成的配方。",
   "magic_shulker_boxes.gui.group.ipn": "Inventory Profiles Next",
   "magic_shulker_boxes.option.ipnRefill": "允许 IPN 从潜影盒补货",
   "magic_shulker_boxes.description.ipnRefill": "IPN 在背包找不到替代物品时，将背包潜影盒内物品交给它原有的补货规则。触发时机、物品匹配、工具耐久与排序均由 IPN 控制。两端需要本模组，只有客户端需要 IPN。与自动入盒、原理图取料独立；遵守 IPN 锁定栏位和来源盒腾栏设置。"

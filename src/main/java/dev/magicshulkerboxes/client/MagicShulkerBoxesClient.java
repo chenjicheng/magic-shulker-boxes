@@ -19,6 +19,7 @@ public final class MagicShulkerBoxesClient implements ClientModInitializer {
     public void onInitializeClient() {
         ClientSettings.register();
         SchematicRefillClient.register();
+        CraftingRefillClient.register();
         if (FabricLoader.getInstance().isModLoaded("inventoryprofilesnext")) IpnRefillClient.register();
         try {
             ConfigFile.readPreferences(path());

@@ -61,6 +61,20 @@ npm run docs:preview
 
 ## Test commands
 
+### Crafting sources and real client tests
+
+`CraftingMenuMixin` scopes vanilla `AbstractCraftingMenu.handlePlacement` inside a `CraftingRecipeSources` transaction. `ServerPlaceRecipeMixin` augments material accounting and falls back to boxes after ordinary inventory lookup fails, retaining vanilla recipe selection, layout and batch quantities. A box used as an ingredient cannot also supply its contents. Component-aware capacity checks prove old grid inputs can return without dropping. Source changes are planned on copies and committed only after complete placement; component or splitting conflicts roll back inventory and grid. A `finally` block clears the scope.
+
+`CraftingResultMixin` captures the input pattern and recipe remainders before vanilla takes the output. Vanilla handles output, consumption and remainders first; `CraftingRefill` then plans a complete refill on copies. Shift callbacks may contain an emptied old result stack, so the valid input recipe is authoritative. Player/menu validity is checked again afterward.
+
+No custom extraction request is added. Vanilla validates recipe and active-menu requests; the server reads actual items. `CraftingInventoryClientMixin` augments recipe-book accounting only after the server advertises `craftRefill`, applying effective settings. Read-only outer-count/container-reference observation triggers vanilla recounting. The feature uses existing personal policy and requires neither IPN nor other refill switches.
+
+```powershell
+.\gradlew.bat runClientGameTest -PcraftClient
+```
+
+`CraftingRefillTest` covers atomic multi-ingredient planning, components, remainders, full inventories and stacked sources. `CraftingGameTests` cover real 2x2/3x3 placement, batches, ordinary/Shift crafting, rollback, cake buckets and personal overrides. `CraftingClientGameTests` send vanilla recipe and inventory-click requests and verify recipe-book accounting/refresh, both grids, continuous refills and server-confirmed output counts. Client prediction alone is not acceptance.
+
 ### IPN source extension and client tests
 
 The optional integration is checked against IPN 2.2.6 and libIPN 6.6.3 for Fabric 1.21.11. They and Kotlin are compile/test dependencies, never bundled in the distribution. `magic_shulker_boxes.ipn.mixins.json` applies only on clients with IPN; dedicated servers and clients without IPN retain their original behavior.

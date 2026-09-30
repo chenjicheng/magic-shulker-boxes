@@ -90,6 +90,21 @@ Only boxes in IPN's backpack storage area (Minecraft inventory indices 9–35) a
 
 Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents` for source-box relocation. Slots excluded by IPN's locked-slot settings are also excluded as extraction and splitting destinations. If IPN permits using locked slots, this integration follows that choice. IPN takes up to one complete candidate stack; the schematic-only `refillFullStack` one-item mode does not affect it. Unsafe extraction changes nothing and leaves IPN's normal failure handling in control. On servers without the new protocol, IPN retains its original backpack behavior.
 
+## Crafting ingredient refilling
+
+The development branch supports **2x2 inventory** and **3x3 crafting-table** refilling; the published 0.3.2 JAR does not include it. IPN is not required. A server build containing the feature performs extraction. Compatible clients also count box contents in the vanilla recipe book and refresh when those contents change.
+
+The **Crafting** settings group contains `craftRefill`, enabled by default and independent of pickup storage, schematic refilling and IPN. When personal settings are allowed, use `/msb set craftRefill false` or `/msb set craftRefill true`.
+
+- **Placing a recipe:** vanilla controls recipe permissions, matching, layout and Shift batch quantities. Missing inventory materials can come from carried boxes and go directly into the grid, without a temporary material slot. Previous grid inputs must fit safely back into the inventory.
+- **Taking an output:** ordinary clicks and Shift crafting refill empty cells with one item of the same type and complete components as the observed input pattern. Remaining grid stacks retain their counts. Ordinary inventory comes first, followed by boxes. An incomplete set of materials or unsafe remainder relocation stops the refill without partial extraction.
+
+Vanilla handles crafting remainders first. When refilling an emptied cell now occupied by a bucket, bottle or other remainder, the refill tries ordinary inventory first. When full, `refillMakeSpace`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents` govern storing that remainder in the single source box just used. Vanilla still places outputs on the cursor or in the inventory.
+
+Sources are main-inventory and hotbar boxes, plus offhand boxes when `includeOffhand=true`, preferring less filled boxes. Stacked sources follow `splitStackedBoxes` and require a separate empty slot. Ender chests, nested containers, furnaces, brewing stands and stonecutters are excluded; creative and spectator modes do not extract automatically. Recipe-book placement retains vanilla restrictions on named, damaged and enchanted items. Continuous refilling of a manual pattern preserves exact input components.
+
+Source changes are planned on copies. Component conflicts, unavailable splitting space or incomplete placement roll back. A box cannot both supply its contents and be consumed as an ingredient in the same placement.
+
 ## Carpet stacking
 
 The mod works with Carpet's `stackableShulkerBoxes` rule. It does not enable that rule for you, and Carpet is optional.
