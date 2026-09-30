@@ -15,6 +15,12 @@ When a player picks up a ground item, the normal inventory receives it first. An
 
 All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
 
+## Upgrading to 0.4.0: IPN and crafting refilling
+
+0.4.0 adds `ipnRefill=true` and `craftRefill=true`, independently controlling IPN box-source refilling and crafting refilling alongside `pickupStorageEnabled` and `schematicRefill`. When personal settings are allowed, all four server values are overridable defaults; otherwise the server values apply to everyone.
+
+Existing 0.3.2 `configVersion: 2` files and choices are retained without resetting; omitted new switches default to enabled. Update both sides to 0.4.0 for the new GUI settings and IPN integration. A 0.4.0 server performs crafting extraction, while a 0.4.0 client also counts box contents in the recipe book. Earlier files retain the backup/migration rules below.
+
 ## Upgrading to 0.3.2: personal switches and the renamed setting
 
 When the server allows personal settings (`allowPlayerSettings=true`), `pickupStorageEnabled` and `schematicRefill` are **server defaults** that players may independently override. With personal settings disabled, everyone uses the server values. The former `enabled` key is now `pickupStorageEnabled`; current files, commands and network settings accept only the new name.
@@ -57,7 +63,7 @@ After a ten-second confirmation timeout, further saves pause while the client qu
 
 ## Schematic material refilling
 
-Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.3.2** on both sides. Older refill protocols are no longer accepted; personal settings require this release's new synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.4.0** on both sides. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
 
 Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 
@@ -80,7 +86,7 @@ Client material lookup compares complete item components, including custom names
 
 ## IPN consumable and tool refilling
 
-This section describes the development branch; the published 0.3.2 JAR does not include this feature. Install [Inventory Profiles Next 2.2.6 for Fabric 1.21.11](https://modrinth.com/mod/inventory-profiles-next/version/fabric-1.21.11-2.2.6) and its required libIPN and Fabric Language Kotlin on the client. Both sides need a Magic Shulker Boxes build containing this integration. The server does not need IPN; singleplayer supplies both sides.
+Available since 0.4.0. Install [Inventory Profiles Next 2.2.6 for Fabric 1.21.11](https://modrinth.com/mod/inventory-profiles-next/version/fabric-1.21.11-2.2.6) and its required libIPN and Fabric Language Kotlin on the client. Both sides need Magic Shulker Boxes 0.4.0. The server does not need IPN; singleplayer supplies both sides.
 
 IPN first looks for its normal backpack candidates when refilling main-hand or offhand consumables or replacing tools. If none qualify, this mod offers backpack shulker-box contents to **IPN's original filtering and sorting method**. IPN still controls triggers, wait ticks, potion effects, food alternatives, name/component matching, tool categories, durability thresholds, custom sorting and disabled refill slots. This integration does not extend armor refilling.
 
@@ -92,7 +98,7 @@ Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksFo
 
 ## Crafting ingredient refilling
 
-The development branch supports **2x2 inventory** and **3x3 crafting-table** refilling; the published 0.3.2 JAR does not include it. IPN is not required. A server build containing the feature performs extraction. Compatible clients also count box contents in the vanilla recipe book and refresh when those contents change.
+Available since 0.4.0 for **2x2 inventory** and **3x3 crafting-table** refilling. IPN is not required. A 0.4.0 server performs extraction. A 0.4.0 client also counts box contents in the vanilla recipe book and refreshes when those contents change.
 
 The **Crafting** settings group contains `craftRefill`, enabled by default and independent of pickup storage, schematic refilling and IPN. When personal settings are allowed, use `/msb set craftRefill false` or `/msb set craftRefill true`.
 
@@ -153,7 +159,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 
 Multiple stacks of cobblestone still count as one type. Actual stack merging always compares components, independently of the classification option, and respects each item's maximum stack size.
 
-All options except `makeSpaceMode` require JSON booleans. Its value must be one of the three strings listed above. Omitted fields use defaults. Invalid JSON, unknown keys, invalid modes, and incorrect types are rejected without overwriting the file. Invalid server configuration disables both pickup storage and refilling at startup; a failed runtime reload retains the previous active configuration.
+All options except `makeSpaceMode` require JSON booleans. Its value must be one of the three strings listed above. Omitted fields use defaults. Invalid JSON, unknown keys, invalid modes, and incorrect types are rejected without overwriting the file. Invalid server configuration disables all automatic pickup storage and refill features at startup; a failed runtime reload retains the previous active configuration.
 
 Pickup storage handles only ground-item pickup. Chest transfers, crafting, item-giving commands, and manual dropping do not directly trigger storage. Ender chests and nested containers are not searched.
 
@@ -169,7 +175,7 @@ Servers enforce their own settings by default. Administrators can change and per
 /msb admin reload
 ```
 
-These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. With `allowPlayerSettings=false`, the server pickup and refill switches apply to everyone. With it set to `true`, both server values become defaults that players may override independently. A failed reload leaves the previous active settings in place.
+These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. With `allowPlayerSettings=false`, the server pickup and all refill switches apply to everyone. With it set to `true`, each server value becomes a default that players may override independently. A failed reload leaves the previous active settings in place.
 
 Once permitted, ordinary players can use these commands without a client installation:
 

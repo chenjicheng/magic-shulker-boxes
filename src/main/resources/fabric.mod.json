@@ -9,7 +9,7 @@
     "homepage": "https://chenjicheng.github.io/magic-shulker-boxes/",
     "sources": "https://github.com/chenjicheng/magic-shulker-boxes"
   },
-  "description": "Automatically store pickups in shulker boxes with optional personal settings. / 自动收纳拾取物品，支持玩家个人设置。",
+  "description": "Store pickups and refill materials from carried shulker boxes with personal settings. / 自动收纳拾取物并从随身潜影盒补充材料，支持玩家个人设置。",
   "environment": "*",
   "entrypoints": {
     "main": ["dev.magicshulkerboxes.MagicShulkerBoxes"],
