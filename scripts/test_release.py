@@ -84,6 +84,15 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             package(self.root, "v0.1.0-alpha", self.root / "dist")
 
+    def test_external_refill_libraries_must_not_be_bundled(self):
+        extras = ["org/anti_ad/mc/ipnext/Init.class", "org/anti_ad/mc/common/Vanilla.class",
+                  "kotlin/jvm/internal/Intrinsics.class", "kotlinx/coroutines/Job.class"]
+        for index, extra in enumerate(extras):
+            with self.subTest(extra=extra):
+                self.jars(extra)
+                with self.assertRaises(ValueError):
+                    package(self.root, "v0.1.0-alpha", self.root / f"dist-{index}")
+
 
 if __name__ == "__main__":
     unittest.main()

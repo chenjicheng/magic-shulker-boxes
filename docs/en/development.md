@@ -61,6 +61,23 @@ npm run docs:preview
 
 ## Test commands
 
+### IPN source extension and client tests
+
+The optional integration is checked against IPN 2.2.6 and libIPN 6.6.3 for Fabric 1.21.11. They and Kotlin are compile/test dependencies, never bundled in the distribution. `magic_shulker_boxes.ipn.mixins.json` applies only on clients with IPN; dedicated servers and clients without IPN retain their original behavior.
+
+`IpnMonitorMixin` intercepts immediately before IPN calls `handle()`, after its own trigger checks and wait ticks. Ordinary backpack candidates always win. During a scoped second lookup, `IpnCandidatesMixin` supplies read-only box contents to IPN's original `findCorrespondingSlot` filtering and sorting. Virtual candidate IDs never reach inventory-click packets or player inventories. IPN's release omits nested-class metadata, so the Java adapter uses its actual binary class names.
+
+`restock_v1` carries a correlated request ID, source box/content slots and counts, a main-hand/offhand target slot and count, a 27-bit eligible-backpack mask, and source/target component fingerprints bounded to 64 characters each. Empty targets use an empty fingerprint. The server verifies actual contents, counts, fingerprints, mode, menu, cursor, effective `ipnRefill` and rate limits; duplicates and subsequent requests within 10 ticks are refused. Atomic extraction, relocation and splitting use only eligible backpack destinations. `restock_result_v1` returns the request ID and success; ordinary inventory synchronization transfers item data. The client waits up to five seconds and returns control to IPN after cancellation, failure or timeout.
+
+Run the released IPN matcher and real Mixins over an isolated client/server connection (requires graphics):
+
+```powershell
+.\gradlew.bat runClientGameTest -PwithIpn
+.\gradlew.bat runClientGameTest -PclientSmoke
+```
+
+`src/ipnTest` is included only with `withIpn`. It covers backpack priority, potion effects, custom-name options, locked sources, disabled refill slots, main-hand/offhand refilling, retained empty bottles, tool durability thresholds and same-category replacements. `clientSmoke` starts a real client without IPN/Kotlin and joins an integrated server. `ShulkerRestockTest` and `RestockGameTests` cover atomic extraction, protected slots, stacked boxes, stale/duplicate requests, canceled hotbar selection and personal settings.
+
 ### Schematic refill protocol
 
 `BoxOrder` ranks eligible boxes by the sum of count/stack-limit across their slots, breaking ties by inventory slot. Storage fills fuller boxes within the existing category order; `RefillSearch` and server-side `RefillNetwork` prefer emptier boxes and continue past unsafe sources. A box with 27 partial stacks is not treated as full. Nonstandard larger containers remain excluded.

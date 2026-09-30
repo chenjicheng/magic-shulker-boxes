@@ -26,6 +26,7 @@ public final class SettingsGui {
     private static String group(String key) {
         return switch (key) {
             case "schematicRefill", "refillFullStack", "refillMakeSpace", "refillFailureMessages" -> "refill";
+            case "ipnRefill" -> "ipn";
             case "useMatchingBoxes", "useEmptyBoxes", "useMixedBoxes", "allowOtherSingleTypeBoxes", "includeOffhand" -> "boxes";
             case "splitStackedBoxes", "makeSpaceMode", "useHotbarForSpace", "allowPartialStacksForSpace", "allowMixedItemsWhenMakingSpace", "preferExistingBoxesBeforeMakingSpace" -> "space";
             default -> "pickup";
@@ -57,7 +58,7 @@ public final class SettingsGui {
             if (defaults != null && defaults.has("schematicRefill") && !defaults.get("schematicRefill").getAsBoolean()) {
                 category.option(LabelOption.create(text("gui.refill_off")));
             }
-            for (String section : List.of("pickup", "boxes", "space", "refill")) {
+            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
                 for (String key : ConfigFile.optionNames()) {
                     if (!group(key).equals(section)) continue;
@@ -100,7 +101,7 @@ public final class SettingsGui {
             var category = ConfigCategory.createBuilder().name(text("gui.local"))
                     .option(LabelOption.create(text("gui.local_hint")));
             var editable = new ArrayList<Option<?>>();
-            for (String section : List.of("pickup", "boxes", "space", "refill")) {
+            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
                 for (String key : values.keySet()) {
                     if (!group(key).equals(section)) continue;

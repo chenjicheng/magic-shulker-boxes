@@ -78,6 +78,18 @@ Notices distinguish missing matching materials, unsafe inventory space, disabled
 
 Client material lookup compares complete item components, including custom names. Requests also carry a component fingerprint; changed sources and transient components that cannot be reliably encoded are rejected. Both sides must support the new refill protocol; the old protocol cannot bypass validation. Only ordinary inventory and optionally offhand boxes are searched, excluding ender chests and nested containers. The client searches during missing-material attempts and sends at most two requests per second. The server verifies actual contents, game mode and menu state. Clients never provide authoritative item data or edit the inventory ahead of confirmation.
 
+## IPN consumable and tool refilling
+
+This section describes the development branch; the published 0.3.2 JAR does not include this feature. Install [Inventory Profiles Next 2.2.6 for Fabric 1.21.11](https://modrinth.com/mod/inventory-profiles-next/version/fabric-1.21.11-2.2.6) and its required libIPN and Fabric Language Kotlin on the client. Both sides need a Magic Shulker Boxes build containing this integration. The server does not need IPN; singleplayer supplies both sides.
+
+IPN first looks for its normal backpack candidates when refilling main-hand or offhand consumables or replacing tools. If none qualify, this mod offers backpack shulker-box contents to **IPN's original filtering and sorting method**. IPN still controls triggers, wait ticks, potion effects, food alternatives, name/component matching, tool categories, durability thresholds, custom sorting and disabled refill slots. This integration does not extend armor refilling.
+
+`ipnRefill=true` enables the source extension by default, independently of `pickupStorageEnabled` and `schematicRefill`. When personal settings are allowed, `/msb set ipnRefill true` overrides the server default. The settings GUI has an **Inventory Profiles Next** group.
+
+Only boxes in IPN's backpack storage area (Minecraft inventory indices 9–35) are sources, respecting IPN's locked-slot settings. Hotbar and offhand boxes, ender chests and nested containers are excluded. Offhand can be a refill target. The server extracts the chosen stack into IPN-visible backpack storage; after synchronization, IPN performs its original hand/tool swap and preserves empty bottles and old tools.
+
+Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents` for source-box relocation. Slots excluded by IPN's locked-slot settings are also excluded as extraction and splitting destinations. If IPN permits using locked slots, this integration follows that choice. IPN takes up to one complete candidate stack; the schematic-only `refillFullStack` one-item mode does not affect it. Unsafe extraction changes nothing and leaves IPN's normal failure handling in control. On servers without the new protocol, IPN retains its original backpack behavior.
+
 ## Carpet stacking
 
 The mod works with Carpet's `stackableShulkerBoxes` rule. It does not enable that rule for you, and Carpet is optional.

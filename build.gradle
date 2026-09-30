@@ -22,9 +22,17 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-    // Optional client integrations; a dedicated server never needs either library.
+    // Optional client integrations; a dedicated server never needs their runtime libraries.
     modCompileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
     modCompileOnly "maven.modrinth:yacl:${project.yacl_version}"
+    modCompileOnly "maven.modrinth:inventory-profiles-next:${project.ipn_version}"
+    modCompileOnly "maven.modrinth:libipn:${project.libipn_version}"
+    compileOnly "org.jetbrains.kotlin:kotlin-stdlib:${project.kotlin_version}"
+    if (providers.gradleProperty('withIpn').isPresent()) {
+        modLocalRuntime "maven.modrinth:inventory-profiles-next:${project.ipn_version}"
+        modLocalRuntime "maven.modrinth:libipn:${project.libipn_version}"
+        modLocalRuntime "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
+    }
     if (providers.gradleProperty('withConfigGui').isPresent()) {
         modLocalRuntime "maven.modrinth:modmenu:${project.modmenu_version}"
         modLocalRuntime "maven.modrinth:yacl:${project.yacl_version}"
@@ -46,8 +54,20 @@ fabricApi {
         createSourceSet = true
         modId = 'magic_shulker_boxes_test'
         enableGameTests = true
-        enableClientGameTests = false
+        enableClientGameTests = providers.gradleProperty('withIpn').isPresent() || providers.gradleProperty('clientSmoke').isPresent()
     }
+}
+
+if (providers.gradleProperty('withIpn').isPresent()) {
+    sourceSets.gametest.java.srcDir('src/ipnTest/java')
+    configurations.gametestCompileClasspath.extendsFrom(configurations.compileClasspath)
+}
+
+processGametestResources {
+    def clientTest = providers.gradleProperty('withIpn').isPresent()
+            ? 'dev.magicshulkerboxes.IpnClientGameTests' : 'dev.magicshulkerboxes.ClientSmokeGameTests'
+    inputs.property 'clientTest', clientTest
+    filesMatching('fabric.mod.json') { expand clientTest: clientTest }
 }
 
 processResources {

@@ -99,5 +99,8 @@
   "magic_shulker_boxes.description.schematicRefill": "When Easy Place lacks materials, prefer the least filled non-full shulker box. Independent of pickup storage; refill space-making may still move inventory items into the source box. Both sides need this mod. Personal settings can override the server default when allowed.",
   "magic_shulker_boxes.gui.inherit_value": "Inherit server (%s)",
   "magic_shulker_boxes.gui.inherit_unknown": "Inherit server (unknown)",
-  "magic_shulker_boxes.gui.reset_option": "Reset this option to its default"
+  "magic_shulker_boxes.gui.reset_option": "Reset this option to its default",
+  "magic_shulker_boxes.gui.group.ipn": "Inventory Profiles Next",
+  "magic_shulker_boxes.option.ipnRefill": "Let IPN refill from shulker boxes",
+  "magic_shulker_boxes.description.ipnRefill": "When IPN cannot find a backpack replacement, offer carried backpack shulker-box contents to its own refill rules. IPN controls triggers, item matching, tool durability and sorting. Both sides need this mod; only the client needs IPN. Independent of pickup storage and schematic refilling. Respects IPN locked slots and source-box space-making settings."
 }

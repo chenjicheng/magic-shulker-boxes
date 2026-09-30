@@ -1,7 +1,6 @@
 package dev.magicshulkerboxes.client;
 
 import dev.magicshulkerboxes.*;
-import java.io.IOException;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
@@ -12,26 +11,17 @@ import net.minecraft.world.item.ItemStack;
 public final class SchematicRefillClient {
     private static boolean handling, handled;
     private static long nextRequest, nextNotice;
-    private static StorageConfig settings;
     private SchematicRefillClient() {}
     public static void begin() { handling = true; handled = false; }
     public static boolean end() { handling = false; return handled; }
-    public static void invalidateSettings() { settings = null; }
+    public static void invalidateSettings() { RefillSettings.invalidate(); }
     public static void register() {
         ClientPlayConnectionEvents.INIT.register((handler, client) -> reset());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
     }
-    private static void reset() { handling = handled = false; nextRequest = nextNotice = 0; settings = null; }
+    private static void reset() { handling = handled = false; nextRequest = nextNotice = 0; invalidateSettings(); }
     private static StorageConfig settings() {
-        if (settings != null) return settings;
-        settings = new StorageConfig();
-        var defaults = ClientSettings.defaults();
-        if (defaults != null) settings = ConfigFile.apply(settings, defaults);
-        if (ClientSettings.session.mode() == SettingsSession.Mode.ALLOWED || defaults == null) {
-            try { settings = ConfigFile.apply(settings, ClientSettings.preferences()); }
-            catch (IOException exception) { settings.schematicRefill = false; ClientSettings.failure(exception); }
-        }
-        return settings;
+        return RefillSettings.get();
     }
     private static void notice(String reason) {
         var mc = Minecraft.getInstance();

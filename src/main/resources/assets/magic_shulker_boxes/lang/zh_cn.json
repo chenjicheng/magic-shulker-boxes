@@ -99,5 +99,8 @@
   "magic_shulker_boxes.description.schematicRefill": "轻松放置缺少材料时，优先从装载较少的未满潜影盒取出。与自动入盒开关独立；取料腾栏仍可把背包物品移入来源盒。客户端与服务端都需安装本模组。允许个人设置时可覆盖服务端默认值。",
   "magic_shulker_boxes.gui.inherit_value": "继承服务端（%s）",
   "magic_shulker_boxes.gui.inherit_unknown": "继承服务端（未同步）",
-  "magic_shulker_boxes.gui.reset_option": "恢复此项默认值"
+  "magic_shulker_boxes.gui.reset_option": "恢复此项默认值",
+  "magic_shulker_boxes.gui.group.ipn": "Inventory Profiles Next",
+  "magic_shulker_boxes.option.ipnRefill": "允许 IPN 从潜影盒补货",
+  "magic_shulker_boxes.description.ipnRefill": "IPN 在背包找不到替代物品时，将背包潜影盒内物品交给它原有的补货规则。触发时机、物品匹配、工具耐久与排序均由 IPN 控制。两端需要本模组，只有客户端需要 IPN。与自动入盒、原理图取料独立；遵守 IPN 锁定栏位和来源盒腾栏设置。"
 }

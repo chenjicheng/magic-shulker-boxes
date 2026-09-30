@@ -9,6 +9,7 @@ After enabling pickup storage, store overflow in matching, empty, then mixed box
 - Server-only installation works for multiplayer; singleplayer and LAN storage runs on the host.
 - Pickup storage and schematic refilling have independent switches. Servers can permit personal preferences, letting players override either server default.
 - Optional Mod Menu + YACL settings in English and Simplified Chinese.
+- The development branch extends IPN consumable and tool refilling to backpack shulker boxes, using IPN's own triggers, matching and sorting. The published 0.3.2 JAR does not include this integration.
 - 0.2.0-alpha adds Litematica Easy Place refilling from inventory shulker boxes, with optional space-making and failure notices. Both client and server need the new version for this feature.
 
 [Download](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [User guide](https://chenjicheng.github.io/magic-shulker-boxes/en/guide.html) · [Development](https://chenjicheng.github.io/magic-shulker-boxes/en/development.html)

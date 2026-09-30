@@ -74,6 +74,7 @@ public final class MagicShulkerBoxes implements ModInitializer {
             config = new ServerConfig();
             config.pickupStorageEnabled = false;
             config.schematicRefill = false;
+            config.ipnRefill = false;
             LOGGER.error("Cannot load {}. Automatic pickup storage and refill are disabled / 无法加载配置，自动入盒和取料已禁用。", path, exception);
         }
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
@@ -85,5 +86,6 @@ public final class MagicShulkerBoxes implements ModInitializer {
         EditorNetwork.register();
         SettingsNetwork.register();
         RefillNetwork.register();
+        RestockNetwork.register();
     }
 }

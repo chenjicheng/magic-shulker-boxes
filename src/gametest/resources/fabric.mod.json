@@ -5,6 +5,7 @@
   "name": "Magic Shulker Boxes Tests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["dev.magicshulkerboxes.PickupGameTests", "dev.magicshulkerboxes.RefillGameTests", "dev.magicshulkerboxes.RefillRegressionGameTests", "dev.magicshulkerboxes.ConfigMigrationGameTests"]
+    "fabric-gametest": ["dev.magicshulkerboxes.PickupGameTests", "dev.magicshulkerboxes.RefillGameTests", "dev.magicshulkerboxes.RefillRegressionGameTests", "dev.magicshulkerboxes.ConfigMigrationGameTests", "dev.magicshulkerboxes.RestockGameTests"],
+    "fabric-client-gametest": ["${clientTest}"]
   }
 }

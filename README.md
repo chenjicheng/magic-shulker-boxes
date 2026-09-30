@@ -9,6 +9,7 @@
 - 多人服仅服务端安装即可收纳；单人和局域网由房主执行。
 - 自动入盒与原理图取料各自独立开关；服务端可开放玩家个人设置，由玩家覆盖服务端默认值。
 - 可选 Mod Menu + YACL 中英文图形设置。
+- 开发分支支持 IPN 消耗品与工具补货从背包潜影盒取物，完全沿用 IPN 的触发、匹配和排序规则；已发布的 0.3.2 不含此接入。
 - 0.2.0-alpha 新增 Litematica 轻松放置自动取料：缺料时从潜影盒补到背包，支持自动腾栏及可关闭的失败提示，需要客户端与服务端都更新。
 
 [下载版本](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [在线使用文档](https://chenjicheng.github.io/magic-shulker-boxes/guide.html) · [开发文档](https://chenjicheng.github.io/magic-shulker-boxes/development.html)

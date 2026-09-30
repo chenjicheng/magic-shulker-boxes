@@ -8,13 +8,25 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 
-/** Server-side material extraction, independent of the optional schematic client. */
+/** Atomic server-side extraction; clients choose items, but never supply authoritative item data. */
 public final class ShulkerRefill {
     private ShulkerRefill() {}
     public static int take(Container inventory, int boxSlot, int contentSlot, Item expected, StorageConfig config) {
+        if (!config.schematicRefill) return 0;
+        return take(inventory, boxSlot, contentSlot, expected, config, config.refillFullStack, (1L << 36) - 1);
+    }
+
+    /** IPN only sees backpack sources. Its eligible-slot mask also protects locked destinations and split slots. */
+    public static int takeForRestock(Container inventory, int boxSlot, int contentSlot, StorageConfig config, int eligibleSlots) {
+        if (!config.ipnRefill || boxSlot < 9 || boxSlot >= 36 || eligibleSlots <= 0 || eligibleSlots >= (1 << 27)) return 0;
+        return take(inventory, boxSlot, contentSlot, null, config, true, (long) eligibleSlots << 9);
+    }
+
+    private static int take(Container inventory, int boxSlot, int contentSlot, Item expected, StorageConfig config,
+                            boolean fullStack, long eligibleSlots) {
         int size = Math.min(36, inventory.getContainerSize());
         boolean offhand = config.includeOffhand && boxSlot == Inventory.SLOT_OFFHAND && boxSlot < inventory.getContainerSize();
-        if (!config.schematicRefill || boxSlot < 0 || (boxSlot >= size && !offhand)
+        if (boxSlot < 0 || (boxSlot >= size && !offhand)
                 || contentSlot < 0 || contentSlot >= 27) return 0;
         var box = inventory.getItem(boxSlot);
         if (!ShulkerStorage.isShulker(box) || (box.getCount() > 1 && !config.splitStackedBoxes)) return 0;
@@ -23,15 +35,15 @@ public final class ShulkerRefill {
         var original = NonNullList.withSize(27, ItemStack.EMPTY);
         container.copyInto(original);
         var source = original.get(contentSlot);
-        if (source.isEmpty() || !source.is(expected) || !source.getItem().canFitInsideContainerItems()) return 0;
-        int count = Math.min(source.getCount(), config.refillFullStack ? source.getMaxStackSize() : 1);
+        if (source.isEmpty() || (expected != null && !source.is(expected)) || !source.getItem().canFitInsideContainerItems()) return 0;
+        int count = Math.min(source.getCount(), fullStack ? source.getMaxStackSize() : 1);
 
         // Prefer an empty backpack slot. Only try relocation when no free destination works.
         for (int pass = 0; pass < 2; pass++) {
             if (pass == 1 && !config.refillMakeSpace) break;
             for (int offset = 0; offset < size; offset++) {
                 int destination = (offset + 9) % size;
-                if (destination == boxSlot) continue;
+                if (destination == boxSlot || (eligibleSlots & (1L << destination)) == 0) continue;
                 var displaced = inventory.getItem(destination);
                 if ((pass == 0) != displaced.isEmpty()) continue;
                 if (!displaced.isEmpty() && (ShulkerStorage.isShulker(displaced) || !displaced.getItem().canFitInsideContainerItems()
@@ -41,7 +53,8 @@ public final class ShulkerRefill {
                 if (box.getCount() > 1) {
                     splitSlot = -1;
                     for (int slot = 0; slot < size; slot++) {
-                        if (slot != destination && slot != boxSlot && inventory.getItem(slot).isEmpty()) { splitSlot = slot; break; }
+                        if (slot != destination && slot != boxSlot && (eligibleSlots & (1L << slot)) != 0
+                                && inventory.getItem(slot).isEmpty()) { splitSlot = slot; break; }
                     }
                     if (splitSlot == -1) continue;
                 }

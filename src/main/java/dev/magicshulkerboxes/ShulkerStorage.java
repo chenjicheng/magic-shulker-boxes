@@ -141,7 +141,7 @@ public final class ShulkerStorage {
         void relocate(ItemStack displaced, int destination, ItemStack filledBox, Runnable commit);
     }
 
-    static boolean isShulker(ItemStack stack) {
+    public static boolean isShulker(ItemStack stack) {
         return !stack.isEmpty() && stack.getItem() instanceof BlockItem block
                 && block.getBlock() instanceof ShulkerBoxBlock;
     }

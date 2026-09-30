@@ -61,6 +61,23 @@ npm run docs:preview
 
 ## 测试命令
 
+### IPN 来源扩展与客户端验证
+
+可选接入固定对照 IPN 2.2.6、libIPN 6.6.3（Fabric 1.21.11）。这两项及 Kotlin 均为编译/测试依赖，不打包进发行 JAR。`magic_shulker_boxes.ipn.mixins.json` 只在客户端安装 IPN 时应用；专用服务端和无 IPN 客户端保留原有行为。
+
+`IpnMonitorMixin` 在 IPN 完成自身触发检查与等待 tick 后、调用 `handle()` 前接入。普通背包候选始终优先。`IpnCandidatesMixin` 仅在作用域受限的第二次查找中，将只读盒内物品交给候选列表；所有筛选与排序仍在 IPN 原始 `findCorrespondingSlot` 执行。虚拟候选编号不会进入点击协议或玩家背包。发行包省略嵌套类元数据，Java 适配器使用其实际二进制类名。
+
+`restock_v1` 包含关联请求 ID、来源盒/内部栏位与数量、目标主手/副手栏位和数量、IPN 可用背包栏位的 27 位掩码，以及来源/目标各自最多 64 字符的组件指纹。空目标使用空指纹。服务端读取真实物品并检查指纹、数量、模式、菜单、光标、有效 `ipnRefill` 和限流；同一请求与每 10 tick 内的后续请求拒绝。取出事务只提交完整规划，腾栏和拆盒均限于掩码中的背包栏位。`restock_result_v1` 返回关联 ID 与结果，物品通过原版背包同步。客户端最长等待 5 秒，IPN 撤销触发、失败或超时后恢复其原有处理。
+
+真实客户端验证（需要可用的图形环境）：
+
+```powershell
+.\gradlew.bat runClientGameTest -PwithIpn
+.\gradlew.bat runClientGameTest -PclientSmoke
+```
+
+`src/ipnTest` 仅在 `withIpn` 时加入测试源，运行 IPN 发布 JAR 的原始匹配器及实际 Mixin。覆盖背包优先、药水效果、名称匹配开关、锁定来源、禁用补货栏位、主手/副手补货、空瓶保留、工具耐久阈值与同类工具替换；请求与背包同步经过真实单人客户端/服务端连接。`clientSmoke` 实际启动没有 IPN/Kotlin 的客户端并加入单人世界。`ShulkerRestockTest` 和 `RestockGameTests` 验证原子取物、保护栏位、堆叠盒、过期与重复请求、快捷栏切换取消及个人开关。
+
 ### 原理图取料协议
 
 `BoxOrder` 对允许使用的盒子按每格数量/堆叠上限之和排序，同分时保留栏位顺序。收纳在原有盒子类别内部先填更满的；`RefillSearch` 和服务端 `RefillNetwork` 从较空的盒子开始取料，无法安全取出时尝试后续来源。27 个非满堆叠不视作满盒，非标准大容器仍跳过。

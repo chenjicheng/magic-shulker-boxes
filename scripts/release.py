@@ -49,7 +49,8 @@ def package(root, tag, output):
             raise ValueError("Built mod targets a different Minecraft version")
         if not any(name.startswith("LICENSE") for name in jar.namelist()):
             raise ValueError("MIT license is missing from the installable JAR")
-        forbidden = ("carpet/", "com/terraformersmc/modmenu/", "dev/isxander/yacl3/", "META-INF/jars/")
+        forbidden = ("carpet/", "com/terraformersmc/modmenu/", "dev/isxander/yacl3/",
+                     "org/anti_ad/", "kotlin/", "kotlinx/", "META-INF/jars/")
         if any(name.startswith(forbidden) or name.endswith(("Tests.class", "Test.class")) for name in jar.namelist()):
             raise ValueError("Test code or optional dependencies were bundled")
     with ZipFile(paths[1]) as jar:

@@ -78,6 +78,18 @@
 
 客户端查找材料时比较完整物品组件，包括自定义名称；请求还携带组件指纹，服务端发现来源已变化时会拒绝取料。无法可靠编码的临时组件同样拒绝。两端都需支持新的取料协议，旧协议不会绕过校验。只搜索普通背包及可选副手的潜影盒，不搜索末影箱或嵌套容器。客户端仅在缺料尝试时查询，每半秒最多请求一次；服务端核对真实盒内物品、游戏模式和界面状态。客户端不提供权威物品数据，也不预先修改背包。
 
+## IPN 消耗品与工具补货
+
+本节描述开发分支功能，尚未包含在已发布的 0.3.2 JAR 中。客户端安装 [Inventory Profiles Next 2.2.6（Fabric 1.21.11）](https://modrinth.com/mod/inventory-profiles-next/version/fabric-1.21.11-2.2.6) 及它要求的 libIPN、Fabric Language Kotlin；客户端与服务端都安装包含此功能的 Magic Shulker Boxes。服务端无需 IPN，单人实例同时提供两端。
+
+启用 IPN 原有自动补货后，主手或副手的消耗品补货、工具替换先查找背包候选。没有可用物品时，本模组将背包潜影盒内物品交给 **IPN 原有的筛选和排序方法**。是否触发、等待时间、药水效果、食物替代、名称/组件匹配、工具类别、耐久阈值、自定义排序和禁用补货栏位均由 IPN 决定。本模组不另设这些规则，也不接入盔甲补货。
+
+`ipnRefill=true` 默认允许这一来源扩展，与 `pickupStorageEnabled`、`schematicRefill` 独立。允许个人设置时可使用 `/msb set ipnRefill true` 覆盖服务端默认值。配置菜单有独立的 **Inventory Profiles Next** 分组。
+
+来源仅限 IPN 的背包储物栏（Minecraft 背包索引 9–35），遵守它的锁定栏位设置；快捷栏、副手的盒子、末影箱和嵌套容器不在来源范围内。副手可以作为补货目标。服务端先把所选物品取到 IPN 可见的背包栏，客户端同步后由 IPN 执行原有换手/换工具操作，保留空瓶和旧工具。
+
+取物沿用 `refillMakeSpace`、`splitStackedBoxes`、`allowPartialStacksForSpace`、`allowMixedItemsWhenMakingSpace` 和 `matchItemComponents` 的来源盒腾栏保护；IPN 排除的锁定栏位也不会用于取物或拆盒。若 IPN 设置允许使用锁定栏位，本模组遵循这一选择。IPN 每次候选堆叠最多取一整组，原理图的 `refillFullStack` 单个取料选项不影响它。无法安全取出时物品保持不变，IPN 沿用自身失败处理。服务器不支持这一协议时，IPN 继续原有背包补货。
+
 ## Carpet 堆叠兼容
 
 可以与 Carpet 的 `stackableShulkerBoxes` 规则一起使用；本模组不会替你开启该规则，也不要求安装 Carpet。
