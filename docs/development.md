@@ -28,6 +28,10 @@ Gradle Wrapper 固定为 9.2.1，带有发行包 SHA256 校验。Minecraft、Fab
 
 `AdminSettingsGameTests` 覆盖目标隔离、离线名字/UUID、个人值与生效值、权限、合法/非法值、单项及全部重置、策略锁定、缓存重载和损坏文件保护。`DedicatedClientGameTests` 通过真实 TCP 连接检查在线名字修改、UUID 重置和客户端文件同步。
 
+0.6.0 的服务端 `admin show/set/reset/permission/permissions` 使用 `ServerSettingsEdit` 先验证完整替换，再通过 `replaceConfig` 原子保存并广播策略。`SettingsChat` 只生成原版 `ClickEvent.SuggestCommand` 和命令悬停提示，点击不会提交；管理员目标玩家按钮绑定 UUID。`CommandChatGameTests` 检查全部设置/权限的按钮、无提前修改、单项重置、值校验和 OP3 权限。TCP 客户端验收实际点击聊天按钮、检查输入框完整命令和服务端尚未改变，再按 Enter 验证持久化。
+
+`SettingsKeybindings` 动态注册全部布尔选项的原版客户端按键，默认未绑定；`options.txt` 由 Minecraft 管理，绑定不在网络载荷中。`PreferenceToggle` 从显式偏好或当前默认值翻转一个布尔项，保留其他选择；`ClientSettings` 在保存前检查会话、逐项权限和待确认状态，并复用 GUI 的确认/恢复协议。TCP 验收绑定 F8、两次切换 `craftRefill`，再撤权验证值被锁定而按键仍绑定。`craftRefill=false` 默认的测试同时覆盖已有显式 `true` 保留，行为夹具显式开启并恢复配置。
+
 ## 配置版本与迁移
 
 磁盘 JSON 当前使用 `configVersion: 2`；版本元数据不进入 `StorageConfig`、选项列表、GUI 草稿或网络 JSON。无标记的旧文件沿用 0.3.1 规则：先完整备份到 `.pre-0.3.1.bak`，再重置为默认配置或空个人覆盖项。版本 1 文件则先完整备份到 `.pre-0.3.2.bak`，验证字段后将 `enabled` 改为 `pickupStorageEnabled`，保留所有其他有效值并原子写入版本 2。相同备份可恢复中断的迁移；冲突备份、无效字段、未知版本和无法读取的文件均不覆盖。

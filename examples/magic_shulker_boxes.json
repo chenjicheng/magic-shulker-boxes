@@ -20,7 +20,7 @@
   "refillMakeSpace": true,
   "refillFailureMessages": true,
   "ipnRefill": true,
-  "craftRefill": true,
+  "craftRefill": false,
   "enderChestRefill": false,
   "playerEditableSettings": [
     "pickupStorageEnabled",

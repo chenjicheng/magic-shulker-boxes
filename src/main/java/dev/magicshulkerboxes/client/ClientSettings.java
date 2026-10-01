@@ -140,6 +140,14 @@ public final class ClientSettings {
         } catch (IOException exception) { failure(exception); }
     }
 
+    static void toggle(String key) {
+        if (session.mode() == SettingsSession.Mode.UNSUPPORTED) { notice("gui.status.UNSUPPORTED"); return; }
+        if (session.mode() == SettingsSession.Mode.LOCKED || !canEdit(key)) { notice("locked"); return; }
+        if (session.pending()) { notice("gui.pending"); return; }
+        try { savePersonal(session.revision(), PreferenceToggle.toggle(key, preferences(), defaults)); }
+        catch (IOException exception) { failure(exception); }
+    }
+
     static void saveLocal(MinecraftServer expectedServer, long revision, JsonObject original, JsonObject values) {
         var client = Minecraft.getInstance();
         if (session.connectionRevision() != revision || client.getSingleplayerServer() != expectedServer

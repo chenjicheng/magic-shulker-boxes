@@ -19,7 +19,7 @@ class CraftingRefillTest {
     @Test void allMissingIngredientsAreRefilledTogether() {
         var inventory = new SimpleContainer(41); var grid = new SimpleContainer(4);
         inventory.setItem(9, box(new ItemStack(Items.COAL, 4), new ItemStack(Items.STICK, 6)));
-        assertTrue(CraftingRefill.refill(inventory, grid, torch(), empty(4), new StorageConfig()));
+        assertTrue(CraftingRefill.refill(inventory, grid, torch(), empty(4), enabledConfig()));
         assertTrue(grid.getItem(0).is(Items.COAL)); assertTrue(grid.getItem(2).is(Items.STICK));
         assertEquals(3, contents(inventory.getItem(9)).getFirst().getCount());
         assertEquals(5, contents(inventory.getItem(9)).get(1).getCount());
@@ -28,7 +28,7 @@ class CraftingRefillTest {
     @Test void missingSecondIngredientDoesNotPartiallyExtractFirst() {
         var inventory = new SimpleContainer(41); var grid = new SimpleContainer(4);
         var source = box(new ItemStack(Items.COAL, 4)); inventory.setItem(9, source.copy());
-        assertFalse(CraftingRefill.refill(inventory, grid, torch(), empty(4), new StorageConfig()));
+        assertFalse(CraftingRefill.refill(inventory, grid, torch(), empty(4), enabledConfig()));
         assertTrue(grid.isEmpty()); assertTrue(ItemStack.matches(source, inventory.getItem(9)));
     }
 
@@ -36,7 +36,7 @@ class CraftingRefillTest {
         var inventory = new SimpleContainer(41); var grid = new SimpleContainer(4);
         var source = box(new ItemStack(Items.STICK, 6)); inventory.setItem(9, source.copy());
         inventory.setItem(10, new ItemStack(Items.STICK, 3)); grid.setItem(0, new ItemStack(Items.COAL, 7));
-        assertTrue(CraftingRefill.refill(inventory, grid, torch(), empty(4), new StorageConfig()));
+        assertTrue(CraftingRefill.refill(inventory, grid, torch(), empty(4), enabledConfig()));
         assertEquals(7, grid.getItem(0).getCount()); assertEquals(2, inventory.getItem(10).getCount());
         assertTrue(ItemStack.matches(source, inventory.getItem(9)));
     }
@@ -45,7 +45,7 @@ class CraftingRefillTest {
         var inventory = new SimpleContainer(41); var grid = new SimpleContainer(4);
         inventory.setItem(9, box(new ItemStack(Items.COAL), new ItemStack(Items.STICK)));
         grid.setItem(0, new ItemStack(Items.DIAMOND));
-        assertFalse(CraftingRefill.refill(inventory, grid, torch(), empty(4), new StorageConfig()));
+        assertFalse(CraftingRefill.refill(inventory, grid, torch(), empty(4), enabledConfig()));
         assertTrue(grid.getItem(0).is(Items.DIAMOND)); assertEquals(2, contents(inventory.getItem(9)).size());
     }
 
@@ -53,14 +53,14 @@ class CraftingRefillTest {
         var inventory = new SimpleContainer(41); var grid = new SimpleContainer(1);
         inventory.setItem(9, box(new ItemStack(Items.MILK_BUCKET))); grid.setItem(0, new ItemStack(Items.BUCKET));
         assertTrue(CraftingRefill.refill(inventory, grid, List.of(new ItemStack(Items.MILK_BUCKET)),
-                List.of(new ItemStack(Items.BUCKET)), new StorageConfig()));
+                List.of(new ItemStack(Items.BUCKET)), enabledConfig()));
         assertTrue(grid.getItem(0).is(Items.MILK_BUCKET)); assertTrue(inventory.getItem(10).is(Items.BUCKET));
     }
 
     @Test void fullBackpackCanExchangeRemainderIntoVacatedSourceBox() {
         var inventory = full(); var grid = new SimpleContainer(1);
         inventory.setItem(35, box(new ItemStack(Items.MILK_BUCKET))); grid.setItem(0, new ItemStack(Items.BUCKET));
-        var config = new StorageConfig(); config.refillMakeSpace = false;
+        var config = enabledConfig(); config.refillMakeSpace = false;
         assertFalse(CraftingRefill.refill(inventory, grid, List.of(new ItemStack(Items.MILK_BUCKET)),
                 List.of(new ItemStack(Items.BUCKET)), config));
         assertTrue(grid.getItem(0).is(Items.BUCKET));
@@ -75,7 +75,7 @@ class CraftingRefillTest {
         var inventory = full(); var grid = new SimpleContainer(4);
         inventory.setItem(9, box(new ItemStack(Items.COAL, 2), new ItemStack(Items.STICK, 2)));
         inventory.getItem(9).setCount(3); inventory.setItem(10, ItemStack.EMPTY);
-        assertTrue(CraftingRefill.refill(inventory, grid, torch(), empty(4), new StorageConfig()));
+        assertTrue(CraftingRefill.refill(inventory, grid, torch(), empty(4), enabledConfig()));
         assertEquals(2, inventory.getItem(9).getCount());
         assertEquals(2, contents(inventory.getItem(9)).getFirst().getCount());
         assertEquals(1, contents(inventory.getItem(10)).getFirst().getCount());
@@ -86,7 +86,7 @@ class CraftingRefillTest {
         var inventory = new SimpleContainer(41); var grid = new SimpleContainer(1);
         var named = new ItemStack(Items.STONE); named.set(DataComponents.CUSTOM_NAME, Component.literal("Chosen"));
         inventory.setItem(9, box(new ItemStack(Items.STONE), named));
-        var config = new StorageConfig(); config.craftRefill = false;
+        var config = enabledConfig(); config.craftRefill = false;
         assertFalse(CraftingRefill.refill(inventory, grid, List.of(named), empty(1), config));
         config.craftRefill = true; config.pickupStorageEnabled = config.schematicRefill = config.ipnRefill = false;
         assertTrue(CraftingRefill.refill(inventory, grid, List.of(named), empty(1), config));
@@ -94,6 +94,11 @@ class CraftingRefillTest {
         assertEquals(1, contents(inventory.getItem(9)).size());
     }
 
+    private static StorageConfig enabledConfig() {
+        var config = new StorageConfig();
+        config.craftRefill = true;
+        return config;
+    }
     private static List<ItemStack> torch() {
         return List.of(new ItemStack(Items.COAL), ItemStack.EMPTY, new ItemStack(Items.STICK), ItemStack.EMPTY);
     }

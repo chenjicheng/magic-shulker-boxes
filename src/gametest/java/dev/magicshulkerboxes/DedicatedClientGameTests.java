@@ -87,6 +87,8 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
             enderAndCrafting(context, server);
             policy(context, server);
             adminSettings(context, server);
+            keybindings(context, server);
+            clickableCommands(context, server);
             context.takeScreenshot("dedicated-tcp-acceptance");
         }
     }
@@ -420,6 +422,115 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
             } catch (java.io.IOException exception) {
                 throw new AssertionError("Cannot read synchronized client reset", exception);
             }
+        });
+    }
+
+    private static void keybindings(ClientGameTestContext context, TestServerContext server) {
+        context.runOnClient(client -> {
+            for (var entry : ConfigFile.options(new StorageConfig()).entrySet()) {
+                if (!entry.getValue().isJsonPrimitive() || !entry.getValue().getAsJsonPrimitive().isBoolean()) continue;
+                var name = "key.magic_shulker_boxes.toggle." + entry.getKey();
+                var binding = java.util.Arrays.stream(client.options.keyMappings).filter(key -> key.getName().equals(name)).findFirst();
+                check(binding.isPresent(), "Every personal boolean option has a key binding: " + entry.getKey());
+                check(binding.orElseThrow().getDefaultKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN,
+                        "Toggle keys have no default game-key conflicts");
+                check(net.minecraft.network.chat.Component.translatable(name).getString().startsWith("Toggle:"),
+                        "Every key binding has a readable localized name");
+                check(binding.orElseThrow().getCategory().label().getString().contains("Magic Shulker Boxes"),
+                        "Key bindings have a localized controls-menu category");
+            }
+        });
+        server.runOnServer(actual -> {
+            var c = MagicShulkerBoxes.config();
+            c.allowPlayerSettings = true;
+            c.playerEditableSettings = List.of("craftRefill", "ipnRefill");
+            c.craftRefill = false;
+            SettingsNetwork.broadcastPolicy(actual);
+        });
+        context.waitTicks(25);
+        var original = context.computeOnClient(client -> {
+            var binding = net.minecraft.client.KeyMapping.get("key.magic_shulker_boxes.toggle.craftRefill");
+            var old = binding.saveString();
+            binding.setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(org.lwjgl.glfw.GLFW.GLFW_KEY_F8));
+            net.minecraft.client.KeyMapping.resetMapping();
+            return old;
+        });
+        try {
+            context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F8);
+            waitForServer(context, server, actual -> MagicShulkerBoxes.configFor(actual.getPlayerList().getPlayers().getFirst()).craftRefill);
+            context.waitFor(client -> {
+                try {
+                    var values = ConfigFile.readPreferences(FabricLoader.getInstance().getConfigDir().resolve("magic_shulker_boxes-client.json"));
+                    return values.has("craftRefill") && values.get("craftRefill").getAsBoolean();
+                }
+                catch (java.io.IOException exception) { throw new AssertionError(exception); }
+            });
+            context.waitTicks(25);
+            context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F8);
+            waitForServer(context, server, actual -> !MagicShulkerBoxes.configFor(actual.getPlayerList().getPlayers().getFirst()).craftRefill);
+            context.waitTicks(25);
+            server.runOnServer(actual -> { MagicShulkerBoxes.config().playerEditableSettings = List.of("ipnRefill"); SettingsNetwork.broadcastPolicy(actual); });
+            context.waitTicks(25);
+            context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_F8);
+            context.waitTicks(25);
+            server.runOnServer(actual -> {
+                try { check(!MagicShulkerBoxes.players(actual).read(actual.getPlayerList().getPlayers().getFirst().getUUID()).get("craftRefill").getAsBoolean(),
+                        "A locally chosen binding cannot change a locked personal option"); }
+                catch (java.io.IOException exception) { throw new AssertionError(exception); }
+            });
+            context.runOnClient(client -> check(!net.minecraft.client.KeyMapping.get("key.magic_shulker_boxes.toggle.craftRefill").isUnbound(),
+                    "Server permissions do not unbind the player's chosen key"));
+        } finally {
+            context.runOnClient(client -> {
+                net.minecraft.client.KeyMapping.get("key.magic_shulker_boxes.toggle.craftRefill").setKey(com.mojang.blaze3d.platform.InputConstants.getKey(original));
+                net.minecraft.client.KeyMapping.resetMapping();
+            });
+        }
+    }
+
+    private static void clickableCommands(ClientGameTestContext context, TestServerContext server) {
+        server.runOnServer(actual -> {
+            var player = actual.getPlayerList().getPlayers().getFirst();
+            actual.getPlayerList().op(new net.minecraft.server.players.NameAndId(player.getGameProfile()),
+                    java.util.Optional.of(net.minecraft.server.permissions.LevelBasedPermissionSet.ADMIN), java.util.Optional.empty());
+            MagicShulkerBoxes.config().pickupStorageEnabled = false;
+        });
+        context.waitTicks(25);
+        context.runOnClient(client -> client.gui.getChat().clearMessages(false));
+        server.runOnServer(actual -> {
+            var player = actual.getPlayerList().getPlayers().getFirst();
+            try { actual.getCommands().getDispatcher().execute("msb admin show pickupStorageEnabled", player.createCommandSourceStack()); }
+            catch (com.mojang.brigadier.exceptions.CommandSyntaxException exception) { throw new AssertionError(exception); }
+        });
+        context.setScreen(() -> new net.minecraft.client.gui.screens.ChatScreen("", false));
+        context.waitTicks(5);
+        String command = "/msb admin set pickupStorageEnabled true";
+        var point = context.computeOnClient(client -> {
+            int height = client.getWindow().getGuiScaledHeight(), width = client.getWindow().getGuiScaledWidth();
+            for (int y = 0; y < height - 16; y += 2) for (int x = 0; x < width; x += 2) {
+                var finder = new net.minecraft.client.gui.ActiveTextCollector.ClickableStyleFinder(client.font, x, y);
+                client.gui.getChat().captureClickableText(finder, height, client.gui.getGuiTicks(), true);
+                var style = finder.result();
+                if (style != null && style.getClickEvent() instanceof net.minecraft.network.chat.ClickEvent.SuggestCommand event
+                        && event.command().equals(command)) return new double[]{x * client.getWindow().getGuiScale(), y * client.getWindow().getGuiScale()};
+            }
+            throw new AssertionError("Server setting command button is missing from rendered chat");
+        });
+        context.getInput().setCursorPos(point[0], point[1]);
+        context.getInput().pressMouse(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        context.runOnClient(client -> {
+            var input = client.screen.children().stream().filter(net.minecraft.client.gui.components.EditBox.class::isInstance)
+                    .map(net.minecraft.client.gui.components.EditBox.class::cast).findFirst().orElseThrow();
+            check(input.getValue().equals(command), "Click fills the complete command into vanilla chat");
+        });
+        server.runOnServer(actual -> check(!MagicShulkerBoxes.config().pickupStorageEnabled, "Clicking does not apply a setting yet"));
+        context.takeScreenshot("server-command-preview");
+        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER);
+        waitForServer(context, server, actual -> MagicShulkerBoxes.config().pickupStorageEnabled);
+        server.runOnServer(actual -> {
+            try { check(ConfigFile.load(FabricLoader.getInstance().getConfigDir().resolve("magic_shulker_boxes.json")).pickupStorageEnabled,
+                    "Enter applies and persists the server setting"); }
+            catch (java.io.IOException exception) { throw new AssertionError(exception); }
         });
     }
 

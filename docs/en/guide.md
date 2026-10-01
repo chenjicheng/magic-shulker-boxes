@@ -15,6 +15,14 @@ When a player picks up a ground item, the normal inventory receives it first. An
 
 All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
 
+## 0.6.0: clickable command previews and key bindings
+
+`/msb show [option]` displays your preferences, `/msb admin show [option]` displays server settings, and `/msb admin player <name|UUID> show` displays another player's preferences. Boolean values, modes, inheritance/defaults and individual permissions have clickable buttons. Hover to preview the complete command, click to place it in chat, then press Enter to apply. Chat buttons need only the server mod.
+
+Client 0.6.0 provides separate key bindings for all 20 personal boolean options under **Options → Controls → Key Binds → Magic Shulker Boxes: personal toggles**. Every binding starts unbound; players choose their own keyboard or mouse buttons. Bindings stay in vanilla client `options.txt` and are never sent to the server. In-game keys flip the effective value through the existing preference save/confirmation protocol. Servers validate permission to edit the setting value and cannot choose or restrict a player's bound key. Locked options explain why; pending saves, recovery and unsupported connections do not overwrite preferences.
+
+`craftRefill` defaults to off from 0.6.0. New configurations and omitted fields use `false`; an existing explicit `true` is retained. Administrators can run `/msb admin set craftRefill false` for an existing server. Permitted players can enable it with chat buttons or their own key binding.
+
 ## 0.5.0: containers, trades and ender sources
 
 Storage now covers ground pickup, container-to-inventory transfers and villager trade outputs. Existing `configVersion: 2` files are retained. `enderChestRefill` defaults to off; omitting `playerEditableSettings` retains the previous all-options permission behavior. GUI, schematic and IPN protocols changed: update both sides to 0.5.0. Container and trade storage still work with a server-only installation.
@@ -122,7 +130,7 @@ Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksFo
 
 Available since 0.4.0 for **2x2 inventory** and **3x3 crafting-table** refilling. IPN is not required. A 0.4.0 server performs extraction. A 0.4.0 client also counts box contents in the vanilla recipe book and refreshes when those contents change.
 
-The **Crafting** settings group contains `craftRefill`, enabled by default and independent of pickup storage, schematic refilling and IPN. When personal settings are allowed, use `/msb set craftRefill false` or `/msb set craftRefill true`.
+The **Crafting** settings group contains `craftRefill`, disabled by default and independent of pickup storage, schematic refilling and IPN. When personal settings are allowed, use `/msb set craftRefill false` or `/msb set craftRefill true`.
 
 - **Placing a recipe:** vanilla controls recipe permissions, matching, layout and Shift batch quantities. Missing inventory materials can come from carried boxes and go directly into the grid, without a temporary material slot. Previous grid inputs must fit safely back into the inventory.
 - **Taking an output:** ordinary clicks and Shift crafting refill empty cells with one item of the same type and complete components as the observed input pattern. Remaining grid stacks retain their counts. Ordinary inventory comes first, followed by boxes. An incomplete set of materials or unsafe remainder relocation stops the refill without partial extraction.
@@ -197,9 +205,18 @@ Servers enforce their own settings by default. Administrators can change and per
 /msb admin player-settings true
 /msb admin player-settings false
 /msb admin reload
+/msb admin show
+/msb admin show craftRefill
+/msb admin set craftRefill false
+/msb admin reset craftRefill
+/msb admin permission craftRefill true
+/msb admin permissions all
+/msb admin permissions none
 ```
 
 These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. With `allowPlayerSettings=false`, the server pickup and all refill switches apply to everyone. With it set to `true`, only fields permitted by `playerEditableSettings` become overridable defaults; other fields enforce the server value. A failed reload leaves the previous active settings in place.
+
+`admin set` persists any server setting; `admin reset <option>` restores only that option's code default. `permission <option> <true|false>` grants or revokes one personal permission, and `permissions all|none` grants or revokes every field while retaining the separate master switch. `admin set playerEditableSettings` also accepts a JSON name array. Invalid values are rejected, and failed writes preserve the previous active configuration. Buttons only preview commands; pressing Enter persists the change and synchronizes policy.
 
 ### Managing a specific player's preferences
 
@@ -242,7 +259,7 @@ Once permitted, ordinary players can use these commands without a client install
 /msb reset
 ```
 
-`show` reports the **effective** settings. `set` takes effect immediately and supports every storage option except the server-only policy. `reset` clears editable personal overrides. Option names and values have command suggestions. Each player can change only their own settings. The server rejects `set/reset` while personal settings are disallowed.
+`show [option]` reports the **effective** settings. Permitted fields offer clickable values and inheritance commands. `set` takes effect immediately for all `StorageConfig` options; policy fields require administrator commands. `reset <option>` restores one inherited value, and `reset` clears editable personal overrides. Option names and values have suggestions. Each player can change only their own settings. The server rejects `set/reset` while personal settings are disallowed.
 
 Overrides are saved by UUID in the current world's `data/magic_shulker_boxes/players/<UUID>.json`, persist across restarts, and are isolated between worlds. Only explicitly changed fields are stored; all others inherit the current server defaults. Administrators can reload after manually repairing player files to clear the cache.
 
