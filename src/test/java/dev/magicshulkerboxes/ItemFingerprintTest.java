@@ -55,7 +55,7 @@ class ItemFingerprintTest {
             var request = new RefillNetwork.Request(9, 0, "minecraft:stone", "a".repeat(64));
             RefillNetwork.Request.CODEC.encode(buffer, request);
             assertEquals(request, RefillNetwork.Request.CODEC.decode(buffer));
-            assertEquals("refill_v3", RefillNetwork.Request.ID.id().getPath());
+            assertEquals("refill_v4", RefillNetwork.Request.ID.id().getPath());
             assertThrows(io.netty.handler.codec.EncoderException.class, () -> RefillNetwork.Request.CODEC.encode(buffer,
                     new RefillNetwork.Request(9, 0, "minecraft:stone", "a".repeat(65))));
         } finally { buffer.release(); }

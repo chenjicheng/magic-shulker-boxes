@@ -1,6 +1,7 @@
 package dev.magicshulkerboxes.client;
 
 import dev.magicshulkerboxes.ShulkerStorage;
+import dev.magicshulkerboxes.RefillSources;
 import dev.magicshulkerboxes.mixin.IpnSlotFinder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,17 +23,21 @@ public final class IpnCandidates {
     public record Source(int boxSlot, int contentSlot, int boxCount, ItemStack stack, int eligibleSlots) {}
     private static final class Lookup {
         final Map<Integer, Source> sources = new HashMap<>();
+        final int phase;
+        Lookup(int phase) { this.phase = phase; }
     }
 
     static IpnSlotFinder finder() { return (IpnSlotFinder) (Object) AutoRefillHandler$ItemSlotMonitor.Companion; }
 
     public static Source find(org.anti_ad.mc.ipnext.item.ItemStack checking, org.anti_ad.mc.ipnext.item.ItemStack current) {
         var previous = LOOKUP.get();
-        var lookup = new Lookup();
-        LOOKUP.set(lookup);
         try {
-            var slot = finder().msb$findCorrespondingSlot(checking, current);
-            return slot == null ? null : lookup.sources.get(slot);
+            for (int phase = 0; phase < (RefillSettings.get().enderChestRefill ? 3 : 1); phase++) {
+                var lookup = new Lookup(phase); LOOKUP.set(lookup);
+                var slot = finder().msb$findCorrespondingSlot(checking, current);
+                if (slot != null && lookup.sources.containsKey(slot)) return lookup.sources.get(slot);
+            }
+            return null;
         } finally {
             if (previous == null) LOOKUP.remove(); else LOOKUP.set(previous);
         }
@@ -51,8 +56,21 @@ public final class IpnCandidates {
             if (slot >= 9 && slot < 36) { slots.add(slot); eligible |= 1 << (slot - 9); }
         }
         var candidates = new ArrayList<IndexedValue<org.anti_ad.mc.ipnext.item.ItemStack>>();
+        var inventory = RefillSources.of(client.player, RefillSettings.get());
+        if (lookup.phase > 0) {
+            slots.clear();
+            for (int slot = RefillSources.ENDER_START; slot < inventory.getContainerSize(); slot++) slots.add(slot);
+        }
         for (int slot : slots) {
-            var box = client.player.getInventory().getItem(slot);
+            var box = inventory.getItem(slot);
+            if (lookup.phase == 1) {
+                if (!box.isEmpty() && !ShulkerStorage.isShulker(box)) {
+                    int virtualSlot = VIRTUAL_SLOT_START + lookup.sources.size();
+                    lookup.sources.put(virtualSlot, new Source(slot, -1, box.getCount(), box.copy(), eligible));
+                    candidates.add(new IndexedValue<>(virtualSlot - 9, wrap(box)));
+                }
+                continue;
+            }
             if (!ShulkerStorage.isShulker(box) || (box.getCount() > 1 && !RefillSettings.get().splitStackedBoxes)) continue;
             var stored = box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
             if (stored.stream().count() > 27) continue;

@@ -77,8 +77,42 @@ public class CraftingClientGameTests implements FabricClientGameTest {
                 for (int i = 0; i < 36; i++) if (inventory.getItem(i).is(Items.CHEST)) chests += inventory.getItem(i).getCount();
                 check(chests == 3 && stored(inventory.getItem(9)) == 0, "Three chests crafted once with exact source consumption");
             });
+            enderRecipeFlow(context, world, table, tableId);
             context.takeScreenshot("crafting-refill-verified");
         }
+    }
+
+    private static void enderRecipeFlow(ClientGameTestContext context, TestSingleplayerContext world,
+                                       RecipeHolder<?> recipe, RecipeDisplayId id) {
+        world.getServer().runOnServer(server -> {
+            var p = server.getPlayerList().getPlayers().getFirst(); p.closeContainer();
+            p.getInventory().clearContent(); p.getEnderChestInventory().clearContent();
+            p.getEnderChestInventory().setItem(0, new ItemStack(Items.OAK_PLANKS, 4));
+            var box = new ItemStack(Items.SHULKER_BOX);
+            box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(new ItemStack(Items.OAK_PLANKS, 4))));
+            p.getEnderChestInventory().setItem(1, box);
+            MagicShulkerBoxes.config().enderChestRefill = true; SettingsNetwork.broadcastPolicy(server);
+        });
+        context.waitFor(client -> client.player.containerMenu == client.player.inventoryMenu
+                && client.player.getInventory().isEmpty() && client.player.getEnderChestInventory().getItem(0).getCount() == 4
+                && stored(client.player.getEnderChestInventory().getItem(1)) == 4);
+        context.setScreen(() -> new InventoryScreen(net.minecraft.client.Minecraft.getInstance().player));
+        context.runOnClient(client -> {
+            if (!book(client.screen).isVisible()) book(client.screen).toggleVisibility();
+        });
+        context.waitFor(client -> counter(client.screen).getBiggestCraftableStack(recipe.value(), null) == 2);
+        context.runOnClient(client -> client.gameMode.handlePlaceRecipe(0, id, false));
+        context.waitFor(client -> client.player.inventoryMenu.getResultSlot().getItem().is(Items.CRAFTING_TABLE));
+        context.runOnClient(client -> client.gameMode.handleInventoryMouseClick(0, 0, 0, ClickType.PICKUP, client.player));
+        context.waitFor(client -> client.player.inventoryMenu.getCarried().is(Items.CRAFTING_TABLE)
+                && client.player.inventoryMenu.getInputGridSlots().stream().allMatch(slot -> slot.getItem().is(Items.OAK_PLANKS))
+                && stored(client.player.getEnderChestInventory().getItem(1)) == 0);
+        world.getServer().runOnServer(server -> {
+            var p = server.getPlayerList().getPlayers().getFirst();
+            check(p.getEnderChestInventory().getItem(0).isEmpty() && stored(p.getEnderChestInventory().getItem(1)) == 0,
+                    "Real recipe placement and continuous refill used exactly eight ender planks");
+            check(p.inventoryMenu.getCarried().getCount() == 1, "Server confirms exactly one crafted table");
+        });
     }
 
     private static RecipeHolder<?> prepare(ClientGameTestContext context, TestSingleplayerContext world, String name, int amount) {

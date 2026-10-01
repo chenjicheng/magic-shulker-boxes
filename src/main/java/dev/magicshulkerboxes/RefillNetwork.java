@@ -25,7 +25,7 @@ public final class RefillNetwork {
     private static final Map<ServerPlayer, Integer> REQUESTS = new WeakHashMap<>();
     private static final Map<ServerPlayer, Integer> NOTICES = new WeakHashMap<>();
     public record Request(int boxSlot, int contentSlot, String item, String fingerprint) implements CustomPacketPayload {
-        public static final Type<Request> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "refill_v3"));
+        public static final Type<Request> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "refill_v4"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Request> CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, Request::boxSlot, ByteBufCodecs.VAR_INT, Request::contentSlot,
                 ByteBufCodecs.stringUtf8(256), Request::item,
@@ -54,16 +54,12 @@ public final class RefillNetwork {
         if (id == null) return 0;
         var item = BuiltInRegistries.ITEM.getOptional(id).orElse(null);
         var inventory = player.getInventory();
-        if (item == null || request.boxSlot() < 0 || request.boxSlot() >= inventory.getContainerSize()
-                || (request.boxSlot() >= 36 && !(config.includeOffhand
-                && request.boxSlot() == net.minecraft.world.entity.player.Inventory.SLOT_OFFHAND))
-                || request.contentSlot() < 0 || request.contentSlot() >= 27) return 0;
-        var source = inventory.getItem(request.boxSlot());
-        if (!ShulkerStorage.isShulker(source)) return 0;
-        var stored = source.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-        if (stored.stream().count() > 27) return 0;
-        var contents = NonNullList.withSize(27, ItemStack.EMPTY); stored.copyInto(contents);
-        var wanted = contents.get(request.contentSlot());
+        var sources = RefillSources.of(player, config);
+        boolean ender = config.enderChestRefill && RefillSources.isEnder(sources, request.boxSlot());
+        if (item == null || request.boxSlot() < 0 || request.boxSlot() >= sources.getContainerSize()
+                || (request.boxSlot() >= 36 && !ender && !(config.includeOffhand && request.boxSlot() == 40))) return 0;
+        var contents = NonNullList.withSize(27, ItemStack.EMPTY);
+        var wanted = RefillSources.item(sources, request.boxSlot(), request.contentSlot());
         if (wanted.isEmpty() || !wanted.is(item) || request.fingerprint().length() != 64
                 || !request.fingerprint().equals(ItemFingerprint.of(wanted, player.registryAccess()))) {
             failure(player, config, "changed", now); return 0;
@@ -73,20 +69,29 @@ public final class RefillNetwork {
         int moved = 0;
         // Enforce the same least-filled-first order even for stale or manually selected client slots.
         // A blocked source (for example a stacked box with no split slot) must not hide a usable box.
-        for (int slot : BoxOrder.emptiestFirst(inventory, config)) {
-            if (moved > 0) break;
-            var alternative = inventory.getItem(slot);
-            if (!ShulkerStorage.isShulker(alternative)) continue;
-            var data = alternative.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-            if (data.stream().count() > 27) continue;
-            data.copyInto(contents);
-            // Equal components AND counts have identical capacity outcomes in the same box.
-            // Different counts remain candidates: extracting a smaller stack may free a whole slot.
-            var triedCounts = new HashSet<Integer>();
-            for (int inner = 0; inner < 27 && moved == 0; inner++) {
-                if (ItemStack.isSameItemSameComponents(contents.get(inner), wanted)
-                        && triedCounts.add(contents.get(inner).getCount())) {
-                    moved = ShulkerRefill.take(inventory, slot, inner, item, config);
+        for (int pass = 0; pass < (config.enderChestRefill ? 2 : 1) && moved == 0; pass++) {
+            if (pass == 1 && config.enderChestRefill && sources instanceof RefillSources.View) {
+                for (int slot = RefillSources.ENDER_START; slot < sources.getContainerSize() && moved == 0; slot++) {
+                    if (ItemStack.isSameItemSameComponents(RefillSources.item(sources, slot, -1), wanted))
+                        moved = ShulkerRefill.take(sources, slot, -1, item, config);
+                }
+            }
+            for (int slot : BoxOrder.emptiestFirst(sources, config)) {
+                if (RefillSources.isEnder(sources, slot) != (pass == 1)) continue;
+                if (moved > 0) break;
+                var alternative = sources.getItem(slot);
+                if (!ShulkerStorage.isShulker(alternative)) continue;
+                var data = alternative.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+                if (data.stream().count() > 27) continue;
+                data.copyInto(contents);
+                // Equal components AND counts have identical capacity outcomes in the same box.
+                // Different counts remain candidates: extracting a smaller stack may free a whole slot.
+                var triedCounts = new HashSet<Integer>();
+                for (int inner = 0; inner < 27 && moved == 0; inner++) {
+                    if (ItemStack.isSameItemSameComponents(contents.get(inner), wanted)
+                            && triedCounts.add(contents.get(inner).getCount())) {
+                        moved = ShulkerRefill.take(sources, slot, inner, item, config);
+                    }
                 }
             }
         }

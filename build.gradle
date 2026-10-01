@@ -17,6 +17,13 @@ repositories {
     }
 }
 
+configurations {
+    yaclRuntimeBundle {
+        canBeConsumed = false
+        transitive = false
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()
@@ -36,6 +43,14 @@ dependencies {
     if (providers.gradleProperty('withConfigGui').isPresent()) {
         modLocalRuntime "maven.modrinth:modmenu:${project.modmenu_version}"
         modLocalRuntime "maven.modrinth:yacl:${project.yacl_version}"
+        // Loom removes the nested-JAR declarations from development mods. Keep YACL's
+        // own bundled Java libraries on the optional runtime classpath, never in our JAR.
+        yaclRuntimeBundle "maven.modrinth:yacl:${project.yacl_version}"
+        runtimeOnly files(provider {
+            zipTree(configurations.yaclRuntimeBundle.singleFile).matching {
+                include 'META-INF/jars/*.jar'
+            }.files
+        })
     }
     testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -55,7 +70,7 @@ fabricApi {
         modId = 'magic_shulker_boxes_test'
         enableGameTests = true
         enableClientGameTests = providers.gradleProperty('withIpn').isPresent() || providers.gradleProperty('clientSmoke').isPresent()
-                || providers.gradleProperty('craftClient').isPresent()
+                || providers.gradleProperty('craftClient').isPresent() || providers.gradleProperty('dedicatedClient').isPresent()
     }
 }
 
@@ -65,11 +80,16 @@ if (providers.gradleProperty('withIpn').isPresent()) {
 }
 
 processGametestResources {
-    def clientTest = providers.gradleProperty('withIpn').isPresent() ? 'dev.magicshulkerboxes.IpnClientGameTests'
+    def clientTest = providers.gradleProperty('dedicatedClient').isPresent() ? 'dev.magicshulkerboxes.DedicatedClientGameTests'
+            : providers.gradleProperty('withIpn').isPresent() ? 'dev.magicshulkerboxes.IpnClientGameTests'
             : providers.gradleProperty('craftClient').isPresent() ? 'dev.magicshulkerboxes.CraftingClientGameTests'
             : 'dev.magicshulkerboxes.ClientSmokeGameTests'
     inputs.property 'clientTest', clientTest
     filesMatching('fabric.mod.json') { expand clientTest: clientTest }
+}
+
+if (providers.gradleProperty('acceptMinecraftEula').isPresent()) {
+    tasks.named('runClientGameTest') { jvmArgs '-Dmsb.test.acceptEula=true' }
 }
 
 processResources {

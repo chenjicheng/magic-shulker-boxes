@@ -41,7 +41,7 @@ public final class SchematicRefillClient {
         handled = true;
         if (System.nanoTime() < nextRequest) return true;
         nextRequest = System.nanoTime() + 500_000_000L;
-        var match = RefillSearch.find(inventory, wanted, config);
+        var match = RefillSearch.find(RefillSources.of(mc.player, config), wanted, config);
         if (match != null) {
             var fingerprint = ItemFingerprint.of(wanted, mc.player.registryAccess());
             if (fingerprint.isEmpty()) { notice("changed"); return true; }

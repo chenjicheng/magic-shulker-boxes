@@ -67,16 +67,16 @@ public final class SettingsCommands {
 
     private static int set(CommandSourceStack source, String key, String value) throws CommandSyntaxException {
         var player = source.getPlayerOrException();
-        if (!MagicShulkerBoxes.config().allowPlayerSettings) return failure(source, "locked");
         if (!ConfigFile.optionNames().contains(key)) return failure(source, "invalid");
+        if (!MagicShulkerBoxes.config().canEdit(key)) return failure(source, "locked");
         try {
             var store = MagicShulkerBoxes.players(source.getServer());
-            var overrides = store.read(player.getUUID());
+            var overrides = ConfigFile.editable(store.read(player.getUUID()), MagicShulkerBoxes.config().playerEditableSettings);
             if (key.equals("makeSpaceMode")) overrides.addProperty(key, value);
             else if (value.equals("true") || value.equals("false")) overrides.addProperty(key, Boolean.parseBoolean(value));
             else return failure(source, "invalid");
             ConfigFile.parsePreferences(overrides.toString());
-            store.save(player.getUUID(), overrides);
+            store.saveAllowed(player.getUUID(), overrides, MagicShulkerBoxes.config());
             SettingsNetwork.acknowledge(player);
             reply(source, "saved", Messages.text(language(source), "option." + key), value);
             return 1;
@@ -90,7 +90,7 @@ public final class SettingsCommands {
         var player = source.getPlayerOrException();
         if (!MagicShulkerBoxes.config().allowPlayerSettings) return failure(source, "locked");
         try {
-            MagicShulkerBoxes.players(source.getServer()).save(player.getUUID(), new JsonObject());
+            MagicShulkerBoxes.players(source.getServer()).saveAllowed(player.getUUID(), new JsonObject(), MagicShulkerBoxes.config());
             SettingsNetwork.acknowledge(player);
             reply(source, "reset");
             return 1;

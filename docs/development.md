@@ -59,7 +59,31 @@ npm run docs:preview
 
 发行校验脚本 `scripts/release.py` 检查标签、元数据、许可证、可选依赖和测试类未被打包，并只选择当前版本的两个产物。VitePress 使用 `docs` 中的公开文档，保留死链接检查；缓存、日志、本地存档和构建目录不提交。完整使用说明以 `docs/guide.md` 和 `docs/en/guide.md` 为单一来源。
 
+## 容器、来源与字段权限
+
+`MenuStorageMixin` 在真实服务端菜单包装 `moveItemStackTo` 和 `clicked`。快速转移仅在 `clicked(QUICK_MOVE)` 作用域识别外部槽位向普通玩家槽位的移动，切换交易时的自动退回费用不收纳，保留原版取物权限和结果回调；光标来源按菜单跟踪，普通放入后只收纳新增数量。`MenuStorage` 对交易整份结果预检容量；菜单中不执行丢出腾栏，光标放入后的收纳先在副本上规划，保留所有未接收数量。合成菜单不在这一收纳入口范围。
+
+`RefillSources.View` 将真实玩家物品栏与本人末影箱组合，末影箱编码槽位固定为 100–126，内部槽位 -1 表示直接物品。该范围避开 1.21.11 的 41/42 身体装备和鞍槽；空隙不可写入物品。`CraftingMaterials.copy` 保留来源区域，配方放置与连续补货在整体副本中规划并提交。来源顺序为原版/IPN 背包、随身盒、末影箱直接物品、末影箱盒；堆叠盒只在对应区域找拆分空栏。
+
+`EnderSourcesNetwork` 仅发送 S2C `ender_sources_v1`，固定 27 格，不接受客户端存储写入。启用 `enderChestRefill` 时每 10 tick 比较当前玩家真实末影箱与上次发送的快照，只在变化时发送；关闭时发送空投影。客户端投影只用于候选和配方书统计，服务端请求仍重新读取自己的真实存储。
+
+`restock_v2` 增加整个来源盒指纹，仍校验数量、目标、掩码及请求 ID。工具候选使用 `swapToolForRestock`，把来源内原格和主手/副手一起交换；来源盒变化或无法安全拆分时拒绝。客户端观察实际装备同步后结束等待，不再执行第二次 IPN 换手。消耗品保留原有取到背包再换手的流程。
+
+`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v4` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.5.0。磁盘格式仍为版本 2，新字段是可选新增。
+
+`MenuStorageGameTests` 覆盖真实容器与交易、光标、满背包、部分容量、拒绝取物、整份交易的扣款/次数/经验。`EnderSourcesGameTests` 覆盖本人隔离、请求重复/过期、来源优先级、禁用与无空间、真实配方书和连续补货。`SettingPermissionsGameTests` 检查命令、恶意网络/GUI、既存文件和运行时撤权。客户端的 `clientSmoke` 覆盖真实容器点击，`withIpn` 覆盖末影箱直接药水与原格工具回存；`craftClient` 检查末影箱配方统计和实际请求。加 `-PwithConfigGui -PclientSmoke` 检查逐项锁定页面。
+
 ## 测试命令
+
+### 本地专用服务器 TCP 验收
+
+```powershell
+.\gradlew.bat runClientGameTest -PwithIpn -PdedicatedClient -PacceptMinecraftEula
+```
+
+`-PacceptMinecraftEula` 表示同意 [Minecraft EULA](https://aka.ms/MinecraftEULA)，仅为隔离的测试目录写入 `eula=true`；未同意时不要传入该参数。
+
+`DedicatedClientGameTests` 使用 Fabric 测试框架启动监听 127.0.0.1 的真实 `DedicatedServer`，客户端通过本机 TCP 加入。测试检查客户端没有内置服务器，复用 IPN 全部真实触发/匹配路径，再检查容器 Shift、连续村民交易的输入/次数/经验、末影箱请求、配方点击与耗空格补货，以及网络保存字段许可和撤权。测试结束关闭连接与服务器；存档只在 `build/run/clientGameTest/msb-dedicated-test-world`。无需操作生产存档或服务器。这里的独立专用服务器实现由测试框架在测试 JVM 内运行，和原版/Carpet 的纯服务端 GameTest 进程一起覆盖连接同步与物理服务端加载。
 
 ### 合成取料与真实客户端验证
 
@@ -81,7 +105,7 @@ npm run docs:preview
 
 `IpnMonitorMixin` 在 IPN 完成自身触发检查与等待 tick 后、调用 `handle()` 前接入。普通背包候选始终优先。`IpnCandidatesMixin` 仅在作用域受限的第二次查找中，将只读盒内物品交给候选列表；所有筛选与排序仍在 IPN 原始 `findCorrespondingSlot` 执行。虚拟候选编号不会进入点击协议或玩家背包。发行包省略嵌套类元数据，Java 适配器使用其实际二进制类名。
 
-`restock_v1` 包含关联请求 ID、来源盒/内部栏位与数量、目标主手/副手栏位和数量、IPN 可用背包栏位的 27 位掩码，以及来源/目标各自最多 64 字符的组件指纹。空目标使用空指纹。服务端读取真实物品并检查指纹、数量、模式、菜单、光标、有效 `ipnRefill` 和限流；同一请求与每 10 tick 内的后续请求拒绝。取出事务只提交完整规划，腾栏和拆盒均限于掩码中的背包栏位。`restock_result_v1` 返回关联 ID 与结果，物品通过原版背包同步。客户端最长等待 5 秒，IPN 撤销触发、失败或超时后恢复其原有处理。
+`restock_v2` 包含关联请求 ID、来源盒/内部栏位与数量、目标主手/副手栏位和数量、IPN 可用背包栏位的 27 位掩码，以及来源物品/整个来源盒/目标各自最多 64 字符的组件指纹。空目标使用空指纹。服务端读取真实物品并检查指纹、数量、模式、菜单、光标、有效 `ipnRefill` 和限流；同一请求与每 10 tick 内的后续请求拒绝。取出事务只提交完整规划，腾栏和拆盒均限于掩码中的背包栏位。`restock_result_v2` 返回关联 ID 与结果，物品通过原版背包同步。客户端最长等待 5 秒，IPN 撤销触发、失败或超时后恢复其原有处理。
 
 真实客户端验证（需要可用的图形环境）：
 
@@ -98,7 +122,7 @@ npm run docs:preview
 
 `RefillSearch` 只读查找组件完全匹配的材料。可选 Mixin 包围 Litematica `WorldUtils.doEasyPlaceAction` 和 `EasyPlaceUtils.handleEasyPlace`，仅在轻松放置调用 `InventoryUtils.schematicWorldPickBlock` 时触发取料，普通选取方块不受影响。`LitematicaMixinPlugin` 在未安装 Litematica 时跳过这些客户端目标；构建和专用服务端不依赖其 JAR。
 
-`refill_v3` 请求包含盒子栏位、盒内栏位、有长度上限的物品 ID 和 64 字符 SHA-256 指纹。`ItemFingerprint` 使用原版 `HashOps`、物品编解码器及注册表上下文计算与数量无关的规范化指纹；无法编码或含临时组件时拒绝，不接收完整客户端物品数据。旧 v1/v2 通道不再注册。`RefillNetwork` 在服务端线程检查来源指纹、游戏模式、菜单/光标状态和玩家有效设置，并重新读取真实物品；每位玩家每 10 个服务端 tick 最多处理一次，重复请求遇到背包已有材料时直接停止。相同盒内组件和数量相同的候选只规划一次，数量不同仍分别尝试。`ShulkerRefill` 先在副本中规划取出、腾栏和拆盒，全部可行后才提交；失败不修改背包。成功只走原版背包同步，失败可发送限频快捷栏提示。
+`refill_v4` 请求包含盒子栏位、盒内栏位、有长度上限的物品 ID 和 64 字符 SHA-256 指纹。`ItemFingerprint` 使用原版 `HashOps`、物品编解码器及注册表上下文计算与数量无关的规范化指纹；无法编码或含临时组件时拒绝，不接收完整客户端物品数据。旧 v1/v2/v3 通道不再注册。`RefillNetwork` 在服务端线程检查来源指纹、游戏模式、菜单/光标状态和玩家有效设置，并重新读取真实物品；每位玩家每 10 个服务端 tick 最多处理一次，重复请求遇到背包已有材料时直接停止。相同盒内组件和数量相同的候选只规划一次，数量不同仍分别尝试。`ShulkerRefill` 先在副本中规划取出、腾栏和拆盒，全部可行后才提交；失败不修改背包。成功只走原版背包同步，失败可发送限频快捷栏提示。
 
 取料不会直接放置方块或绕过 Litematica 的快捷栏保护和放置校验。等待同步期间抑制的是本次缺料产生的通用轻松放置警告；继续按住放置键后，由原有流程选物并放置。
 
@@ -167,15 +191,15 @@ npm run docs:preview
 | `src/test/java/dev/magicshulkerboxes` | Minecraft 注册表环境下的配置与收纳单元测试 |
 | `src/gametest/java/dev/magicshulkerboxes` | 实际服务端拾取路径与可选 Carpet 兼容测试 |
 
-Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。它保留原版拾取动画、统计和实体移除流程，不拦截通用 `Inventory.add`，因此不会意外影响合成或容器交互。
+Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。它保留原版拾取动画、统计和实体移除流程，不拦截通用 `Inventory.add`；容器收纳由独立的菜单入口处理。
 
 收纳先在内容副本上计算实际可接收数量，成功后才提交一个盒子的内容并扣除输入数量。堆叠源盒只减 1，其余盒子的内容不变；没有可接收容量时不拆盒、不占空栏。超过原版 27 栏的非标准潜影盒数据会整体跳过，以免截断其他模组的数据。
 
 腾栏事务先为被移动栏位的全部物品预留容量，再计算可接收的掉落物数量。丢出模式只有世界接纳了掉落实体才提交背包变更；同步回收只允许写入刚预留的那个单盒，目标被替换就保留掉落物。临时预留在 `finally` 清理；未收回的实体带有禁止再次腾栏的持久标记。真实 GameTest 覆盖两种模式、非满组、连续杂物收纳及重复触碰不循环腾栏。
 
-正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v3` 和 `preferences_v3` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
+正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v4` 和 `preferences_v4` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
 
-有效配置先由 `allowPlayerSettings` 决定是否读取个人覆盖项。允许时，`ConfigFile.apply` 将玩家显式设置的字段覆盖到服务端默认值；`pickupStorageEnabled` 与 `schematicRefill` 相互独立，玩家可开启服务端默认关闭的任一项。关闭策略时直接使用统一配置。个人文件在存档中按 UUID 隔离并缓存，写入使用临时文件与原子替换；非法个人文件不被静默覆盖，读取失败时回退服务端配置并记录日志。重载时先验证新配置，成功后替换并清缓存。
+有效配置先由 `allowPlayerSettings` 决定是否读取个人覆盖项。允许时，先按 `playerEditableSettings` 过滤，再由 `ConfigFile.apply` 将获授权的显式字段覆盖到服务端默认值；`pickupStorageEnabled` 与 `schematicRefill` 相互独立，玩家可开启服务端默认关闭的任一项。关闭策略时直接使用统一配置。个人文件在存档中按 UUID 隔离并缓存，写入使用临时文件与原子替换；非法个人文件不被静默覆盖，读取失败时回退服务端配置并记录日志。重载时先验证新配置，成功后替换并清缓存。
 
 测试覆盖服务端开关立即影响真实拾取、普通玩家只改自己、管理员实时开启/撤销策略、恶意策略字段拒绝、玩家间隔离与重启恢复、消息长度及中英文键/格式占位符一致。中英文资源位于 `assets/magic_shulker_boxes/lang`；`translatableWithFallback` 让没有安装客户端模组的玩家也能看到按其上报语言生成的文本。
 
@@ -183,11 +207,11 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 ## 可选 GUI 集成
 
-`ModMenuIntegration` 提供配置入口，检查 YACL 是否加载后才引用 `SettingsGui`。GUI 库使用 `modCompileOnly`，不会打包进本模组；开发启动可加 `-PwithConfigGui`。默认 GameTest 不加载 GUI 依赖，以检查纯服务端兼容。
+`ModMenuIntegration` 提供配置入口，检查 YACL 是否加载后才引用 `SettingsGui`。GUI 库使用 `modCompileOnly`，不会打包进本模组；开发启动可加 `-PwithConfigGui`；该可选运行会从同版本 YACL 发布包读取自带 Java 库补齐开发 classpath，仍不打包到本模组。默认 GameTest 不加载 GUI 依赖，以检查纯服务端兼容。
 
 YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，继承会删除键。`SettingsSession` 用连接与策略修订号隔离打开的编辑器和待确认保存；超时保留请求号并发起恢复查询，重复或旧连接回复不能写入。`PreferenceSync` 在发送保存前写入服务器地址/存档路径与玩家 UUID 对应的哈希文件名恢复标记，位于 `config/magic_shulker_boxes-recovery/`；标记不包含设置值或明文地址。收到确认后先更新内存快照，再写个人文件并清除标记。失败时内存仍跟随服务端，重连/进程重启遇到标记时先查询，不自动上传旧文件。`ClientSettings` 协调通知、超时和本地服务端提交。
 
-`EditorNetwork` 使用 `editor_state_v3`（策略和默认值）、`editor_save_v3`（请求号和覆盖项）、`editor_query_v3`（只读恢复查询请求号）及 `editor_result_v3`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧设置同步与 GUI v1/v2 通道不再注册，避免旧客户端上传旧键；新版 GUI 保存要求对端支持 v3 查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
+`EditorNetwork` 使用 `editor_state_v4`（策略和默认值）、`editor_save_v4`（请求号和覆盖项）、`editor_query_v4`（只读恢复查询请求号）及 `editor_result_v4`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧设置同步与 GUI v1/v2/v3 通道不再注册，避免旧客户端上传旧键；新版 GUI 保存要求对端支持 v4 查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
 
 `RefillRegressionGameTests` 覆盖请求途中改名、未变化的改名材料、保存超时后查询、玩家隔离及限流，以及满背包只取一个时的重复失败规划。测试在支持线程分配计数的 JVM 上限制该夹具每请求分配低于 4 MiB，同时记录耗时；不使用机器相关的耗时阈值。`PreferenceSyncTest` 注入本地文件替换失败并验证内存状态、恢复标记和重启行为。
 

@@ -60,7 +60,8 @@ public class ConfigMigrationGameTests {
             helper.assertTrue(channels.contains(id), Component.literal("Current settings channel is registered: " + id));
         }
         for (var old : List.of("preferences_v1", "editor_save_v1", "editor_query_v1",
-                "preferences_v2", "editor_save_v2", "editor_query_v2", "refill_v2")) {
+                "preferences_v2", "editor_save_v2", "editor_query_v2", "refill_v2",
+                "preferences_v3", "editor_save_v3", "editor_query_v3", "refill_v3", "restock_v1")) {
             helper.assertTrue(!channels.contains(Identifier.fromNamespaceAndPath("magic_shulker_boxes", old)),
                     Component.literal("Old client cannot re-upload legacy settings: " + old));
         }

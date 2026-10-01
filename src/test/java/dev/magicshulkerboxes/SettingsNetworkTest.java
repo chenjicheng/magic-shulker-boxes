@@ -40,4 +40,23 @@ class SettingsNetworkTest {
                     () -> SettingsNetwork.Preferences.CODEC.encode(buffer, new SettingsNetwork.Preferences("x".repeat(4097))));
         } finally { buffer.release(); }
     }
+    @Test void restockSnapshotsRoundTripAndFingerprintsStayBounded() {
+        var buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
+        try {
+            var request = new RestockNetwork.Request(3, 100, -1, 1, 1, 40, 0, 3,
+                    "a".repeat(64), "", "b".repeat(64));
+            RestockNetwork.Request.CODEC.encode(buffer, request);
+            assertEquals(request, RestockNetwork.Request.CODEC.decode(buffer));
+            assertEquals("restock_v2", RestockNetwork.Request.ID.id().getPath());
+            assertThrows(io.netty.handler.codec.EncoderException.class, () -> RestockNetwork.Request.CODEC.encode(buffer,
+                    new RestockNetwork.Request(3, 100, -1, 1, 1, 40, 0, 3, "a".repeat(64), "", "b".repeat(65))));
+            buffer.clear();
+            var empty = new EnderSourcesNetwork.Snapshot(java.util.Collections.nCopies(27, net.minecraft.world.item.ItemStack.EMPTY));
+            EnderSourcesNetwork.Snapshot.CODEC.encode(buffer, empty);
+            assertEquals(27, EnderSourcesNetwork.Snapshot.CODEC.decode(buffer).items().size());
+            assertThrows(IllegalArgumentException.class, () -> EnderSourcesNetwork.Snapshot.CODEC.encode(buffer,
+                    new EnderSourcesNetwork.Snapshot(java.util.Collections.nCopies(28, net.minecraft.world.item.ItemStack.EMPTY))));
+        } finally { buffer.release(); }
+    }
+
 }

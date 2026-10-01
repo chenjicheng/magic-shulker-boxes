@@ -8,7 +8,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.StackedItemContents;
 import net.minecraft.world.inventory.AbstractCraftingMenu;
@@ -70,9 +69,15 @@ public final class CraftingRecipeSources {
 
     /** Recipe-book projections share vanilla's usable-item filter; actual placement is always checked by the server. */
     public static void accountBoxes(Container inventory, StackedItemContents contents, StorageConfig config, Predicate<ItemStack> allowedBox) {
+        if (config.enderChestRefill && inventory instanceof RefillSources.View) {
+            for (int slot = RefillSources.ENDER_START; slot < inventory.getContainerSize(); slot++) {
+                var stack = inventory.getItem(slot);
+                if (!ShulkerStorage.isShulker(stack)) contents.accountSimpleStack(stack);
+            }
+        }
         for (int slot : BoxOrder.emptiestFirst(inventory, config)) {
             var box = inventory.getItem(slot);
-            if (!allowedBox.test(box) || (box.getCount() > 1 && (!config.splitStackedBoxes || CraftingMaterials.freeSlot(inventory) < 0))) continue;
+            if (!allowedBox.test(box) || (box.getCount() > 1 && (!config.splitStackedBoxes || RefillSources.freeBoxSlot(inventory, slot) < 0))) continue;
             box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream()
                     .filter(stack -> !stack.isEmpty() && stack.getItem().canFitInsideContainerItems()).forEach(contents::accountSimpleStack);
         }
@@ -99,13 +104,14 @@ public final class CraftingRecipeSources {
         final ServerLevel level;
         final boolean all;
         final StorageConfig config;
-        final SimpleContainer beforeInventory, planned;
+        final Container sources, beforeInventory, planned;
         final List<ItemStack> beforeGrid;
         final Predicate<ItemStack> allowedBox;
         boolean usedSources, failed;
         Placement(AbstractCraftingMenu menu, Inventory inventory, CraftingRecipe recipe, ServerLevel level, boolean all, StorageConfig config) {
             this.menu = menu; this.inventory = inventory; this.recipe = recipe; this.level = level; this.all = all; this.config = config;
-            beforeInventory = CraftingMaterials.copy(inventory); planned = CraftingMaterials.copy(inventory);
+            sources = RefillSources.of(inventory.player, config);
+            beforeInventory = CraftingMaterials.copy(sources); planned = CraftingMaterials.copy(sources);
             beforeGrid = menu.getInputGridSlots().stream().map(slot -> slot.getItem().copy()).toList();
             // A box must not simultaneously supply its contents and become an ingredient itself.
             allowedBox = box -> recipe.placementInfo().ingredients().stream().noneMatch(ingredient -> ingredient.test(box));
@@ -117,13 +123,13 @@ public final class CraftingRecipeSources {
             if (failed || !recipe.matches(input(), level)) return false;
             for (int i = 0; i < planned.getContainerSize(); i++) {
                 if (!ItemStack.matches(beforeInventory.getItem(i), planned.getItem(i))
-                        && !ItemStack.matches(beforeInventory.getItem(i), inventory.getItem(i))) return false;
+                        && !ItemStack.matches(beforeInventory.getItem(i), sources.getItem(i))) return false;
             }
-            CraftingMaterials.commitChanges(beforeInventory, planned, inventory);
+            CraftingMaterials.commitChanges(beforeInventory, planned, sources);
             return true;
         }
         void restore() {
-            for (int i = 0; i < beforeInventory.getContainerSize(); i++) CraftingMaterials.write(inventory, i, beforeInventory.getItem(i));
+            for (int i = 0; i < beforeInventory.getContainerSize(); i++) CraftingMaterials.write(sources, i, beforeInventory.getItem(i));
             for (int i = 0; i < beforeGrid.size(); i++) menu.getInputGridSlots().get(i).set(beforeGrid.get(i).copy());
             inventory.setChanged();
         }

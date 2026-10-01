@@ -18,5 +18,31 @@
   "schematicRefill": true,
   "refillFullStack": true,
   "refillMakeSpace": true,
-  "refillFailureMessages": true
+  "refillFailureMessages": true,
+  "ipnRefill": true,
+  "craftRefill": true,
+  "enderChestRefill": false,
+  "playerEditableSettings": [
+    "pickupStorageEnabled",
+    "onlyWhenInventoryFull",
+    "useMatchingBoxes",
+    "useEmptyBoxes",
+    "useMixedBoxes",
+    "allowOtherSingleTypeBoxes",
+    "splitStackedBoxes",
+    "makeSpaceMode",
+    "useHotbarForSpace",
+    "allowPartialStacksForSpace",
+    "allowMixedItemsWhenMakingSpace",
+    "preferExistingBoxesBeforeMakingSpace",
+    "includeOffhand",
+    "matchItemComponents",
+    "schematicRefill",
+    "refillFullStack",
+    "refillMakeSpace",
+    "refillFailureMessages",
+    "ipnRefill",
+    "craftRefill",
+    "enderChestRefill"
+  ]
 }

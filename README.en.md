@@ -2,12 +2,13 @@
 
 [简体中文](README.md) | **English**
 
-Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.4.0**.
+Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.5.0**.
 
 After enabling pickup storage, store overflow in matching, empty, then mixed boxes, with an optional single-type fallback. Pickup storage is off by default. Supports Carpet shulker stacking, safe box splitting, automatic space-making, partial stacks and mixed-box reuse.
 
 - Server-only installation works for multiplayer; singleplayer and LAN storage runs on the host.
 - Pickup storage and schematic refilling have independent switches. Servers can permit personal preferences, letting players override either server default.
+- 0.5.0 adds container/trade storage, optional own ender sources, IPN original-slot tool returns and per-option server permissions. Update both sides for GUI/refill/IPN.
 - Optional Mod Menu + YACL settings in English and Simplified Chinese.
 - IPN consumable and tool refilling can use backpack shulker boxes, retaining IPN's triggers, matching and sorting, independently controlled by `ipnRefill`.
 - Inventory/crafting-table ingredients can refill from carried boxes for recipe placement, output clicks and Shift crafting, independently controlled by `craftRefill` without IPN.
@@ -17,7 +18,7 @@ After enabling pickup storage, store overflow in matching, empty, then mixed box
 
 ## Install
 
-Install `magic-shulker-boxes-fabric-0.4.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
+Install `magic-shulker-boxes-fabric-0.5.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
 
 0.4.0 retains 0.3.2 settings and choices; new `ipnRefill` and `craftRefill` switches default to enabled. See the [0.4.0 release notes](docs/releases/0.4.0.md) for features and installation requirements.
 

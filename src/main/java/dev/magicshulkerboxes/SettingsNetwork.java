@@ -21,13 +21,13 @@ public final class SettingsNetwork {
     private SettingsNetwork() {}
 
     public record Policy(boolean allowed) implements CustomPacketPayload {
-        public static final Type<Policy> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "policy_v3"));
+        public static final Type<Policy> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "policy_v4"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Policy> CODEC = StreamCodec.composite(ByteBufCodecs.BOOL, Policy::allowed, Policy::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }
     }
 
     public record Preferences(String json) implements CustomPacketPayload {
-        public static final Type<Preferences> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "preferences_v3"));
+        public static final Type<Preferences> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "preferences_v4"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Preferences> CODEC = StreamCodec.composite(
                 ByteBufCodecs.stringUtf8(ConfigFile.MAX_PREFERENCES_LENGTH), Preferences::json, Preferences::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }
@@ -60,7 +60,7 @@ public final class SettingsNetwork {
     public static boolean accept(ServerPlayer player, String json) throws IOException {
         if (!MagicShulkerBoxes.config().allowPlayerSettings) return false;
         var overrides = ConfigFile.parsePreferences(json);
-        MagicShulkerBoxes.players(player.level().getServer()).save(player.getUUID(), overrides);
+        MagicShulkerBoxes.players(player.level().getServer()).saveAllowed(player.getUUID(), overrides, MagicShulkerBoxes.config());
         return true;
     }
 

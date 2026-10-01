@@ -2,12 +2,13 @@
 
 **简体中文** | [English](README.en.md)
 
-适用于 **Minecraft Java 1.21.11 · Fabric · Java 21** 的潜影盒自动收纳与补货模组，采用 MIT 许可证。当前版本为 **0.4.0**。
+适用于 **Minecraft Java 1.21.11 · Fabric · Java 21** 的潜影盒自动收纳与补货模组，采用 MIT 许可证。当前版本为 **0.5.0**。
 
 开启拾取自动入盒后，背包满了时把拾取余量依次放入同类专用盒、空盒、杂物盒；可开启其他单类盒兜底。此功能默认关闭。兼容 Carpet 堆叠潜影盒，支持安全拆盒、自动腾栏、零散物品和杂物盒复用。
 
 - 多人服仅服务端安装即可收纳；单人和局域网由房主执行。
 - 自动入盒与原理图取料各自独立开关；服务端可开放玩家个人设置，由玩家覆盖服务端默认值。
+- 0.5.0 支持容器与村民交易入盒、可选末影箱取料、IPN 旧工具回来源原格，以及服务器逐项授权玩家设置。两端使用 GUI/取料/IPN 时需一起升级。
 - 可选 Mod Menu + YACL 中英文图形设置。
 - IPN 消耗品与工具补货可从背包潜影盒取物，沿用 IPN 的触发、匹配和排序规则，独立开关 `ipnRefill`。
 - 背包/工作台合成可从潜影盒补材料，支持点击配方、连续取出成品和 Shift 合成，独立开关 `craftRefill`，不依赖 IPN。
@@ -17,7 +18,7 @@
 
 ## 安装
 
-安装 `magic-shulker-boxes-fabric-0.4.0+mc1.21.11.jar` 和 Fabric API，使用 Fabric Loader 0.18.4 或更新版。不要安装 `-sources.jar`。升级前移走旧版 JAR，避免重复加载。
+安装 `magic-shulker-boxes-fabric-0.5.0+mc1.21.11.jar` 和 Fabric API，使用 Fabric Loader 0.18.4 或更新版。不要安装 `-sources.jar`。升级前移走旧版 JAR，避免重复加载。
 
 0.4.0 保留 0.3.2 配置和已有选择，新增 `ipnRefill`、`craftRefill` 默认开启。完整新增功能和安装要求见 [0.4.0 发布说明](docs/releases/0.4.0.md)。
 

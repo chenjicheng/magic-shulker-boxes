@@ -37,8 +37,18 @@ public final class PlayerSettingsStore {
 
     public StorageConfig resolve(UUID player, ServerConfig server) throws IOException {
         if (!server.allowPlayerSettings) return server;
-        var overrides = read(player);
+        var overrides = ConfigFile.editable(read(player), server.playerEditableSettings);
         return overrides.isEmpty() ? server : ConfigFile.apply(server, overrides);
+    }
+
+    /** Replace editable overrides; preserve dormant locked choices until the administrator permits them again. */
+    public void saveAllowed(UUID player, JsonObject overrides, ServerConfig server) throws IOException {
+        if (!server.allowPlayerSettings || overrides.keySet().stream().anyMatch(key -> !server.canEdit(key)))
+            throw new IOException("Player settings contain a locked option");
+        var merged = read(player);
+        server.playerEditableSettings.forEach(merged::remove);
+        overrides.entrySet().forEach(entry -> merged.add(entry.getKey(), entry.getValue().deepCopy()));
+        save(player, merged);
     }
 
     public void clearCache() { cached.clear(); failures.clear(); }

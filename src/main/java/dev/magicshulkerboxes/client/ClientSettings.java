@@ -18,6 +18,7 @@ import net.minecraft.world.level.storage.LevelResource;
 public final class ClientSettings {
     static final SettingsSession session = new SettingsSession();
     private static JsonObject defaults;
+    private static java.util.Set<String> editable = java.util.Set.of();
     private static PreferenceSync preferences;
     private static int pendingRequest;
     private static long deadline;
@@ -37,6 +38,8 @@ public final class ClientSettings {
         notice("gui.failed");
     }
     static JsonObject defaults() { return defaults == null ? null : defaults.deepCopy(); }
+    static boolean canEdit(String key) { return session.mode() == SettingsSession.Mode.OFFLINE || editable.contains(key); }
+    private static JsonObject permitted(JsonObject values) { return ConfigFile.editable(values, editable); }
     static boolean craftingSupported() { return defaults != null && defaults.has("craftRefill"); }
     static Path localPath() { return FabricLoader.getInstance().getConfigDir().resolve("magic_shulker_boxes.json"); }
     private static PreferenceSync sync() {
@@ -78,19 +81,21 @@ public final class ClientSettings {
         // Recover before any automatic upload, including after a disconnect or process restart.
         if (sync().needsRecovery(serverKey())) { refresh(); return; }
         if (!allowed || !ClientPlayNetworking.canSend(SettingsNetwork.Preferences.ID)) return;
-        try { ClientPlayNetworking.send(new SettingsNetwork.Preferences(preferences().toString())); }
+        try { ClientPlayNetworking.send(new SettingsNetwork.Preferences(permitted(preferences()).toString())); }
         catch (IOException exception) { failure(exception); }
     }
 
     public static void register() {
-        ClientPlayConnectionEvents.INIT.register((handler, client) -> { session.connected(); defaults = null; sync().disconnected(); });
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> { session.disconnected(); defaults = null; sync().disconnected(); });
+        ClientPlayConnectionEvents.INIT.register((handler, client) -> { session.connected(); defaults = null; editable = java.util.Set.of(); sync().disconnected(); });
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> { session.disconnected(); defaults = null; editable = java.util.Set.of(); sync().disconnected(); });
         ClientPlayNetworking.registerGlobalReceiver(EditorNetwork.State.ID, (payload, context) -> {
             try {
                 defaults = ConfigFile.parsePreferences(payload.defaults());
+                var policy = ConfigFile.parseServer("{\"playerEditableSettings\":" + payload.editable() + "}");
+                editable = java.util.Set.copyOf(policy.playerEditableSettings);
                 session.policy(payload.allowed());
                 SchematicRefillClient.invalidateSettings();
-            } catch (IOException exception) { session.connected(); defaults = null; failure(exception); }
+            } catch (IOException exception) { session.connected(); defaults = null; editable = java.util.Set.of(); failure(exception); }
         });
         ClientPlayNetworking.registerGlobalReceiver(EditorNetwork.Result.ID, (payload, context) -> {
             boolean recovering = session.recovering();
@@ -101,7 +106,7 @@ public final class ClientSettings {
                         notice(payload.status() == EditorNetwork.SAVED ? "gui.saved" : "gui.recovered");
                     }
                 }
-                case EditorNetwork.LOCKED -> { session.policy(false); notice("locked"); }
+                case EditorNetwork.LOCKED -> { notice("locked"); }
                 case EditorNetwork.INVALID -> notice("invalid");
                 case EditorNetwork.BUSY, EditorNetwork.QUERY_BUSY -> notice("gui.busy");
                 default -> notice("gui.failed");
@@ -129,7 +134,7 @@ public final class ClientSettings {
                 sync().prepareSave(serverKey());
                 pendingRequest = session.beginSave(revision);
                 deadline = System.nanoTime() + 10_000_000_000L;
-                ClientPlayNetworking.send(new EditorNetwork.Save(pendingRequest, validated.toString()));
+                ClientPlayNetworking.send(new EditorNetwork.Save(pendingRequest, permitted(validated).toString()));
                 notice("gui.pending");
             } else notice("gui.recovery_unavailable");
         } catch (IOException exception) { failure(exception); }

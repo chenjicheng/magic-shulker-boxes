@@ -15,6 +15,28 @@ When a player picks up a ground item, the normal inventory receives it first. An
 
 All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
 
+## 0.5.0: containers, trades and ender sources
+
+Storage now covers ground pickup, container-to-inventory transfers and villager trade outputs. Existing `configVersion: 2` files are retained. `enderChestRefill` defaults to off; omitting `playerEditableSettings` retains the previous all-options permission behavior. GUI, schematic and IPN protocols changed: update both sides to 0.5.0. Container and trade storage still work with a server-only installation.
+
+### Container and trade storage
+
+With `pickupStorageEnabled`, Shift transfers from containers, including ordinary and ender chests, use the existing box classification, component and splitting rules. `onlyWhenInventoryFull=true` tries the inventory before storing overflow; `false` tries boxes first. Unaccepted container items remain in their source slot.
+
+Ordinary withdrawals and trade results stay on the cursor until deposited into player storage. In boxes-first mode, those deposits collect only the newly added quantity. Drag distribution and container-to-hotbar swaps are supported. Rearranging player inventory and automatic refunds during trade selection do not trigger storage. Crafting menus, item-giving commands and manual dropping are excluded from this path.
+
+Vanilla still charges trades and awards uses and experience. Each trade output must fit completely; otherwise that trade remains unchanged. Menu storage can split into existing free slots or make space with `MOVE_TO_BOX`. It does not drop items to make space with `DROP_AND_PICKUP`; collection after cursor deposits also does not displace existing inventory items.
+
+### Ender chest sources
+
+Enable `enderChestRefill=true` to let schematic, crafting and IPN refills use **your own ender chest** direct items and one level of shulker contents, without placing or opening an ender chest. Each feature still needs its own switch. Source priority is ordinary inventory (vanilla/IPN), carried boxes, direct ender items, then ender boxes. Boxes within each area retain least-filled-first ordering.
+
+The server reads the connected player's actual storage. Clients receive only their own read-only projection, refreshed at most about every half second. Direct ender items need available inventory capacity. Box extraction can relocate displaced items into that source box under the existing rules. Stacked ender boxes split into an empty ender slot; carried boxes split into the backpack. Failure preserves the source. Other players' storage and deeper nesting are excluded; outer ender shulker boxes are not extracted as direct items.
+
+### Return replaced tools to their original box slot
+
+When IPN selects a spare tool from a box, the server equips it and returns the surviving old tool to **that source box's original spare-tool slot** in one transaction. Damage, names, enchantments and all components are preserved. Ordinary backpack candidates still take priority. If the old tool has already broken, the source slot stays empty. Changed sources or targets, locked sources, unavailable split space and repeated requests are rejected. No temporary backpack tool slot is needed. Ender source boxes follow the same behavior. Consumables keep IPN's normal hand-swap flow; empty bottles remain in the backpack.
+
 ## Upgrading to 0.4.0: IPN and crafting refilling
 
 0.4.0 adds `ipnRefill=true` and `craftRefill=true`, independently controlling IPN box-source refilling and crafting refilling alongside `pickupStorageEnabled` and `schematicRefill`. When personal settings are allowed, all four server values are overridable defaults; otherwise the server values apply to everyone.
@@ -63,7 +85,7 @@ After a ten-second confirmation timeout, further saves pause while the client qu
 
 ## Schematic material refilling
 
-Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.4.0** on both sides. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.5.0** on both sides. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
 
 Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 
@@ -82,17 +104,17 @@ The menu has a **Schematic materials** group:
 
 Notices distinguish missing matching materials, unsafe inventory space, disabled refilling and unsupported servers. Turning notices off does not affect refilling. Personal overrides still require `allowPlayerSettings`.
 
-Client material lookup compares complete item components, including custom names. Requests also carry a component fingerprint; changed sources and transient components that cannot be reliably encoded are rejected. Both sides must support the new refill protocol; the old protocol cannot bypass validation. Only ordinary inventory and optionally offhand boxes are searched, excluding ender chests and nested containers. The client searches during missing-material attempts and sends at most two requests per second. The server verifies actual contents, game mode and menu state. Clients never provide authoritative item data or edit the inventory ahead of confirmation.
+Client material lookup compares complete item components, including custom names. Requests also carry a component fingerprint; changed sources and transient components that cannot be reliably encoded are rejected. Both sides must support the new refill protocol; the old protocol cannot bypass validation. Ordinary inventory and optionally offhand boxes are searched first, followed by own ender storage when `enderChestRefill` is enabled. Deeper nesting remains excluded. The client searches during missing-material attempts and sends at most two requests per second. The server verifies actual contents, game mode and menu state. Clients never provide authoritative item data or edit the inventory ahead of confirmation.
 
 ## IPN consumable and tool refilling
 
-Available since 0.4.0. Install [Inventory Profiles Next 2.2.6 for Fabric 1.21.11](https://modrinth.com/mod/inventory-profiles-next/version/fabric-1.21.11-2.2.6) and its required libIPN and Fabric Language Kotlin on the client. Both sides need Magic Shulker Boxes 0.4.0. The server does not need IPN; singleplayer supplies both sides.
+Available since 0.4.0. Install [Inventory Profiles Next 2.2.6 for Fabric 1.21.11](https://modrinth.com/mod/inventory-profiles-next/version/fabric-1.21.11-2.2.6) and its required libIPN and Fabric Language Kotlin on the client. Both sides need Magic Shulker Boxes 0.5.0. The server does not need IPN; singleplayer supplies both sides.
 
 IPN first looks for its normal backpack candidates when refilling main-hand or offhand consumables or replacing tools. If none qualify, this mod offers backpack shulker-box contents to **IPN's original filtering and sorting method**. IPN still controls triggers, wait ticks, potion effects, food alternatives, name/component matching, tool categories, durability thresholds, custom sorting and disabled refill slots. This integration does not extend armor refilling.
 
 `ipnRefill=true` enables the source extension by default, independently of `pickupStorageEnabled` and `schematicRefill`. When personal settings are allowed, `/msb set ipnRefill true` overrides the server default. The settings GUI has an **Inventory Profiles Next** group.
 
-Only boxes in IPN's backpack storage area (Minecraft inventory indices 9–35) are sources, respecting IPN's locked-slot settings. Hotbar and offhand boxes, ender chests and nested containers are excluded. Offhand can be a refill target. The server extracts the chosen stack into IPN-visible backpack storage; after synchronization, IPN performs its original hand/tool swap and preserves empty bottles and old tools.
+Carried sources use IPN's backpack area (indices 9–35), respecting locked slots. Hotbar and offhand boxes are excluded as sources. `enderChestRefill` additionally enables the player's own ender storage. Consumables use IPN's normal swap after extraction; box-sourced tools use the 0.5.0 atomic original-slot return.
 
 Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents` for source-box relocation. Slots excluded by IPN's locked-slot settings are also excluded as extraction and splitting destinations. If IPN permits using locked slots, this integration follows that choice. IPN takes up to one complete candidate stack; the schematic-only `refillFullStack` one-item mode does not affect it. Unsafe extraction changes nothing and leaves IPN's normal failure handling in control. On servers without the new protocol, IPN retains its original backpack behavior.
 
@@ -107,7 +129,7 @@ The **Crafting** settings group contains `craftRefill`, enabled by default and i
 
 Vanilla handles crafting remainders first. When refilling an emptied cell now occupied by a bucket, bottle or other remainder, the refill tries ordinary inventory first. When full, `refillMakeSpace`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents` govern storing that remainder in the single source box just used. Vanilla still places outputs on the cursor or in the inventory.
 
-Sources are main-inventory and hotbar boxes, plus offhand boxes when `includeOffhand=true`, preferring less filled boxes. Stacked sources follow `splitStackedBoxes` and require a separate empty slot. Ender chests, nested containers, furnaces, brewing stands and stonecutters are excluded; creative and spectator modes do not extract automatically. Recipe-book placement retains vanilla restrictions on named, damaged and enchanted items. Continuous refilling of a manual pattern preserves exact input components.
+Sources are main-inventory and hotbar boxes, plus offhand boxes when `includeOffhand=true`, preferring less filled boxes. Stacked sources follow `splitStackedBoxes` and require a separate empty slot. Own ender sources are available with `enderChestRefill`; deeper nesting, furnaces, brewing stands and stonecutters are excluded; creative and spectator modes do not extract automatically. Recipe-book placement retains vanilla restrictions on named, damaged and enchanted items. Continuous refilling of a manual pattern preserves exact input components.
 
 Source changes are planned on copies. Component conflicts, unavailable splitting space or incomplete placement roll back. A box cannot both supply its contents and be consumed as an ingredient in the same placement.
 
@@ -141,6 +163,8 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 
 | Option | Default | Behavior |
 | --- | --- | --- |
+| `enderChestRefill` | `false` | Enable own direct ender items and shulker contents as refill sources |
+| `playerEditableSettings` | All option names | Editable fields when the master switch allows personal settings; `[]` locks all |
 | `allowPlayerSettings` | `false` | Server policy only: allow individual player overrides; otherwise enforce this file for everyone |
 | `pickupStorageEnabled` | `false` | Off by default; enables pickup storage independently of refilling; players can override the server default when personal settings are allowed |
 | `onlyWhenInventoryFull` | `true` | Store only vanilla inventory overflow; `false` tries boxes first |
@@ -159,9 +183,9 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 
 Multiple stacks of cobblestone still count as one type. Actual stack merging always compares components, independently of the classification option, and respects each item's maximum stack size.
 
-All options except `makeSpaceMode` require JSON booleans. Its value must be one of the three strings listed above. Omitted fields use defaults. Invalid JSON, unknown keys, invalid modes, and incorrect types are rejected without overwriting the file. Invalid server configuration disables all automatic pickup storage and refill features at startup; a failed runtime reload retains the previous active configuration.
+`playerEditableSettings` is an array of option names. All other options except `makeSpaceMode` require JSON booleans. Its value must be one of the three strings listed above. Omitted fields use defaults. Invalid JSON, unknown keys, invalid modes, and incorrect types are rejected without overwriting the file. Invalid server configuration disables all automatic pickup storage and refill features at startup; a failed runtime reload retains the previous active configuration.
 
-Pickup storage handles only ground-item pickup. Chest transfers, crafting, item-giving commands, and manual dropping do not directly trigger storage. Ender chests and nested containers are not searched.
+See Container and trade storage above for transfer, cursor and trade-capacity behavior. Ender source access uses a separate refill switch.
 
 ## Personal settings and languages
 
@@ -175,7 +199,18 @@ Servers enforce their own settings by default. Administrators can change and per
 /msb admin reload
 ```
 
-These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. With `allowPlayerSettings=false`, the server pickup and all refill switches apply to everyone. With it set to `true`, each server value becomes a default that players may override independently. A failed reload leaves the previous active settings in place.
+These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. With `allowPlayerSettings=false`, the server pickup and all refill switches apply to everyone. With it set to `true`, only fields permitted by `playerEditableSettings` become overridable defaults; other fields enforce the server value. A failed reload leaves the previous active settings in place.
+
+### Per-option permissions
+
+Set `playerEditableSettings` in the server configuration and run `/msb admin reload`. To allow only personal schematic and IPN switches:
+
+```json
+"allowPlayerSettings": true,
+"playerEditableSettings": ["schematicRefill", "ipnRefill"]
+```
+
+Omitting the array allows every option when the master switch is enabled; `[]` allows none. Any `StorageConfig` option can be listed, including `enderChestRefill` and `makeSpaceMode`; policy fields themselves cannot be delegated. World settings provide per-option switches. Locked personal controls show the server value. Commands, synchronization, GUI saves and effective runtime configuration enforce the same server-side policy. Revocation immediately ignores existing overrides without deleting dormant choices; granting permission again restores them. Invalid or duplicate names reject loading, and a failed reload keeps the previous policy.
 
 Once permitted, ordinary players can use these commands without a client installation:
 
@@ -189,7 +224,7 @@ Once permitted, ordinary players can use these commands without a client install
 /msb reset
 ```
 
-`show` reports the **effective** settings. `set` takes effect immediately and supports every storage option except the server-only policy. `reset` clears personal overrides. Option names and values have command suggestions. Each player can change only their own settings. The server rejects `set/reset` while personal settings are disallowed.
+`show` reports the **effective** settings. `set` takes effect immediately and supports every storage option except the server-only policy. `reset` clears editable personal overrides. Option names and values have command suggestions. Each player can change only their own settings. The server rejects `set/reset` while personal settings are disallowed.
 
 Overrides are saved by UUID in the current world's `data/magic_shulker_boxes/players/<UUID>.json`, persist across restarts, and are isolated between worlds. Only explicitly changed fields are stored; all others inherit the current server defaults. Administrators can reload after manually repairing player files to clear the cache.
 
@@ -197,7 +232,7 @@ Overrides are saved by UUID in the current world's `data/magic_shulker_boxes/pla
 
 An installed client creates `config/magic_shulker_boxes-client.json`, initially `{}` to inherit every server default. See the [personal settings example](https://github.com/chenjicheng/magic-shulker-boxes/blob/main/examples/magic_shulker_boxes-client.json).
 
-When joining a compatible server that allows personal settings, the client submits this file automatically. Enabling or reloading the server policy also requests synchronization. A submission replaces that player's saved overrides on that server. Nothing is uploaded when the policy is disabled, and the local file is retained. Rejoin after editing the local file to submit changes.
+When joining a compatible server that allows personal settings, the client submits this file automatically. Enabling or reloading the server policy also requests synchronization. A submission replaces only editable overrides; locked stored choices remain dormant. Nothing is uploaded when the policy is disabled, and the local file is retained. Rejoin after editing the local file to submit changes.
 
 Successful `/msb set/reset` changes are also saved back to the installed client's personal file, keeping subsequent joins consistent. This file belongs to the client instance and is reused on other servers that allow personal settings. Players without the client mod use only the records stored in each server world. Synchronization cannot change server policy.
 

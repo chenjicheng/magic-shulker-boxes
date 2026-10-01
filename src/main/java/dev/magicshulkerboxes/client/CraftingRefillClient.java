@@ -42,6 +42,6 @@ public final class CraftingRefillClient {
                 || inventory != client.player.getInventory() || !ClientSettings.craftingSupported()
                 || !RefillSettings.get().craftRefill || !(client.player.containerMenu instanceof InventoryMenu
                 || client.player.containerMenu instanceof CraftingMenu)) return;
-        CraftingRecipeSources.accountBoxes(inventory, contents, RefillSettings.get(), box -> true);
+        CraftingRecipeSources.accountBoxes(dev.magicshulkerboxes.RefillSources.of(client.player, RefillSettings.get()), contents, RefillSettings.get(), box -> true);
     }
 }
