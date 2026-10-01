@@ -201,6 +201,24 @@ IPN 从盒中选择备用工具时，服务器在同一次事务中装备备用�
 
 上述管理命令要求 Minecraft 的 `COMMANDS_ADMIN` 权限（通常为 OP 等级 3），服务端控制台也可执行。`allowPlayerSettings=false` 时，服务端的入盒和各类补货开关对所有玩家生效；设为 `true` 后，仅获 `playerEditableSettings` 授权的服务端值成为可覆盖的默认值；其余强制使用服务端值。重载失败时保留此前有效配置。
 
+### 管理指定玩家的个人设置
+
+管理员和服务端控制台可使用以下命令，权限要求与其他管理命令相同：
+
+```text
+/msb admin player Steve show
+/msb admin player Steve set pickupStorageEnabled true
+/msb admin player Steve set makeSpaceMode MOVE_TO_BOX
+/msb admin player Steve reset pickupStorageEnabled
+/msb admin player Steve reset
+```
+
+`Steve` 可替换为在线玩家名、服务器能解析的离线玩家名或 UUID。名字无法解析时，使用 UUID 可直接管理该存档中的个人文件。每条命令只处理一个玩家；玩家名补全来自在线名单，选项和值也支持补全。`/msb admin` 显示管理命令帮助。
+
+`show` 显示目标玩家的 UUID、每项已保存的个人值（未设置则显示“继承”）、当前生效值和授权状态。`set` 只改指定项，保留其他个人选择；`reset <选项>` 清除此项以恢复继承，`reset` 清除全部个人选择，包括暂时被锁定的项。选项和值与普通玩家命令一致，策略字段不能写入个人设置。
+
+管理员可编辑或清除暂未获授权的个人值，服务器的总开关和逐项锁定仍决定实际生效值。保存时会提示该值已生效还是暂存待授权。读取或写入失败会报告错误，损坏文件保留供修复。对在线玩家的修改会立即更新服务端记录，并通过现有协议同步到已安装本模组的客户端；无需目标玩家重新登录。离线修改保存在服务器，客户端下次入服仍遵循下方的本地个人文件上传规则，因此可能覆盖离线期间的管理修改。
+
 ### 逐项授权
 
 在服务器配置中设置 `playerEditableSettings` 为允许修改的设置名数组，再执行 `/msb admin reload`。例如只允许原理图与 IPN 的个人开关：

@@ -201,6 +201,24 @@ Servers enforce their own settings by default. Administrators can change and per
 
 These commands require Minecraft's `COMMANDS_ADMIN` permission, normally OP level 3; the server console can also use them. With `allowPlayerSettings=false`, the server pickup and all refill switches apply to everyone. With it set to `true`, only fields permitted by `playerEditableSettings` become overridable defaults; other fields enforce the server value. A failed reload leaves the previous active settings in place.
 
+### Managing a specific player's preferences
+
+Administrators and the server console can use these commands with the same permission as other administrator commands:
+
+```text
+/msb admin player Steve show
+/msb admin player Steve set pickupStorageEnabled true
+/msb admin player Steve set makeSpaceMode MOVE_TO_BOX
+/msb admin player Steve reset pickupStorageEnabled
+/msb admin player Steve reset
+```
+
+Replace `Steve` with an online name, an offline name the server can resolve, or a UUID. If a name cannot be resolved, a UUID directly addresses that world's personal file. Each command handles one player. Player-name suggestions use the online list; options and values also have suggestions. `/msb admin` displays administrator command help.
+
+`show` lists the target UUID, each stored personal value (or “inherit”), its effective value and permission status. `set` changes only the specified option and preserves other choices. `reset <option>` restores inheritance for one option; `reset` clears all personal choices, including dormant locked ones. Options and values match ordinary player commands; server policy fields cannot be stored as personal settings.
+
+Administrators may edit or clear dormant personal choices, while the master and per-option policies still determine effective values. Save feedback states whether the choice is active or waiting for permission. Read/write failures are reported, and corrupt files are preserved for repair. Online edits update the server record immediately and synchronize to compatible modded clients through the existing protocol, without requiring a reconnect. Offline edits persist on the server; a client's next login still follows the local preference upload rules below and may replace changes made while that player was offline.
+
 ### Per-option permissions
 
 Set `playerEditableSettings` in the server configuration and run `/msb admin reload`. To allow only personal schematic and IPN switches:

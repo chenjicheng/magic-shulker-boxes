@@ -22,6 +22,12 @@ Gradle Wrapper 固定为 9.2.1，带有发行包 SHA256 校验。Minecraft、Fab
 
 `build` 会执行单元测试和 Minecraft 服务端 GameTest，并在 `build/libs` 输出可安装 JAR 与源码 JAR。测试世界位于 `build` 下的隔离运行目录，不使用现有存档。
 
+## 管理玩家设置的命令
+
+管理员目标玩家命令位于 `SettingsCommands`：`/msb admin player <name|UUID> show|set|reset [option]` 继承 `COMMANDS_ADMIN` 权限。在线名字先查玩家名单，离线名字使用原版身份缓存/解析器，UUID 可直接访问离线存储。管理编辑先读取完整个人覆盖，再使用 `PlayerSettingsStore.save` 修改或重置；普通玩家仍使用 `saveAllowed`。运行时 `resolve` 的策略过滤不变。在线目标通过 `SettingsNetwork.acknowledge` 更新客户端个人文件，现有编辑会话因偏好变化而失效；离线目标不改变客户端入服上传规则。
+
+`AdminSettingsGameTests` 覆盖目标隔离、离线名字/UUID、个人值与生效值、权限、合法/非法值、单项及全部重置、策略锁定、缓存重载和损坏文件保护。`DedicatedClientGameTests` 通过真实 TCP 连接检查在线名字修改、UUID 重置和客户端文件同步。
+
 ## 配置版本与迁移
 
 磁盘 JSON 当前使用 `configVersion: 2`；版本元数据不进入 `StorageConfig`、选项列表、GUI 草稿或网络 JSON。无标记的旧文件沿用 0.3.1 规则：先完整备份到 `.pre-0.3.1.bak`，再重置为默认配置或空个人覆盖项。版本 1 文件则先完整备份到 `.pre-0.3.2.bak`，验证字段后将 `enabled` 改为 `pickupStorageEnabled`，保留所有其他有效值并原子写入版本 2。相同备份可恢复中断的迁移；冲突备份、无效字段、未知版本和无法读取的文件均不覆盖。

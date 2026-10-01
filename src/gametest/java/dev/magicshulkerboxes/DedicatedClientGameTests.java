@@ -86,6 +86,7 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
             containersAndTrades(context, server);
             enderAndCrafting(context, server);
             policy(context, server);
+            adminSettings(context, server);
             context.takeScreenshot("dedicated-tcp-acceptance");
         }
     }
@@ -358,6 +359,68 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
                             "Revocation immediately overrides the previously saved TCP choice");
                     SettingsNetwork.broadcastPolicy(actual);
                 });
+    }
+
+    private static void adminSettings(ClientGameTestContext context, TestServerContext server) {
+        server.runOnServer(actual -> {
+            var player = actual.getPlayerList().getPlayers().getFirst();
+            var source = actual.createCommandSourceStack();
+            try {
+                check(actual.getCommands().getDispatcher().execute(
+                        "msb admin player " + player.getGameProfile().name() + " set ipnRefill false", source) == 1,
+                        "Administrator resolves an online player by name");
+                check(MagicShulkerBoxes.configFor(player).ipnRefill,
+                        "Administrator edit still respects the locked server field");
+            } catch (com.mojang.brigadier.exceptions.CommandSyntaxException exception) {
+                throw new AssertionError("Administrator command failed", exception);
+            }
+        });
+        context.waitFor(client -> {
+            try {
+                var values = ConfigFile.readPreferences(FabricLoader.getInstance().getConfigDir()
+                        .resolve("magic_shulker_boxes-client.json"));
+                return values.has("ipnRefill") && !values.get("ipnRefill").getAsBoolean();
+            } catch (java.io.IOException exception) {
+                throw new AssertionError("Cannot read synchronized client settings", exception);
+            }
+        });
+        server.runOnServer(actual -> {
+            var player = actual.getPlayerList().getPlayers().getFirst();
+            try {
+                check(actual.getCommands().getDispatcher().execute(
+                        "msb admin player " + player.getUUID() + " set ipnRefill true", actual.createCommandSourceStack()) == 1,
+                        "Administrator changes an existing personal value");
+            } catch (com.mojang.brigadier.exceptions.CommandSyntaxException exception) {
+                throw new AssertionError("Administrator update failed", exception);
+            }
+        });
+        context.waitFor(client -> {
+            try {
+                var values = ConfigFile.readPreferences(FabricLoader.getInstance().getConfigDir()
+                        .resolve("magic_shulker_boxes-client.json"));
+                return values.has("ipnRefill") && values.get("ipnRefill").getAsBoolean();
+            } catch (java.io.IOException exception) {
+                throw new AssertionError("Cannot read updated client settings", exception);
+            }
+        });
+        server.runOnServer(actual -> {
+            var player = actual.getPlayerList().getPlayers().getFirst();
+            try {
+                check(actual.getCommands().getDispatcher().execute(
+                        "msb admin player " + player.getUUID() + " reset", actual.createCommandSourceStack()) == 1,
+                        "Administrator resets an online player by UUID");
+            } catch (com.mojang.brigadier.exceptions.CommandSyntaxException exception) {
+                throw new AssertionError("Administrator reset failed", exception);
+            }
+        });
+        context.waitFor(client -> {
+            try {
+                return ConfigFile.readPreferences(FabricLoader.getInstance().getConfigDir()
+                        .resolve("magic_shulker_boxes-client.json")).isEmpty();
+            } catch (java.io.IOException exception) {
+                throw new AssertionError("Cannot read synchronized client reset", exception);
+            }
+        });
     }
 
     private static void waitForServer(

@@ -14,7 +14,8 @@
       "dev.magicshulkerboxes.CraftingGameTests",
       "dev.magicshulkerboxes.MenuStorageGameTests",
       "dev.magicshulkerboxes.EnderSourcesGameTests",
-      "dev.magicshulkerboxes.SettingPermissionsGameTests"
+      "dev.magicshulkerboxes.SettingPermissionsGameTests",
+      "dev.magicshulkerboxes.AdminSettingsGameTests"
     ],
     "fabric-client-gametest": [
       "${clientTest}"

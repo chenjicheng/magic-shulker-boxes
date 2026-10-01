@@ -22,6 +22,12 @@ Gradle Wrapper pins version 9.2.1 and verifies the distribution SHA256. Minecraf
 
 `build` runs unit tests and dedicated-server GameTests, producing the installable and sources JARs in `build/libs`. Test worlds live in isolated directories under `build`; existing player worlds are not used.
 
+## Administrator player commands
+
+Target-player administrator commands live in `SettingsCommands`: `/msb admin player <name|UUID> show|set|reset [option]` inherits the `COMMANDS_ADMIN` permission. Online names use the player list first, offline names use the vanilla identity cache/resolver, and UUIDs can address offline storage directly. Administrator edits read the complete overrides before changing or resetting them through `PlayerSettingsStore.save`; ordinary players still use `saveAllowed`. Runtime policy filtering in `resolve` is unchanged. Online targets receive `SettingsNetwork.acknowledge` to update their local preference file and invalidate existing editor drafts; offline edits retain the existing login upload behavior.
+
+`AdminSettingsGameTests` cover target isolation, offline names/UUIDs, stored versus effective values, permissions, valid/invalid values, individual/full resets, policy locks, cache reload and corrupt-file preservation. `DedicatedClientGameTests` use a real TCP connection to check online name edits, UUID resets and client-file synchronization.
+
 ## Configuration versions and migration
 
 Disk JSON now uses `configVersion: 2`. Metadata is excluded from `StorageConfig`, option lists, GUI drafts and network JSON. Unversioned files follow the 0.3.1 rule: copy exact bytes to `.pre-0.3.1.bak`, then reset to server defaults or empty personal overrides. Version 1 files are backed up to `.pre-0.3.2.bak`, validated, and rewritten atomically with `enabled` renamed to `pickupStorageEnabled`, retaining every other valid choice. An identical backup allows interrupted migration to resume; conflicting backups, invalid fields, unknown versions and unreadable files are never overwritten.
