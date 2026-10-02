@@ -21,7 +21,7 @@ All eligible boxes in one category are tried before moving to the next. Within a
 
 Client 0.6.0 provides separate key bindings for all 20 personal boolean options under **Options → Controls → Key Binds → Magic Shulker Boxes: personal toggles**. Every binding starts unbound; players choose their own keyboard or mouse buttons. Bindings stay in vanilla client `options.txt` and are never sent to the server. In-game keys flip the effective value through the existing preference save/confirmation protocol. Servers validate permission to edit the setting value and cannot choose or restrict a player's bound key. Locked options explain why; pending saves, recovery and unsupported connections do not overwrite preferences.
 
-`craftRefill` defaults to off from 0.6.0. New configurations and omitted fields use `false`; an existing explicit `true` is retained. Administrators can run `/msb admin set craftRefill false` for an existing server. Permitted players can enable it with chat buttons or their own key binding.
+`craftRefill` defaulted to off in 0.6.0 and returns to on from 0.6.1. New configurations and omitted fields use `true`; existing explicit `false` values remain disabled. Administrators can run `/msb admin set craftRefill true` to enable it on an existing server. Permitted players can switch it with chat buttons or their own key binding.
 
 ## 0.5.0: containers, trades and ender sources
 
@@ -130,7 +130,7 @@ Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksFo
 
 Available since 0.4.0 for **2x2 inventory** and **3x3 crafting-table** refilling. IPN is not required. A 0.4.0 server performs extraction. A 0.4.0 client also counts box contents in the vanilla recipe book and refreshes when those contents change.
 
-The **Crafting** settings group contains `craftRefill`, disabled by default and independent of pickup storage, schematic refilling and IPN. When personal settings are allowed, use `/msb set craftRefill false` or `/msb set craftRefill true`.
+The **Crafting** settings group contains `craftRefill`, enabled by default and independent of pickup storage, schematic refilling and IPN. When personal settings are allowed, use `/msb set craftRefill false` or `/msb set craftRefill true`.
 
 - **Placing a recipe:** vanilla controls recipe permissions, matching, layout and Shift batch quantities. Missing inventory materials can come from carried boxes and go directly into the grid, without a temporary material slot. Previous grid inputs must fit safely back into the inventory.
 - **Taking an output:** ordinary clicks and Shift crafting refill empty cells with one item of the same type and complete components as the observed input pattern. Remaining grid stacks retain their counts. Ordinary inventory comes first, followed by boxes. An incomplete set of materials or unsafe remainder relocation stops the refill without partial extraction.

@@ -12,16 +12,16 @@ class ConfigFileTest {
     @TempDir Path directory;
 
     @Test
-    void craftingRefillDefaultsOffAndKeepsExplicitOptIns() throws IOException {
-        assertFalse(new StorageConfig().craftRefill);
-        assertFalse(ConfigFile.parseServer("{}").craftRefill);
-        assertFalse(ConfigFile.load(directory.resolve("new.json")).craftRefill);
+    void craftingRefillDefaultsOnAndKeepsExplicitOptOuts() throws IOException {
+        assertTrue(new StorageConfig().craftRefill);
+        assertTrue(ConfigFile.parseServer("{}").craftRefill);
+        assertTrue(ConfigFile.load(directory.resolve("new.json")).craftRefill);
         var path = directory.resolve("existing.json");
-        var existing = "{\"configVersion\":2,\"craftRefill\":true}";
+        var existing = "{\"configVersion\":2,\"craftRefill\":false}";
         Files.writeString(path, existing);
-        assertTrue(ConfigFile.load(path).craftRefill);
+        assertFalse(ConfigFile.load(path).craftRefill);
         assertEquals(existing, Files.readString(path), "Explicit existing choice is preserved");
-        assertTrue(ConfigFile.apply(new ServerConfig(), ConfigFile.parsePreferences("{\"craftRefill\":true}")).craftRefill);
+        assertFalse(ConfigFile.apply(new ServerConfig(), ConfigFile.parsePreferences("{\"craftRefill\":false}")).craftRefill);
     }
 
     @Test

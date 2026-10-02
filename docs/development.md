@@ -30,7 +30,7 @@ Gradle Wrapper 固定为 9.2.1，带有发行包 SHA256 校验。Minecraft、Fab
 
 0.6.0 的服务端 `admin show/set/reset/permission/permissions` 使用 `ServerSettingsEdit` 先验证完整替换，再通过 `replaceConfig` 原子保存并广播策略。`SettingsChat` 只生成原版 `ClickEvent.SuggestCommand` 和命令悬停提示，点击不会提交；管理员目标玩家按钮绑定 UUID。`CommandChatGameTests` 检查全部设置/权限的按钮、无提前修改、单项重置、值校验和 OP3 权限。TCP 客户端验收实际点击聊天按钮、检查输入框完整命令和服务端尚未改变，再按 Enter 验证持久化。
 
-`SettingsKeybindings` 动态注册全部布尔选项的原版客户端按键，默认未绑定；`options.txt` 由 Minecraft 管理，绑定不在网络载荷中。`PreferenceToggle` 从显式偏好或当前默认值翻转一个布尔项，保留其他选择；`ClientSettings` 在保存前检查会话、逐项权限和待确认状态，并复用 GUI 的确认/恢复协议。TCP 验收绑定 F8、两次切换 `craftRefill`，再撤权验证值被锁定而按键仍绑定。`craftRefill=false` 默认的测试同时覆盖已有显式 `true` 保留，行为夹具显式开启并恢复配置。
+`SettingsKeybindings` 动态注册全部布尔选项的原版客户端按键，默认未绑定；`options.txt` 由 Minecraft 管理，绑定不在网络载荷中。`PreferenceToggle` 从显式偏好或当前默认值翻转一个布尔项，保留其他选择；`ClientSettings` 在保存前检查会话、逐项权限和待确认状态，并复用 GUI 的确认/恢复协议。TCP 验收绑定 F8、两次切换 `craftRefill`，再撤权验证值被锁定而按键仍绑定。`craftRefill=true` 默认的测试同时覆盖已有显式 `false` 保留，行为夹具显式开启并恢复配置。
 
 ## 配置版本与迁移
 
