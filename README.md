@@ -16,7 +16,7 @@
 - 背包/工作台合成可从潜影盒补材料，支持点击配方、连续取出成品和 Shift 合成，独立开关 `craftRefill`，不依赖 IPN。
 - 0.2.0-alpha 新增 Litematica 轻松放置自动取料：缺料时从潜影盒补到背包，支持自动腾栏及可关闭的失败提示，需要客户端与服务端都更新。
 
-[下载版本](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [在线使用文档](https://chenjicheng.github.io/magic-shulker-boxes/guide.html) · [开发文档](https://chenjicheng.github.io/magic-shulker-boxes/development.html)
+[Modrinth 下载](https://modrinth.com/mod/magic-shulker-boxes) · [GitHub Releases](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [在线使用文档](https://chenjicheng.github.io/magic-shulker-boxes/guide.html) · [开发文档](https://chenjicheng.github.io/magic-shulker-boxes/development.html)
 
 ## 安装
 
@@ -34,4 +34,4 @@
 
 JDK 21 下运行 `./gradlew build`（Windows：`.\gradlew.bat build`）。文档使用 VitePress：`npm ci && npm run docs:build`。
 
-CI 同时检查普通环境和 Carpet 环境；推送 `v*` 标签由 Release 工作流验证、构建并发布。`main` 文档由 Actions 部署到 GitHub Pages。
+CI 同时检查普通环境和 Carpet 环境；推送 `v*` 标签由 Release 工作流验证、构建并发布到 GitHub 和 Modrinth，后者需要配置专用 Token 和项目 ID。`main` 文档由 Actions 部署到 GitHub Pages。

@@ -47,7 +47,7 @@ The canonical name is **Magic Shulker Boxes**, the stable mod ID is `magic_shulk
 `mod_version` in `gradle.properties` starts at `0.1.0-alpha`. Build artifacts and mod metadata append `+mc1.21.11`; the matching Git tag is `v0.1.0-alpha`. Versions with a prerelease suffix become GitHub prereleases. The project is MIT licensed.
 
 - **CI** runs for branch pushes, pull requests and manual dispatch, reusing `build.yml`. Java 21 builds, unit tests and dedicated-server GameTests run both without Carpet and with Carpet 1.4.194, whose download is verified by a pinned SHA256.
-- **Release** runs only on `v*` tag pushes. It requires a matching version and both test environments to pass, then publishes the tested mod JAR, sources JAR and `SHA256SUMS`. Notes come from `docs/releases/<mod_version>.md`. Only the separate publishing job has write permission.
+- **Release** runs only on `v*` tag pushes. It requires a matching version and both test environments to pass, then independent jobs publish to GitHub and Modrinth. GitHub receives the tested mod JAR, sources JAR and `SHA256SUMS`; Modrinth receives the same installable JAR. Notes come from `docs/releases/<mod_version>.md`. Only GitHub publishing has repository write permission; the Modrinth token is injected only into its upload step.
 - **Documentation** uses VitePress 1.6.4, Node 24 and the npm lockfile. Its underlying Vite is pinned to 6.4.3 for security fixes; recheck builds, search and preview when updating. Pull requests only build. Pushes to `main` deploy `docs/.vitepress/dist` to GitHub Pages with base `/magic-shulker-boxes/`.
 
 To release, update `mod_version`, add bilingual release notes, run checks and commit to `main`. Wait for CI, then push the matching annotated tag:
@@ -58,7 +58,20 @@ git push origin v0.1.0-alpha
 gh run list --workflow release.yml
 ```
 
-Actions invokes `gh` to upload assets to a draft before publishing it. Do not upload stale local artifacts or overwrite a published version; fix it with a new release. On initial repository setup, select **GitHub Actions** as the Pages source. No extra PAT or mod-hosting token is needed.
+Actions invokes `gh` to upload GitHub assets to a draft before publishing it. Do not upload stale local artifacts or overwrite a published version; fix it with a new release. On initial repository setup, select **GitHub Actions** as the Pages source. GitHub publishing uses the built-in `GITHUB_TOKEN` and needs no extra GitHub PAT.
+
+### Automatic Modrinth publishing
+
+The project is [Magic Shulker Boxes](https://modrinth.com/mod/magic-shulker-boxes). Configure these under the GitHub repository's **Settings → Secrets and variables → Actions**:
+
+- Variable `MODRINTH_PROJECT_ID`: Modrinth project ID `omzSygsa`.
+- Secret `MODRINTH_TOKEN`: a dedicated CI Modrinth PAT with read-project, read-version and create-version permissions. Use a separate token to create or edit the project; never put that setup token in CI. Keep tokens out of the repository and command-line arguments.
+
+Both `publish-modrinth` and GitHub publishing depend on `verify`, independently. `scripts/modrinth.py` revalidates the tag and installable JAR's SHA256, uploading only that exact file. Minecraft and release versions come from `gradle.properties`. Stable versions use `release`, `-alpha` uses `alpha`, and other prereleases use `beta`. Relative documentation links in release notes become public documentation links. Fabric API is required; Mod Menu, YACL, IPN and Litematica are optional. The environment requires installation on the server and supports optional client installation; enhanced client features still need the mod on both sides.
+
+After uploading, the script reads back the version and verifies its primary file's SHA512, metadata, notes and dependencies. Repeated runs skip an identical existing version. Conflicting files or metadata fail without overwriting anything. Failed network writes never blindly repeat POST; a rerun first inspects remote versions. Missing credentials, project ID or artifacts, and failed checksums produce explicit failures.
+
+If only Modrinth fails, choose **Re-run failed jobs** in Actions to retain the successful GitHub release. A new project must separately be submitted for Modrinth review; creating a draft and uploading a version do not make it public.
 
 ```sh
 python -m unittest discover -s scripts -p 'test_*.py' -v

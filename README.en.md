@@ -16,7 +16,7 @@ After enabling pickup storage, store overflow in matching, empty, then mixed box
 - Inventory/crafting-table ingredients can refill from carried boxes for recipe placement, output clicks and Shift crafting, independently controlled by `craftRefill` without IPN.
 - 0.2.0-alpha adds Litematica Easy Place refilling from inventory shulker boxes, with optional space-making and failure notices. Both client and server need the new version for this feature.
 
-[Download](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [User guide](https://chenjicheng.github.io/magic-shulker-boxes/en/guide.html) · [Development](https://chenjicheng.github.io/magic-shulker-boxes/en/development.html)
+[Modrinth download](https://modrinth.com/mod/magic-shulker-boxes) · [GitHub Releases](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [User guide](https://chenjicheng.github.io/magic-shulker-boxes/en/guide.html) · [Development](https://chenjicheng.github.io/magic-shulker-boxes/en/development.html)
 
 ## Install
 
@@ -34,4 +34,4 @@ Read the [user guide](docs/en/guide.md) for all behavior and configuration detai
 
 With JDK 21, run `./gradlew build` (Windows: `.\gradlew.bat build`). Documentation uses VitePress: `npm ci && npm run docs:build`.
 
-CI tests both normal and Carpet environments. Pushing a `v*` tag invokes the Release workflow to validate, build and publish artifacts. Actions deploys documentation from `main` to GitHub Pages.
+CI tests both normal and Carpet environments. Pushing a `v*` tag invokes the Release workflow to validate, build and publish to GitHub and Modrinth; Modrinth needs a dedicated token and project ID. Actions deploys documentation from `main` to GitHub Pages.

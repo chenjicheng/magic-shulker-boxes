@@ -47,7 +47,7 @@ Gradle Wrapper 固定为 9.2.1，带有发行包 SHA256 校验。Minecraft、Fab
 `gradle.properties` 中的 `mod_version` 是发行版本，首发 `0.1.0-alpha`；Gradle 产物和模组元数据追加 `+mc1.21.11`。`v0.1.0-alpha` 是对应 Git 标签。版本中的预发布标识会使 GitHub Release 标记为 prerelease。项目采用 MIT 许可证。
 
 - **CI**：分支推送、Pull Request 和手动运行，复用 `build.yml`。Java 21 下分别在无 Carpet 和 Carpet 1.4.194 环境构建并运行单元测试、专用服务端 GameTest；Carpet 下载验证固定 SHA256。
-- **Release**：仅由 `v*` 标签推送触发，先核对标签与 `mod_version` 一致并通过两个测试环境，再发布测试过的 JAR、源码 JAR 和 `SHA256SUMS`。发行说明读取 `docs/releases/<mod_version>.md`。构建任务只有读取权限，单独的发布任务才有写权限。
+- **Release**：仅由 `v*` 标签推送触发，先核对标签与 `mod_version` 一致并通过两个测试环境，再由独立任务发布到 GitHub 和 Modrinth。GitHub 发布测试过的 JAR、源码 JAR 和 `SHA256SUMS`；Modrinth 发布同一正式 JAR。发行说明读取 `docs/releases/<mod_version>.md`。构建任务只有读取权限，GitHub 发布任务才有仓库写权限；Modrinth Token 仅注入其上传步骤。
 - **Documentation**：VitePress 1.6.4、Node 24 与 npm 锁文件。底层 Vite 固定到 6.4.3 以包含安全修复，升级时需复验构建、搜索和预览。PR 只构建校验，`main` 推送将 `docs/.vitepress/dist` 部署到 GitHub Pages，站点基路径为 `/magic-shulker-boxes/`。
 
 发布步骤：修改 `mod_version` 并添加对应双语发行说明，通过本地检查后提交到 `main`。确认 CI 成功，再创建匹配标签并推送，例如：
@@ -58,7 +58,20 @@ git push origin v0.1.0-alpha
 gh run list --workflow release.yml
 ```
 
-Release 由 Actions 内的 `gh` 创建，先上传到草稿，资产齐全后公开。不要手工上传本机旧产物；已公开版本不覆盖，用新版本修复。首次仓库设置需将 Pages 的发布来源设为 **GitHub Actions**。无需额外 PAT 或模组站点令牌。
+GitHub Release 由 Actions 内的 `gh` 创建，先上传到草稿，资产齐全后公开。不要手工上传本机旧产物；已公开版本不覆盖，用新版本修复。首次仓库设置需将 Pages 的发布来源设为 **GitHub Actions**。GitHub 发布使用内置 `GITHUB_TOKEN`，无需额外 GitHub PAT。
+
+### Modrinth 自动发布
+
+项目为 [Magic Shulker Boxes](https://modrinth.com/mod/magic-shulker-boxes)。在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 设置：
+
+- Variable `MODRINTH_PROJECT_ID`：Modrinth 项目 ID `omzSygsa`。
+- Secret `MODRINTH_TOKEN`：单独用于 CI 的 Modrinth PAT，权限为读取项目、读取版本和创建版本。项目创建/编辑使用另一个 Token，不放入 CI；Token 不写入仓库或命令行参数。
+
+`publish-modrinth` 与 GitHub 发布都依赖 `verify`，互不依赖。`scripts/modrinth.py` 再次核对标签和正式 JAR 的 SHA256，仅上传当前版本的可安装文件。Minecraft 版本与发行版本从 `gradle.properties` 读取；稳定版标记为 `release`，`-alpha` 标记为 `alpha`，其他预发布版标记为 `beta`。发行说明中的相对文档链接转换为公开文档链接。Fabric API 为必需依赖，Mod Menu、YACL、IPN 和 Litematica 为可选依赖；安装环境为服务端必需、客户端可选，客户端增强功能仍要求两端安装。
+
+上传后读回版本并核对主文件 SHA512、版本信息、说明及依赖。重复运行遇到内容完全相同的版本会跳过上传；同版本文件或元数据冲突会失败，绝不覆盖。网络写入失败不会自动重发 POST，重新运行时先查询远端版本。缺少 Token、项目 ID、产物或校验不通过均会明确失败。
+
+若只有 Modrinth 任务失败，可在 Actions 中选择 **Re-run failed jobs**，保留已成功的 GitHub 发布。首次项目需要另行提交 Modrinth 审核；创建草稿和上传版本不表示已经公开。
 
 ```sh
 python -m unittest discover -s scripts -p 'test_*.py' -v
