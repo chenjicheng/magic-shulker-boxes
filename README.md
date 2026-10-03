@@ -2,23 +2,26 @@
 
 **简体中文** | [English](README.en.md)
 
-适用于 **Minecraft Java 1.21.11 · Fabric · Java 21** 的潜影盒自动收纳与补货模组，采用 MIT 许可证。当前版本为 **0.4.0**。
+适用于 **Minecraft Java 1.21.11 · Fabric · Java 21** 的潜影盒自动收纳与补货模组，采用 MIT 许可证。当前版本为 **0.7.0**。
 
 开启拾取自动入盒后，背包满了时把拾取余量依次放入同类专用盒、空盒、杂物盒；可开启其他单类盒兜底。此功能默认关闭。兼容 Carpet 堆叠潜影盒，支持安全拆盒、自动腾栏、零散物品和杂物盒复用。
 
 - 多人服仅服务端安装即可收纳；单人和局域网由房主执行。
 - 自动入盒与原理图取料各自独立开关；服务端可开放玩家个人设置，由玩家覆盖服务端默认值。
+- 0.6.1 恢复合成补货默认开启，已有明确关闭的配置保持关闭。
+- 0.6.0 新增管理员玩家设置管理、全部设置的点击命令预览，以及全部个人布尔项可自行绑定的切换快捷键；合成补货默认关闭，已有显式选择保留。
+- 0.5.0 支持容器与村民交易入盒、可选末影箱取料、IPN 旧工具回来源原格，以及服务器逐项授权玩家设置。两端使用 GUI/取料/IPN 时需一起升级。
 - 可选 Mod Menu + YACL 中英文图形设置。
 - IPN 消耗品与工具补货可从背包潜影盒取物，沿用 IPN 的触发、匹配和排序规则，独立开关 `ipnRefill`。
-- 当前源码新增 Carpet 假人主手/副手补货，物品用完或工具损坏后由服务端补充，独立开关 `carpetRefill`，无需 IPN 或客户端。已发布的 0.4.0 不包含此功能。
+- 0.7.0 新增 Carpet 假人主手/副手补货，物品用完或工具损坏后由服务端补充，独立开关 `carpetRefill`，无需 IPN 或客户端。设置同步与 GUI 需两端升级到 0.7.0。
 - 背包/工作台合成可从潜影盒补材料，支持点击配方、连续取出成品和 Shift 合成，独立开关 `craftRefill`，不依赖 IPN。
 - 0.2.0-alpha 新增 Litematica 轻松放置自动取料：缺料时从潜影盒补到背包，支持自动腾栏及可关闭的失败提示，需要客户端与服务端都更新。
 
-[下载版本](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [在线使用文档](https://chenjicheng.github.io/magic-shulker-boxes/guide.html) · [开发文档](https://chenjicheng.github.io/magic-shulker-boxes/development.html)
+[Modrinth 下载](https://modrinth.com/mod/magic-shulker-boxes) · [GitHub Releases](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [在线使用文档](https://chenjicheng.github.io/magic-shulker-boxes/guide.html) · [开发文档](https://chenjicheng.github.io/magic-shulker-boxes/development.html)
 
 ## 安装
 
-安装 `magic-shulker-boxes-fabric-0.4.0+mc1.21.11.jar` 和 Fabric API，使用 Fabric Loader 0.18.4 或更新版。不要安装 `-sources.jar`。升级前移走旧版 JAR，避免重复加载。
+安装 `magic-shulker-boxes-fabric-0.7.0+mc1.21.11.jar` 和 Fabric API，使用 Fabric Loader 0.18.4 或更新版。不要安装 `-sources.jar`。升级前移走旧版 JAR，避免重复加载。
 
 0.4.0 保留 0.3.2 配置和已有选择，新增 `ipnRefill`、`craftRefill` 默认开启。完整新增功能和安装要求见 [0.4.0 发布说明](docs/releases/0.4.0.md)。
 
@@ -32,4 +35,4 @@
 
 JDK 21 下运行 `./gradlew build`（Windows：`.\gradlew.bat build`）。文档使用 VitePress：`npm ci && npm run docs:build`。
 
-CI 同时检查普通环境和 Carpet 环境；推送 `v*` 标签由 Release 工作流验证、构建并发布。`main` 文档由 Actions 部署到 GitHub Pages。
+CI 同时检查普通环境和 Carpet 环境；推送 `v*` 标签由 Release 工作流验证、构建并发布到 GitHub 和 Modrinth，后者需要配置专用 Token 和项目 ID。`main` 文档由 Actions 部署到 GitHub Pages。

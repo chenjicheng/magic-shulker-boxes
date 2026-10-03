@@ -21,7 +21,8 @@ public final class Messages {
             if (stream == null) throw new IllegalStateException("Missing language resource: " + path);
             var json = JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
             Map<String, String> values = new HashMap<>();
-            json.entrySet().forEach(entry -> values.put(entry.getKey().substring(PREFIX.length()), entry.getValue().getAsString()));
+            json.entrySet().stream().filter(entry -> entry.getKey().startsWith(PREFIX))
+                    .forEach(entry -> values.put(entry.getKey().substring(PREFIX.length()), entry.getValue().getAsString()));
             return Map.copyOf(values);
         } catch (IOException exception) {
             throw new IllegalStateException("Cannot read language resource: " + path, exception);

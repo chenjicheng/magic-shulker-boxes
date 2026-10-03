@@ -81,7 +81,38 @@ sudo systemctl start minecraft-mod-stager.service
 
 停止定时检查可执行 `sudo systemctl disable --now minecraft-mod-stager.timer`。它不删除已验证的包，也不改变已安装模组。若服务当前仍在检查，需要另外停止 `minecraft-mod-stager.service`。
 
-暂存成功不会启用新版本。在维护窗口应用 MSB 服务端包并重启、确认实际加载版本后，再同步客户端来源并运行 `/automodpack generate`；CCO 作为客户端模组只更新客户端来源。packwiz 更新也由管理员另行执行。保持两端协议匹配后再让玩家更新客户端。
+暂存成功不会启用新版本。下面的手动命令将已选定的服务端与客户端 JAR 一起应用，再重启需要启用的服务端、核对实际加载版本并生成客户端清单。CCO 只更新客户端来源。packwiz 更新由管理员另行执行。
+
+## 手动一键部署
+
+`scripts/deploy_releases.py` 和 `deploy/minecraft-mod-deploy` 提供管理员手动调用的 Docker 部署命令，配置示例为 `deploy/minecraft-mod-deployer.example.json`。先调整真实模组、日志、MSB 配置/个人设置以及 AutoModpack 清单路径。配置文件必须由 root 拥有，不允许其他用户写入。
+
+```sh
+sudo install -m 644 scripts/deploy_releases.py /usr/local/lib/minecraft-mod-stager/deploy_releases.py
+sudo install -m 755 deploy/minecraft-mod-deploy /usr/local/bin/minecraft-mod-deploy
+sudo install -m 600 deploy/minecraft-mod-deployer.example.json /etc/minecraft-mod-deployer.json
+```
+
+在管理员自己的 `~/.bash_aliases` 添加：
+
+```sh
+alias mod-deploy='sudo /usr/local/bin/minecraft-mod-deploy'
+```
+
+新终端会加载 alias；当前终端可执行 `. ~/.bash_aliases`。调用方式：
+
+```sh
+mod-deploy --dry-run   # 只读校验与计划，不停服、替换、备份或生成清单
+mod-deploy            # 正式部署两个模组
+mod-deploy msb        # 仅 MSB
+mod-deploy cco        # 仅 CCO 客户端分发，无服务端模组重启
+```
+
+正式执行先固定 `latest` 指向的每个模组版本，核对完整暂存包、SHA256 和 JAR 元数据，再暂停检查器。对需要更新或启用的 MSB 服务端正常停服，重新备份操作前的 JAR、MSB 配置/个人设置与客户端清单；然后替换服务端及客户端对应 JAR。旧版全部备份后移出当前目录，新包保持来源目录的用户/组以及可读权限。服务端重启后，用 RCON `list` 和当前启动日志中的完整 MSB 版本确认就绪，再执行 `automodpack generate`，等待清单的文件名、大小和 SHA1 与已安装客户端字节匹配。没有任何更新且运行版本已经匹配时，命令返回 `unchanged`。
+
+需要部署的服务端以及客户端分发宿主应处于运行状态。正常停服使用无限等待，不以超时强制杀进程；管理员中断或启动/清单失败时，尝试恢复本次修改的 JAR、配置、用户/组、客户端来源与原先运行状态，并恢复此前启用的检查 timer。备份及回执保存到 `/var/lib/minecraft-mod-deploy/backups/<时间-唯一编号>/`。恢复失败会明确报错并保留回执，不宣称成功。
+
+回滚恢复的是操作前磁盘文件和进程运行状态，不回滚世界。若此前磁盘 JAR 与已加载版本不同，恢复后启动加载的是操作前磁盘版本。维护时仍应使用既有世界备份安排。部署命令不会推送 Git、发布应用或更新 packwiz。
 
 ## 验证
 

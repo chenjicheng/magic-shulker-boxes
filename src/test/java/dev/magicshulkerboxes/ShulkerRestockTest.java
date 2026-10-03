@@ -16,6 +16,36 @@ import static org.junit.jupiter.api.Assertions.*;
 class ShulkerRestockTest {
     @BeforeAll static void bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); }
 
+    @Test void toolExchangeDoesNotNeedBackpackSpaceAndStackedSourcesOnlyModifyOneBox() {
+        var inventory = full(); var spare = new ItemStack(Items.IRON_PICKAXE);
+        var old = new ItemStack(Items.DIAMOND_PICKAXE); old.setDamageValue(1500);
+        old.set(DataComponents.CUSTOM_NAME, Component.literal("Keep me"));
+        inventory.setItem(0, old.copy()); inventory.setItem(9, box(spare));
+        assertEquals(1, ShulkerRefill.swapToolForRestock(inventory, 9, 0, 0, new StorageConfig(), mask(9)));
+        assertTrue(ItemStack.matches(spare, inventory.getItem(0)));
+        assertTrue(ItemStack.matches(old, contents(inventory.getItem(9)).getFirst()));
+        inventory.setItem(0, old.copy()); inventory.setItem(9, box(spare)); inventory.getItem(9).setCount(3);
+        var original = inventory.getItem(9).copy();
+        assertEquals(0, ShulkerRefill.swapToolForRestock(inventory, 9, 0, 0, new StorageConfig(), mask(9, 10)));
+        assertTrue(ItemStack.matches(original, inventory.getItem(9)));
+        inventory.setItem(10, ItemStack.EMPTY);
+        assertEquals(1, ShulkerRefill.swapToolForRestock(inventory, 9, 0, 0, new StorageConfig(), mask(9, 10)));
+        assertEquals(2, inventory.getItem(9).getCount());
+        assertTrue(ItemStack.matches(spare, contents(inventory.getItem(9)).getFirst()));
+        assertTrue(ItemStack.matches(old, contents(inventory.getItem(10)).getFirst()));
+    }
+
+    @Test void disappearedToolIsNotCreatedAndLockedOrDisabledSourcesCannotSwap() {
+        var inventory = new SimpleContainer(41); inventory.setItem(9, box(new ItemStack(Items.IRON_PICKAXE)));
+        var config = new StorageConfig(); config.ipnRefill = false;
+        assertEquals(0, ShulkerRefill.swapToolForRestock(inventory, 9, 0, 0, config, mask(9)));
+        config.ipnRefill = true;
+        assertEquals(0, ShulkerRefill.swapToolForRestock(inventory, 9, 0, 0, config, mask(10)));
+        assertEquals(1, ShulkerRefill.swapToolForRestock(inventory, 9, 0, 0, config, mask(9)));
+        assertTrue(contents(inventory.getItem(9)).isEmpty());
+        assertTrue(inventory.getItem(0).is(Items.IRON_PICKAXE));
+    }
+
     @Test void externalRestockIsIndependentOfPickupSchematicAndOneItemMode() {
         var inventory = new SimpleContainer(41);
         inventory.setItem(9, box(new ItemStack(Items.GOLDEN_CARROT, 32)));

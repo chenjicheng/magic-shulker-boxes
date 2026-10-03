@@ -13,7 +13,8 @@ final class CraftingMaterials {
     private CraftingMaterials() {}
     record Taken(ItemStack stack, int boxSlot) {}
 
-    static SimpleContainer copy(Container inventory) {
+    static Container copy(Container inventory) {
+        if (inventory instanceof RefillSources.View view) return new RefillSources.View(copy(view.inventory), copy(view.ender));
         var items = new ItemStack[inventory.getContainerSize()];
         for (int i = 0; i < items.length; i++) items[i] = inventory.getItem(i).copy();
         return new SimpleContainer(items);
@@ -53,7 +54,19 @@ final class CraftingMaterials {
 
     static Taken takeBox(Container inventory, Predicate<ItemStack> matches, int count, StorageConfig config,
                          Predicate<ItemStack> allowedBox) {
+        var carried = takeBoxPass(inventory, matches, count, config, allowedBox, false);
+        if (carried != null || !config.enderChestRefill || !(inventory instanceof RefillSources.View)) return carried;
+        for (int slot = RefillSources.ENDER_START; slot < inventory.getContainerSize(); slot++) {
+            var stack = inventory.getItem(slot);
+            if (!stack.isEmpty() && !ShulkerStorage.isShulker(stack) && matches.test(stack)) return new Taken(stack.split(Math.min(count, stack.getCount())), -1);
+        }
+        return takeBoxPass(inventory, matches, count, config, allowedBox, true);
+    }
+
+    private static Taken takeBoxPass(Container inventory, Predicate<ItemStack> matches, int count, StorageConfig config,
+                                    Predicate<ItemStack> allowedBox, boolean ender) {
         for (int slot : BoxOrder.emptiestFirst(inventory, config)) {
+            if (RefillSources.isEnder(inventory, slot) != ender) continue;
             var box = inventory.getItem(slot);
             if (!allowedBox.test(box) || (box.getCount() > 1 && !config.splitStackedBoxes)) continue;
             var contents = NonNullList.withSize(27, ItemStack.EMPTY);
@@ -63,7 +76,7 @@ final class CraftingMaterials {
                 if (source.isEmpty() || !source.getItem().canFitInsideContainerItems() || !matches.test(source)) continue;
                 int destination = slot;
                 if (box.getCount() > 1) {
-                    destination = freeSlot(inventory);
+                    destination = RefillSources.freeBoxSlot(inventory, slot);
                     if (destination < 0) break;
                 }
                 int amount = Math.min(count, source.getCount());

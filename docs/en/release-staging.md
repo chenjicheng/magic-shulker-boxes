@@ -77,7 +77,38 @@ Journal statuses are `staged`, `unchanged`, `skipped` and `error`. Conflicting p
 
 `sudo systemctl disable --now minecraft-mod-stager.timer` stops scheduled checks without deleting bundles or changing installed mods. Stop `minecraft-mod-stager.service` separately if a check is still running.
 
-Staging does not activate an update. Apply MSB server packages during a maintenance window, restart and verify the actual loaded version, then update client distribution and run `/automodpack generate`. CCO only updates client distribution. Administrators update packwiz separately. Match server/client protocols before clients update.
+Staging does not activate an update. The manual command below applies the selected server/client JARs together, restarts servers requiring activation, checks their actual loaded versions and publishes the client manifest. CCO stays client-only; administrators update packwiz separately.
+
+## Manual deployment command
+
+`scripts/deploy_releases.py` and `deploy/minecraft-mod-deploy` implement an administrator-invoked Docker deployment. Adapt real paths in `deploy/minecraft-mod-deployer.example.json` for installed mods, logs, MSB configuration/preferences and the AutoModpack manifest. Configuration must be root-owned and not writable by others.
+
+```sh
+sudo install -m 644 scripts/deploy_releases.py /usr/local/lib/minecraft-mod-stager/deploy_releases.py
+sudo install -m 755 deploy/minecraft-mod-deploy /usr/local/bin/minecraft-mod-deploy
+sudo install -m 600 deploy/minecraft-mod-deployer.example.json /etc/minecraft-mod-deployer.json
+```
+
+Add to the administrator's `~/.bash_aliases`:
+
+```sh
+alias mod-deploy='sudo /usr/local/bin/minecraft-mod-deploy'
+```
+
+New shells load it; use `. ~/.bash_aliases` in an existing shell.
+
+```sh
+mod-deploy --dry-run   # Read-only validation/plan; no stop, replacement, backup or manifest publication
+mod-deploy            # Apply both mods
+mod-deploy msb        # MSB only
+mod-deploy cco        # Client distribution only, without restarting server mods
+```
+
+The command pins completed staging pointers, verifies all bundle hashes and JAR metadata, then pauses checking. Affected MSB servers stop gracefully; current JARs, MSB settings/preferences and client manifest are backed up again. Server/client JARs are replaced together, with old versions removed only after backup and new files retaining the directory's user/group and readable permissions. Readiness requires RCON `list` and the complete expected MSB version in the current startup log. `automodpack generate` is followed by manifest filename/size/SHA1 verification against installed client bytes. An already-matching deployment returns `unchanged`.
+
+Selected servers and the client-pack host must be running beforehand. Graceful stop waits without force-killing on timeout. Interruptions or startup/manifest failures attempt to restore modified JARs, settings, owners/groups, client sources and previous running states, plus the previously active check timer. Backups and receipts remain under `/var/lib/minecraft-mod-deploy/backups/<time-unique-id>/`. Failed recovery is reported explicitly.
+
+Rollback restores prior disk files and process state, not worlds. If loaded versions already differed from disk before deployment, a rollback start loads the prior disk version. Continue existing world-backup arrangements for maintenance. The command does not push Git, publish an application or update packwiz.
 
 ## Verification
 

@@ -5,7 +5,22 @@
   "name": "Magic Shulker Boxes Tests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["dev.magicshulkerboxes.PickupGameTests", "dev.magicshulkerboxes.RefillGameTests", "dev.magicshulkerboxes.RefillRegressionGameTests", "dev.magicshulkerboxes.ConfigMigrationGameTests", "dev.magicshulkerboxes.RestockGameTests", "dev.magicshulkerboxes.CraftingGameTests", "dev.magicshulkerboxes.FakePlayerRefillGameTests"],
-    "fabric-client-gametest": ["${clientTest}"]
+    "fabric-gametest": [
+      "dev.magicshulkerboxes.PickupGameTests",
+      "dev.magicshulkerboxes.RefillGameTests",
+      "dev.magicshulkerboxes.RefillRegressionGameTests",
+      "dev.magicshulkerboxes.ConfigMigrationGameTests",
+      "dev.magicshulkerboxes.RestockGameTests",
+      "dev.magicshulkerboxes.CraftingGameTests",
+      "dev.magicshulkerboxes.MenuStorageGameTests",
+      "dev.magicshulkerboxes.EnderSourcesGameTests",
+      "dev.magicshulkerboxes.SettingPermissionsGameTests",
+      "dev.magicshulkerboxes.AdminSettingsGameTests",
+      "dev.magicshulkerboxes.CommandChatGameTests",
+      "dev.magicshulkerboxes.FakePlayerRefillGameTests"
+    ],
+    "fabric-client-gametest": [
+      "${clientTest}"
+    ]
   }
 }

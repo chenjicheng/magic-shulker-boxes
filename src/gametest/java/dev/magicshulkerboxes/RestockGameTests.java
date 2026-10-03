@@ -3,6 +3,7 @@ package dev.magicshulkerboxes;
 import java.util.List;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.NonNullList;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,6 +13,28 @@ import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.GameType;
 
 public class RestockGameTests {
+    @GameTest public void replacedBoxWithIdenticalToolCannotReceiveOldTool(GameTestHelper helper) {
+        var p = player(helper); var req = request(p, 1);
+        p.getInventory().getItem(9).set(DataComponents.CUSTOM_NAME, Component.literal("Different source box"));
+        check(helper, RestockNetwork.accept(p, req) == 0, "The entire source box snapshot is verified");
+        helper.succeed();
+    }
+    @GameTest public void toolSwapReturnsExactOldComponentsToOriginalBoxSlot(GameTestHelper helper) {
+        var p = player(helper); var worn = new ItemStack(Items.DIAMOND_PICKAXE); worn.setDamageValue(1500);
+        worn.set(DataComponents.CUSTOM_NAME, Component.literal("My old pick"));
+        var spare = new ItemStack(Items.IRON_PICKAXE); spare.setDamageValue(7);
+        var contents = NonNullList.withSize(27, ItemStack.EMPTY); contents.set(5, spare.copy());
+        p.getInventory().getItem(9).set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
+        p.getInventory().setItem(0, worn.copy());
+        var request = new RestockNetwork.Request(1, 9, 5, 1, 1, 0, 1, 3,
+                ItemFingerprint.of(spare, p.registryAccess()), ItemFingerprint.of(worn, p.registryAccess()), ItemFingerprint.of(p.getInventory().getItem(9), p.registryAccess()));
+        check(helper, RestockNetwork.accept(p, request) == 1, "Tool swap accepted");
+        check(helper, ItemStack.matches(spare, p.getMainHandItem()), "Replacement is equipped atomically");
+        p.getInventory().getItem(9).get(DataComponents.CONTAINER).copyInto(contents);
+        check(helper, ItemStack.matches(worn, contents.get(5)) && p.getInventory().getItem(10).isEmpty(), "Old tool returns to its precise source slot");
+        check(helper, RestockNetwork.accept(p, request) == 0, "Duplicate swap cannot execute twice");
+        helper.succeed();
+    }
     @GameTest public void consumedPotionLeavesBottleForIpnToSwap(GameTestHelper helper) {
         var player = player(helper);
         player.getInventory().setItem(0, new ItemStack(Items.GLASS_BOTTLE));
@@ -70,7 +93,7 @@ public class RestockGameTests {
         check(helper, stored(player).size() == 1, "Failed extraction retained potion");
         var other = player(helper); var valid = request(other, 1);
         var invalid = new RestockNetwork.Request(valid.request(), valid.boxSlot(), valid.contentSlot(), valid.boxCount(),
-                valid.sourceCount(), valid.targetSlot(), valid.targetCount(), -1, valid.sourceFingerprint(), valid.targetFingerprint());
+                valid.sourceCount(), valid.targetSlot(), valid.targetCount(), -1, valid.sourceFingerprint(), valid.targetFingerprint(), valid.boxFingerprint());
         check(helper, RestockNetwork.accept(other, invalid) == 0, "Invalid mask refused");
         check(helper, stored(other).size() == 1, "Invalid request retained potion");
         helper.succeed();
@@ -121,7 +144,8 @@ public class RestockGameTests {
     private static RestockNetwork.Request request(ServerPlayer player, int id) {
         var source = stored(player).getFirst(); var target = player.getInventory().getItem(0);
         return new RestockNetwork.Request(id, 9, 0, 1, source.getCount(), 0, target.getCount(), 3,
-                ItemFingerprint.of(source, player.registryAccess()), ItemFingerprint.of(target, player.registryAccess()));
+                ItemFingerprint.of(source, player.registryAccess()), ItemFingerprint.of(target, player.registryAccess()),
+                ItemFingerprint.of(player.getInventory().getItem(9), player.registryAccess()));
     }
     private static List<ItemStack> stored(ServerPlayer player) {
         return player.getInventory().getItem(9).get(DataComponents.CONTAINER).stream().filter(stack -> !stack.isEmpty()).toList();

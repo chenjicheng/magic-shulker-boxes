@@ -19,7 +19,11 @@ final class RefillSettings {
         var defaults = ClientSettings.defaults();
         if (defaults != null) cached = ConfigFile.apply(cached, defaults);
         if (ClientSettings.session.mode() == SettingsSession.Mode.ALLOWED || defaults == null) {
-            try { cached = ConfigFile.apply(cached, ClientSettings.preferences()); }
+            try {
+                var personal = ClientSettings.preferences();
+                personal.keySet().removeIf(key -> !ClientSettings.canEdit(key));
+                cached = ConfigFile.apply(cached, personal);
+            }
             catch (IOException exception) {
                 cached.schematicRefill = false; cached.ipnRefill = false; cached.craftRefill = false; ClientSettings.failure(exception);
             }

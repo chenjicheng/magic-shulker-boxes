@@ -147,6 +147,36 @@ public class FakePlayerRefillGameTests {
         return player;
     }
 
+    @GameTest public void serverFieldPermissionsAlsoGovernFakeOverrides(GameTestHelper helper) throws Exception {
+        if (!FabricLoader.getInstance().isModLoaded("carpet")) { helper.succeed(); return; }
+        var config = MagicShulkerBoxes.config();
+        boolean oldRefill = config.carpetRefill, oldAllowed = config.allowPlayerSettings;
+        var oldEditable = new java.util.ArrayList<>(config.playerEditableSettings);
+        try {
+            config.carpetRefill = false;
+            config.allowPlayerSettings = true;
+            config.playerEditableSettings.remove("carpetRefill");
+            var locked = snowballFake(helper);
+            MagicShulkerBoxes.players(helper.getLevel().getServer()).save(locked.getUUID(),
+                    ConfigFile.parsePreferences("{\"carpetRefill\":true}"));
+            locked.tick();
+            check(helper, locked.getMainHandItem().isEmpty() && stored(locked).getFirst().getCount() == 4,
+                    "A locked persisted preference cannot enable fake-player refill");
+            config.playerEditableSettings.add("carpetRefill");
+            var permitted = snowballFake(helper);
+            MagicShulkerBoxes.players(helper.getLevel().getServer()).save(permitted.getUUID(),
+                    ConfigFile.parsePreferences("{\"carpetRefill\":true}"));
+            permitted.tick();
+            check(helper, permitted.getMainHandItem().getCount() == 4 && stored(permitted).isEmpty(),
+                    "The same UUID override works after explicit field permission");
+        } finally {
+            config.carpetRefill = oldRefill;
+            config.allowPlayerSettings = oldAllowed;
+            config.playerEditableSettings = oldEditable;
+        }
+        helper.succeed();
+    }
+
     private static ServerPlayer fake(GameTestHelper helper) throws Exception {
         var server = helper.getLevel().getServer();
         var profile = new GameProfile(UUID.randomUUID(), "MSBRefillTest");

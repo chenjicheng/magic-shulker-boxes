@@ -50,7 +50,15 @@ public final class ConfigFile {
     public static JsonObject options(StorageConfig config) {
         var json = GSON.toJsonTree(config).getAsJsonObject();
         json.remove("allowPlayerSettings");
+        json.remove("playerEditableSettings");
         return json;
+    }
+
+    public static JsonObject editable(JsonObject values, java.util.Collection<String> names) {
+        var filtered = new JsonObject();
+        values.entrySet().stream().filter(entry -> names.contains(entry.getKey()))
+                .forEach(entry -> filtered.add(entry.getKey(), entry.getValue().deepCopy()));
+        return filtered;
     }
 
     public static String json(Object value) { return GSON.toJson(value); }
@@ -156,6 +164,15 @@ public final class ConfigFile {
             var knownKeys = GSON.toJsonTree(defaults).getAsJsonObject().keySet();
             for (var entry : json.getAsJsonObject().entrySet()) {
                 if (!knownKeys.contains(entry.getKey())) throw new IOException("Unknown config option: " + entry.getKey());
+                if (entry.getKey().equals("playerEditableSettings")) {
+                    if (!entry.getValue().isJsonArray()) throw new IOException("playerEditableSettings must be an array of option names");
+                    var names = new java.util.HashSet<String>();
+                    for (var name : entry.getValue().getAsJsonArray()) {
+                        if (!name.isJsonPrimitive() || !name.getAsJsonPrimitive().isString() || !optionNames().contains(name.getAsString())
+                                || !names.add(name.getAsString())) throw new IOException("Invalid or duplicate editable option: " + name);
+                    }
+                    continue;
+                }
                 if (entry.getKey().equals("makeSpaceMode")) {
                     if (!entry.getValue().isJsonPrimitive() || !entry.getValue().getAsJsonPrimitive().isString()) {
                         throw new IOException("makeSpaceMode must be DISABLED, MOVE_TO_BOX or DROP_AND_PICKUP");

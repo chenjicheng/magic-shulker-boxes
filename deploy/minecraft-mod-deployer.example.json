@@ -1,0 +1,30 @@
+{
+  "staging_root": "/var/lib/minecraft-mod-stager",
+  "minecraft_version": "1.21.11",
+  "backup_root": "/var/lib/minecraft-mod-deploy/backups",
+  "timer": "minecraft-mod-stager.timer",
+  "check_service": "minecraft-mod-stager.service",
+  "ready_timeout": 300,
+  "servers": [
+    {
+      "name": "mc",
+      "target": "mc-server",
+      "mods_dir": "/srv/minecraft/mc/mods",
+      "log_file": "/srv/minecraft/mc/logs/latest.log",
+      "config_paths": ["/srv/minecraft/mc/config/magic_shulker_boxes.json", "/srv/minecraft/mc/world/data/magic_shulker_boxes"]
+    },
+    {
+      "name": "cmc",
+      "target": "cmc-server",
+      "mods_dir": "/srv/minecraft/cmc/mods",
+      "log_file": "/srv/minecraft/cmc/logs/latest.log",
+      "config_paths": ["/srv/minecraft/cmc/config/magic_shulker_boxes.json", "/srv/minecraft/cmc/world/data/magic_shulker_boxes"]
+    }
+  ],
+  "client": {
+    "target": "mc-client",
+    "server": "mc",
+    "mods_dir": "/srv/minecraft/mc/automodpack/host-modpack/main/mods",
+    "manifest_path": "/srv/minecraft/mc/automodpack/host-modpack/automodpack-content.json"
+  }
+}

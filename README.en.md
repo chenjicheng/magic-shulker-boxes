@@ -2,23 +2,26 @@
 
 [简体中文](README.md) | **English**
 
-Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.4.0**.
+Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.7.0**.
 
 After enabling pickup storage, store overflow in matching, empty, then mixed boxes, with an optional single-type fallback. Pickup storage is off by default. Supports Carpet shulker stacking, safe box splitting, automatic space-making, partial stacks and mixed-box reuse.
 
 - Server-only installation works for multiplayer; singleplayer and LAN storage runs on the host.
 - Pickup storage and schematic refilling have independent switches. Servers can permit personal preferences, letting players override either server default.
+- 0.6.1 restores crafting refill to enabled by default; existing explicit disabled choices are retained.
+- 0.6.0 adds administrator player management, clickable command previews for all settings, and locally chosen toggle keys for every personal boolean; crafting refill defaults off and explicit existing choices are retained.
+- 0.5.0 adds container/trade storage, optional own ender sources, IPN original-slot tool returns and per-option server permissions. Update both sides for GUI/refill/IPN.
 - Optional Mod Menu + YACL settings in English and Simplified Chinese.
 - IPN consumable and tool refilling can use backpack shulker boxes, retaining IPN's triggers, matching and sorting, independently controlled by `ipnRefill`.
-- Current source builds add server-side Carpet fake-player main-hand/offhand refilling when an item runs out or a tool breaks, independently controlled by `carpetRefill`, without IPN or a client. The published 0.4.0 release does not include this feature.
+- 0.7.0 adds server-side Carpet fake-player main-hand/offhand refilling when an item runs out or a tool breaks, independently controlled by `carpetRefill`, without IPN or a client. Update both sides to 0.7.0 for settings synchronization and the GUI.
 - Inventory/crafting-table ingredients can refill from carried boxes for recipe placement, output clicks and Shift crafting, independently controlled by `craftRefill` without IPN.
 - 0.2.0-alpha adds Litematica Easy Place refilling from inventory shulker boxes, with optional space-making and failure notices. Both client and server need the new version for this feature.
 
-[Download](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [User guide](https://chenjicheng.github.io/magic-shulker-boxes/en/guide.html) · [Development](https://chenjicheng.github.io/magic-shulker-boxes/en/development.html)
+[Modrinth download](https://modrinth.com/mod/magic-shulker-boxes) · [GitHub Releases](https://github.com/chenjicheng/magic-shulker-boxes/releases) · [User guide](https://chenjicheng.github.io/magic-shulker-boxes/en/guide.html) · [Development](https://chenjicheng.github.io/magic-shulker-boxes/en/development.html)
 
 ## Install
 
-Install `magic-shulker-boxes-fabric-0.4.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
+Install `magic-shulker-boxes-fabric-0.7.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
 
 0.4.0 retains 0.3.2 settings and choices; new `ipnRefill` and `craftRefill` switches default to enabled. See the [0.4.0 release notes](docs/releases/0.4.0.md) for features and installation requirements.
 
@@ -32,4 +35,4 @@ Read the [user guide](docs/en/guide.md) for all behavior and configuration detai
 
 With JDK 21, run `./gradlew build` (Windows: `.\gradlew.bat build`). Documentation uses VitePress: `npm ci && npm run docs:build`.
 
-CI tests both normal and Carpet environments. Pushing a `v*` tag invokes the Release workflow to validate, build and publish artifacts. Actions deploys documentation from `main` to GitHub Pages.
+CI tests both normal and Carpet environments. Pushing a `v*` tag invokes the Release workflow to validate, build and publish to GitHub and Modrinth; Modrinth needs a dedicated token and project ID. Actions deploys documentation from `main` to GitHub Pages.

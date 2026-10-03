@@ -18,8 +18,15 @@ public final class MagicShulkerBoxesClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientSettings.register();
+        SettingsKeybindings.register();
         SchematicRefillClient.register();
         CraftingRefillClient.register();
+        ClientPlayNetworking.registerGlobalReceiver(dev.magicshulkerboxes.EnderSourcesNetwork.Snapshot.ID, (payload, context) -> {
+            if (context.client().player == null) return;
+            var player = context.client().player;
+            for (int i = 0; i < 27; i++) player.getEnderChestInventory().setItem(i, payload.items().get(i).copy());
+            player.getInventory().setChanged();
+        });
         if (FabricLoader.getInstance().isModLoaded("inventoryprofilesnext")) IpnRefillClient.register();
         try {
             ConfigFile.readPreferences(path());

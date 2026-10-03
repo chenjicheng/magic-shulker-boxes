@@ -7,6 +7,7 @@ import java.util.WeakHashMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.ItemStack;
 import org.anti_ad.mc.ipnext.event.autorefill.AutoRefillHandler$ItemSlotMonitor;
 
 /** Pause IPN's existing monitor until server inventory synchronization makes its chosen item visible. */
@@ -21,7 +22,8 @@ public final class IpnRefillClient {
         final int id;
         final long deadline;
         boolean failed;
-        Pending(int id, long deadline) { this.id = id; this.deadline = deadline; }
+        final ItemStack equipped;
+        Pending(int id, long deadline, ItemStack equipped) { this.id = id; this.deadline = deadline; this.equipped = equipped; }
     }
 
     public static void register() {
@@ -44,12 +46,16 @@ public final class IpnRefillClient {
                 || !RefillSettings.get().ipnRefill || !ClientPlayNetworking.canSend(RestockNetwork.Request.ID)) {
             PENDING.remove(monitor); return false;
         }
+        var pending = PENDING.get(monitor);
+        if (pending != null && !pending.equipped.isEmpty()
+                && ItemStack.matches(client.player.getInventory().getItem(targetSlot), pending.equipped)) {
+            PENDING.remove(monitor); monitor.setShouldHandle(false); return true;
+        }
         // Backpack candidates always win. IPN will perform its normal clicks and notifications itself.
         if (IpnCandidates.finder().msb$findCorrespondingSlot(monitor.getCheckingItem(), monitor.getCurrentItem()) != null) {
             PENDING.remove(monitor); return false;
         }
         long now = System.nanoTime();
-        var pending = PENDING.get(monitor);
         if (pending != null) {
             if (pending.failed || now >= pending.deadline) { PENDING.remove(monitor); return false; }
             return true;
@@ -60,12 +66,14 @@ public final class IpnRefillClient {
         var target = client.player.getInventory().getItem(targetSlot);
         var sourceFingerprint = ItemFingerprint.of(source.stack(), client.player.registryAccess());
         var targetFingerprint = ItemFingerprint.of(target, client.player.registryAccess());
-        if (sourceFingerprint.isEmpty() || (!target.isEmpty() && targetFingerprint.isEmpty())) return false;
+        var boxFingerprint = ItemFingerprint.of(dev.magicshulkerboxes.RefillSources.of(client.player, RefillSettings.get()).getItem(source.boxSlot()), client.player.registryAccess());
+        if (sourceFingerprint.isEmpty() || boxFingerprint.isEmpty() || (!target.isEmpty() && targetFingerprint.isEmpty())) return false;
         if (++nextId <= 0) nextId = 1;
-        PENDING.put(monitor, new Pending(nextId, now + SYNC_TIMEOUT));
+        var equipped = source.stack().isDamageableItem() && (target.isEmpty() || target.isDamageableItem()) ? source.stack().copy() : ItemStack.EMPTY;
+        PENDING.put(monitor, new Pending(nextId, now + SYNC_TIMEOUT, equipped));
         nextRequest = now + REQUEST_INTERVAL;
         ClientPlayNetworking.send(new RestockNetwork.Request(nextId, source.boxSlot(), source.contentSlot(), source.boxCount(),
-                source.stack().getCount(), targetSlot, target.getCount(), source.eligibleSlots(), sourceFingerprint, targetFingerprint));
+                source.stack().getCount(), targetSlot, target.getCount(), source.eligibleSlots(), sourceFingerprint, targetFingerprint, boxFingerprint));
         return true;
     }
 }

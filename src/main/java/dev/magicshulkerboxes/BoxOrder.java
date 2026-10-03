@@ -24,7 +24,8 @@ final class BoxOrder {
     private static List<Integer> slots(Container inventory, StorageConfig config, Comparator<Candidate> order) {
         var candidates = new ArrayList<Candidate>();
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
-            if (slot >= Inventory.INVENTORY_SIZE && !(config.includeOffhand && slot == Inventory.SLOT_OFFHAND)) continue;
+            if (slot >= Inventory.INVENTORY_SIZE && !(config.includeOffhand && slot == Inventory.SLOT_OFFHAND)
+                    && !(config.enderChestRefill && RefillSources.isEnder(inventory, slot))) continue;
             var box = inventory.getItem(slot);
             if (!ShulkerStorage.isShulker(box)) continue;
             var contents = box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream().toList();
@@ -36,7 +37,8 @@ final class BoxOrder {
             }
             candidates.add(new Candidate(slot, fullness));
         }
-        candidates.sort(order.thenComparingInt(Candidate::slot));
+        candidates.sort(Comparator.<Candidate, Boolean>comparing(candidate -> RefillSources.isEnder(inventory, candidate.slot()))
+                .thenComparing(order).thenComparingInt(Candidate::slot));
         return candidates.stream().map(Candidate::slot).toList();
     }
 }
