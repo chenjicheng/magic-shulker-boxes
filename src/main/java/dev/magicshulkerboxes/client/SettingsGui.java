@@ -64,7 +64,7 @@ public final class SettingsGui {
             if (defaults != null && defaults.has("schematicRefill") && !defaults.get("schematicRefill").getAsBoolean()) {
                 category.option(LabelOption.create(text("gui.refill_off")));
             }
-            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft", "carpet")) {
+            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
                 for (String key : ConfigFile.optionNames()) {
                     if (!group(key).equals(section)) continue;
@@ -107,7 +107,7 @@ public final class SettingsGui {
             var category = ConfigCategory.createBuilder().name(text("gui.local"))
                     .option(LabelOption.create(text("gui.local_hint")));
             var editable = new ArrayList<Option<?>>();
-            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft", "carpet")) {
+            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
                 for (String key : values.keySet()) {
                     if (key.equals("playerEditableSettings")) continue;

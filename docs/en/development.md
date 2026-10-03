@@ -50,6 +50,8 @@ The canonical name is **Magic Shulker Boxes**, the stable mod ID is `magic_shulk
 - **Release** runs only on `v*` tag pushes. It requires a matching version and both test environments to pass, then independent jobs publish to GitHub and Modrinth. GitHub receives the tested mod JAR, sources JAR and `SHA256SUMS`; Modrinth receives the same installable JAR. Notes come from `docs/releases/<mod_version>.md`. Only GitHub publishing has repository write permission; the Modrinth token is injected only into its upload step.
 - **Documentation** uses VitePress 1.6.4, Node 24 and the npm lockfile. Its underlying Vite is pinned to 6.4.3 for security fixes; recheck builds, search and preview when updating. Pull requests only build. Pushes to `main` deploy `docs/.vitepress/dist` to GitHub Pages with base `/magic-shulker-boxes/`.
 
+When settings options or groups change, run `.\gradlew.bat runClientGameTest -PclientSmoke -PwithConfigGui` before publishing. It opens personal/world settings and verifies permission-aware saving; builds, server GameTests, IPN replenishment and TCP command checks do not exercise this GUI entry point.
+
 To release, update `mod_version`, add bilingual release notes, run checks and commit to `main`. Wait for CI, then push the matching annotated tag:
 
 ```sh

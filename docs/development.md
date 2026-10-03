@@ -50,6 +50,8 @@ Gradle Wrapper 固定为 9.2.1，带有发行包 SHA256 校验。Minecraft、Fab
 - **Release**：仅由 `v*` 标签推送触发，先核对标签与 `mod_version` 一致并通过两个测试环境，再由独立任务发布到 GitHub 和 Modrinth。GitHub 发布测试过的 JAR、源码 JAR 和 `SHA256SUMS`；Modrinth 发布同一正式 JAR。发行说明读取 `docs/releases/<mod_version>.md`。构建任务只有读取权限，GitHub 发布任务才有仓库写权限；Modrinth Token 仅注入其上传步骤。
 - **Documentation**：VitePress 1.6.4、Node 24 与 npm 锁文件。底层 Vite 固定到 6.4.3 以包含安全修复，升级时需复验构建、搜索和预览。PR 只构建校验，`main` 推送将 `docs/.vitepress/dist` 部署到 GitHub Pages，站点基路径为 `/magic-shulker-boxes/`。
 
+设置选项或分组变化时，发布前运行 `.\gradlew.bat runClientGameTest -PclientSmoke -PwithConfigGui`，实际打开个人/世界设置并验证字段权限保存；构建、服务端 GameTest、IPN 补货和 TCP 命令验证都不能替代这个 GUI 入口。
+
 发布步骤：修改 `mod_version` 并添加对应双语发行说明，通过本地检查后提交到 `main`。确认 CI 成功，再创建匹配标签并推送，例如：
 
 ```sh
