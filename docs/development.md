@@ -61,6 +61,8 @@ npm run docs:preview
 
 ## 测试命令
 
+服务器每五分钟检查 GitHub Release、校验并保留两模组暂存包的安装、配置与运行边界见[定时下载与暂存](release-staging.md)。共享更新器位于 `scripts/stage_releases.py`，systemd 单元和示例配置位于 `deploy/`；其回归已纳入前文的 Python 测试命令。
+
 ### 合成取料与真实客户端验证
 
 `CraftingMenuMixin` 将原版 `AbstractCraftingMenu.handlePlacement` 包在一个 `CraftingRecipeSources` 事务中。`ServerPlaceRecipeMixin` 只在这一作用域补充材料统计和原版背包查找失败后的取物，继续复用原版配方选择、布局和批量数量。来源盒自身属于配方材料时不同时读取其内部。旧合成格返背包先按完整组件与容量预检；来源变化在副本中规划，整次放置成功才提交。组件合并或拆盒提交冲突回退库存和合成格，作用域通过 `finally` 清理。

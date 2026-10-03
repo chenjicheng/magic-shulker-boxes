@@ -1,0 +1,28 @@
+{
+  "cache_dir": "/var/lib/minecraft-mod-stager",
+  "minecraft_version": "1.21.11",
+  "modules": [
+    {
+      "id": "magic_shulker_boxes",
+      "repository": "chenjicheng/magic-shulker-boxes",
+      "archive_prefix": "magic-shulker-boxes-fabric-",
+      "version_suffix": "+mc1.21.11",
+      "environment": "*",
+      "targets": [
+        { "name": "mc-server", "installed_dir": "/run/minecraft-mod-stager-sources/mc-server" },
+        { "name": "cmc-server", "installed_dir": "/run/minecraft-mod-stager-sources/cmc-server" },
+        { "name": "mc-client", "installed_dir": "/run/minecraft-mod-stager-sources/mc-client" }
+      ]
+    },
+    {
+      "id": "chest_count_overlay",
+      "repository": "chenjicheng/chest-count-overlay",
+      "archive_prefix": "chest_count_overlay-",
+      "version_suffix": "",
+      "environment": "client",
+      "targets": [
+        { "name": "mc-client", "installed_dir": "/run/minecraft-mod-stager-sources/mc-client" }
+      ]
+    }
+  ]
+}

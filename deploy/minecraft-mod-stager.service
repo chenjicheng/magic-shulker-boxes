@@ -1,0 +1,24 @@
+[Unit]
+Description=Check and stage verified Minecraft mod releases
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+ExecStart=/usr/bin/python3 /usr/local/lib/minecraft-mod-stager/stage_releases.py --config /etc/minecraft-mod-stager.json
+StateDirectory=minecraft-mod-stager
+StateDirectoryMode=0750
+RuntimeDirectory=minecraft-mod-stager-sources
+RuntimeDirectoryMode=0750
+UMask=0077
+TimeoutStartSec=180
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

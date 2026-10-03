@@ -61,6 +61,8 @@ npm run docs:preview
 
 ## Test commands
 
+See [Scheduled release staging](release-staging.md) for five-minute GitHub release checks, verification, backups and staging of both mods. The shared tool is `scripts/stage_releases.py`, with systemd units/configuration in `deploy/`; its regressions are included in the Python test command above.
+
 ### Crafting sources and real client tests
 
 `CraftingMenuMixin` scopes vanilla `AbstractCraftingMenu.handlePlacement` inside a `CraftingRecipeSources` transaction. `ServerPlaceRecipeMixin` augments material accounting and falls back to boxes after ordinary inventory lookup fails, retaining vanilla recipe selection, layout and batch quantities. A box used as an ingredient cannot also supply its contents. Component-aware capacity checks prove old grid inputs can return without dropping. Source changes are planned on copies and committed only after complete placement; component or splitting conflicts roll back inventory and grid. A `finally` block clears the scope.

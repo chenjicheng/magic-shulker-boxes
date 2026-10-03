@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Minecraft mod releases every five minutes
+
+[Timer]
+OnCalendar=*-*-* *:00/5:00
+Persistent=yes
+AccuracySec=15s
+Unit=minecraft-mod-stager.service
+
+[Install]
+WantedBy=timers.target
