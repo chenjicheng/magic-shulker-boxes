@@ -111,6 +111,18 @@ Sources are main-inventory and hotbar boxes, plus offhand boxes when `includeOff
 
 Source changes are planned on copies. Component conflicts, unavailable splitting space or incomplete placement roll back. A box cannot both supply its contents and be consumed as an ingredient in the same placement.
 
+## Carpet fake-player refilling (current source)
+
+Current source builds add `carpetRefill=true`, independently of pickup storage, schematic, IPN and crafting refilling. The published 0.4.0 release does not include it. Install a build with this feature and Carpet on the server; fake players need no client or IPN. Client settings and preference synchronization require matching settings protocol builds.
+
+When a fake player's main-hand/offhand item runs out or its tool breaks, loose backpack supplies come first, followed by carried shulker boxes. Consumables match all components, including potion effects and names. Tools match the same item and all components except damage; replacement happens after breaking, without changing food types, tool materials or enchantments. Carpet's original actions continue with the replenished hand.
+
+Searches main-inventory and hotbar boxes, least filled first, plus offhand boxes when `includeOffhand=true`. `refillFullStack=false` supplies one item; otherwise up to one stack. Stacked boxes follow `splitStackedBoxes` and need a separate empty slot for the modified box; the target hand is reserved. Bottles, buckets and other use remainders go back into ordinary inventory first. With a full inventory, source-box storage follows `refillMakeSpace`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents`. If a remainder cannot be preserved, the entire refill leaves inventory unchanged.
+
+Only survival/adventure players with no other container open and no cursor item refill. Hotbar changes, hand swaps and explicit Carpet drops do not trigger refilling. Armor, ender chests, nested containers and chests placed in the world are outside this feature. Failure does not drop remainders.
+
+Administrators can disable `carpetRefill` in server settings. When personal settings are allowed, a fake player's UUID preference file can override the default using the player-settings path below; fake players need no network request.
+
 ## Carpet stacking
 
 The mod works with Carpet's `stackableShulkerBoxes` rule. It does not enable that rule for you, and Carpet is optional.
@@ -156,6 +168,9 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | `preferExistingBoxesBeforeMakingSpace` | `true` | Try all currently usable boxes before freeing a slot; `false` makes space as each stacked box is encountered in category order |
 | `includeOffhand` | `false` | Also search the offhand for boxes; split destinations remain main inventory/hotbar slots |
 | `matchItemComponents` | `false` | Classify types by item ID; `true` also compares names, enchantments, and other components |
+| `ipnRefill` | `true` | Allow IPN to refill from backpack boxes using its own matching and triggers |
+| `craftRefill` | `true` | Allow carried-box crafting ingredients |
+| `carpetRefill` | `true` | Current source: server-side replenishment of exhausted Carpet fake-player hands |
 
 Multiple stacks of cobblestone still count as one type. Actual stack merging always compares components, independently of the classification option, and respects each item's maximum stack size.
 

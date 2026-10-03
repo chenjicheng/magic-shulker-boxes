@@ -19,6 +19,7 @@ public class StorageConfig {
     public boolean schematicRefill = true;
     public boolean ipnRefill = true;
     public boolean craftRefill = true;
+    public boolean carpetRefill = true;
     public boolean refillFullStack = true;
     public boolean refillMakeSpace = true;
     public boolean refillFailureMessages = true;

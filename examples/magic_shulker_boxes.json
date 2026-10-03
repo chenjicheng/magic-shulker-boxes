@@ -16,6 +16,9 @@
   "includeOffhand": false,
   "matchItemComponents": false,
   "schematicRefill": true,
+  "ipnRefill": true,
+  "craftRefill": true,
+  "carpetRefill": true,
   "refillFullStack": true,
   "refillMakeSpace": true,
   "refillFailureMessages": true

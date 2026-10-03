@@ -8,7 +8,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 
-/** Copy-based material operations shared by recipe placement and continuous crafting. */
+/** Copy-based inventory operations shared by recipe placement, continuous crafting and fake-player refilling. */
 final class CraftingMaterials {
     private CraftingMaterials() {}
     record Taken(ItemStack stack, int boxSlot) {}
