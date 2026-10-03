@@ -38,12 +38,50 @@ public class IpnClientGameTests implements FabricClientGameTest {
         selectionRules(context, world);
         lockedSources(context, world);
         backpackPriority(context, world);
+        anvilAcrossBoxes(context, world);
         potionFlow(context, world);
         offhandFlow(context, world);
         toolFlow(context, world);
         disabledSlot(context, world);
         enderFlows(context, world);
         context.takeScreenshot("ipn-restock-verified");
+    }
+
+    private static void anvilAcrossBoxes(ClientGameTestContext context, TestServerContext world) {
+        prepare(context, world, new ItemStack(Items.ANVIL), box(new ItemStack(Items.ANVIL, 2)), ItemStack.EMPTY);
+        var second = box(new ItemStack(Items.ANVIL, 4));
+        world.runOnServer(server -> {
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.getInventory().setItem(11, second.copy());
+            player.inventoryMenu.broadcastChanges();
+        });
+        context.waitFor(client -> ItemStack.matches(client.player.getInventory().getItem(11), second));
+        initializeMonitor(context);
+        var firstCount = new java.util.concurrent.atomic.AtomicInteger();
+        for (int refill = 0; refill < 2; refill++) {
+            world.runOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().getFirst();
+                player.getMainHandItem().shrink(player.getMainHandItem().getCount());
+                player.inventoryMenu.broadcastChanges();
+            });
+            context.waitFor(client -> client.player.getMainHandItem().isEmpty());
+            drive(context, client -> client.player.getMainHandItem().is(Items.ANVIL));
+            world.runOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().getFirst();
+                int hand = player.getMainHandItem().getCount();
+                int remaining = 0;
+                for (int slot : new int[]{9, 11}) remaining += player.getInventory().getItem(slot)
+                        .get(DataComponents.CONTAINER).stream().mapToInt(ItemStack::getCount).sum();
+                if (firstCount.get() == 0) {
+                    firstCount.set(hand);
+                    check((hand == 2 || hand == 4) && remaining == 6 - hand,
+                            "IPN extracts exactly one source and retains the next box");
+                } else {
+                    check(hand == 6 - firstCount.get() && remaining == 0,
+                            "The original IPN monitor continues into the second anvil box without being reset");
+                }
+            });
+        }
     }
 
     private static void selectionRules(ClientGameTestContext context, TestServerContext world) {

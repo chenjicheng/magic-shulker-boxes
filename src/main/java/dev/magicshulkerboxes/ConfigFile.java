@@ -22,6 +22,7 @@ public final class ConfigFile {
     public static final int MAX_PREFERENCES_LENGTH = 4096;
     private static final int CONFIG_VERSION = 2;
     private static final String VERSION_KEY = "configVersion";
+    private static final String REMOVED_CARPET_SETTING = "carpetRefill";
 
     public static JsonObject parsePreferences(String json) throws IOException {
         if (json.length() > MAX_PREFERENCES_LENGTH) throw new IOException("Player settings exceed 4096 characters");
@@ -108,7 +109,7 @@ public final class ConfigFile {
             if (!version.getAsString().equals(Integer.toString(CONFIG_VERSION))) {
                 throw new IOException("Unsupported configVersion; file kept unchanged: " + path);
             }
-            return document;
+            return migrateRemovedCarpetSetting(path, document, defaults);
         }
         // 0.3.0 and earlier had no schema marker and cannot be distinguished reliably.
         // The upgrade policy deliberately resets all of them, preserving exact original bytes first.
@@ -116,6 +117,36 @@ public final class ConfigFile {
         writeDocument(path, defaults);
         MagicShulkerBoxes.LOGGER.warn("Reset legacy settings; backup: {} / 旧配置已重置，备份：{}", backup, backup);
         return defaults;
+    }
+
+    /** Disk-only compatibility: retire the 0.7 setting without accepting it in commands or network input. */
+    private static JsonObject migrateRemovedCarpetSetting(Path path, JsonObject document, JsonObject defaults) throws IOException {
+        var migrated = document.deepCopy();
+        var removed = migrated.remove(REMOVED_CARPET_SETTING);
+        boolean changed = removed != null;
+        if (removed != null && (!removed.isJsonPrimitive() || !removed.getAsJsonPrimitive().isBoolean())) {
+            throw new IOException("Retired carpetRefill setting must be true or false; file kept unchanged: " + path);
+        }
+        var permissions = migrated.get("playerEditableSettings");
+        if (permissions != null && permissions.isJsonArray()) {
+            var retained = new com.google.gson.JsonArray();
+            var seen = new java.util.HashSet<String>();
+            for (var name : permissions.getAsJsonArray()) {
+                if (!name.isJsonPrimitive() || !name.getAsJsonPrimitive().isString() || !seen.add(name.getAsString())) {
+                    throw new IOException("Invalid or duplicate editable option; file kept unchanged: " + path);
+                }
+                if (name.getAsString().equals(REMOVED_CARPET_SETTING)) changed = true;
+                else retained.add(name.deepCopy());
+            }
+            migrated.add("playerEditableSettings", retained);
+        }
+        if (!changed) return document;
+        // Validate every remaining choice before touching the file or creating its exact-byte backup.
+        validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
+        var backup = backupOriginal(path, ".pre-0.8.0.bak");
+        writeDocument(path, migrated);
+        MagicShulkerBoxes.LOGGER.info("Removed retired Carpet setting; backup: {} / 已移除旧假人设置，备份：{}", backup, backup);
+        return migrated;
     }
 
     /** Version 1 stored the pickup switch as `enabled`; migrate the file, not the runtime schema. */

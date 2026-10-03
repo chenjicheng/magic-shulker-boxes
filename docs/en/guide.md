@@ -19,7 +19,7 @@ All eligible boxes in one category are tried before moving to the next. Within a
 
 `/msb show [option]` displays your preferences, `/msb admin show [option]` displays server settings, and `/msb admin player <name|UUID> show` displays another player's preferences. Boolean values, modes, inheritance/defaults and individual permissions have clickable buttons. Hover to preview the complete command, click to place it in chat, then press Enter to apply. Chat buttons need only the server mod.
 
-Client 0.7.0 provides separate key bindings for all 21 personal boolean options under **Options → Controls → Key Binds → Magic Shulker Boxes: personal toggles**. Every binding starts unbound; players choose their own keyboard or mouse buttons. Bindings stay in vanilla client `options.txt` and are never sent to the server. In-game keys flip the effective value through the existing preference save/confirmation protocol. Servers validate permission to edit the setting value and cannot choose or restrict a player's bound key. Locked options explain why; pending saves, recovery and unsupported connections do not overwrite preferences.
+Client 0.8.0 provides separate key bindings for all 20 personal boolean options under **Options → Controls → Key Binds → Magic Shulker Boxes: personal toggles**. Every binding starts unbound; players choose their own keyboard or mouse buttons. Bindings stay in vanilla client `options.txt` and are never sent to the server. In-game keys flip the effective value through the existing preference save/confirmation protocol. Servers validate permission to edit the setting value and cannot choose or restrict a player's bound key. Locked options explain why; pending saves, recovery and unsupported connections do not overwrite preferences.
 
 `craftRefill` defaulted to off in 0.6.0 and returns to on from 0.6.1. New configurations and omitted fields use `true`; existing explicit `false` values remain disabled. Administrators can run `/msb admin set craftRefill true` to enable it on an existing server. Permitted players can switch it with chat buttons or their own key binding.
 
@@ -141,17 +141,18 @@ Sources are main-inventory and hotbar boxes, plus offhand boxes when `includeOff
 
 Source changes are planned on copies. Component conflicts, unavailable splitting space or incomplete placement roll back. A box cannot both supply its contents and be consumed as an ingredient in the same placement.
 
-## Carpet fake-player refilling (0.7.0)
+## Carpet fake players: use GCA
 
-0.7.0 adds `carpetRefill=true`, independently of pickup storage, schematic, IPN and crafting refilling. Settings channels use v5; update both sides to 0.7.0 for the GUI and synchronization. Install a build with this feature and Carpet on the server; fake players need no client or IPN. Client settings and preference synchronization require matching settings protocol builds.
+Starting with 0.8.0, MSB no longer replenishes Carpet fake-player hands or replaces their broken tools. Use [Gugle Carpet Addition (GCA)](https://github.com/Gu-ZT/gugle-carpet-addition) for this behavior. On a server with Carpet and GCA installed, enable and persist both replenishment rules:
 
-When a fake player's main-hand/offhand item runs out or its tool breaks, loose backpack supplies come first, followed by carried shulker boxes. Consumables match all components, including potion effects and names. Tools match the same item and all components except damage; replacement happens after breaking, without changing food types, tool materials or enchantments. Carpet's original actions continue with the replenished hand.
+```text
+/carpet setDefault fakePlayerAutoReplenishment true
+/carpet setDefault fakePlayerAutoReplenishmentFormShulkerBox true
+```
 
-Searches main-inventory and hotbar boxes, least filled first, plus offhand boxes when `includeOffhand=true`. `refillFullStack=false` supplies one item; otherwise up to one stack. Stacked boxes follow `splitStackedBoxes` and need a separate empty slot for the modified box; the target hand is reserved. Bottles, buckets and other use remainders go back into ordinary inventory first. With a full inventory, source-box storage follows `refillMakeSpace`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents`. If a remainder cannot be preserved, the entire refill leaves inventory unchanged.
+The second rule enables shulker-box sources; the first alone only enables ordinary-inventory replenishment. GCA controls source ordering, hand replenishment, splitting and failure behavior. MSB's `refillFullStack`, `includeOffhand` and space-making options do not control GCA. GCA tool replacement has its own rule. MSB retains Carpet stacked-box compatibility and ordinary-player IPN, schematic and crafting refilling.
 
-Only survival/adventure players with no other container open and no cursor item refill. Hotbar changes, hand swaps and explicit Carpet drops do not trigger refilling. Armor, ender chests, nested containers and chests placed in the world are outside this feature. Failure does not drop remainders.
-
-Administrators can disable `carpetRefill` in server settings. When personal settings and the `carpetRefill` field are permitted, a fake player's UUID preference file can override the default using the player-settings path below; fake players need no network request.
+Existing version-2 server, client and UUID preference files containing `carpetRefill` or its `playerEditableSettings` entry are backed up byte-for-byte to `.pre-0.8.0.bak`, then only those retired entries are removed. Other choices and field permissions are preserved. Invalid files or conflicting backups stay unchanged. Disk configuration remains version 2; settings/GUI channels use v6 and require matching client/server versions.
 
 ## Carpet stacking
 
@@ -202,7 +203,6 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | `matchItemComponents` | `false` | Classify types by item ID; `true` also compares names, enchantments, and other components |
 | `ipnRefill` | `true` | Allow IPN to refill from backpack boxes using its own matching and triggers |
 | `craftRefill` | `true` | Allow carried-box crafting ingredients |
-| `carpetRefill` | `true` | 0.7.0: server-side replenishment of exhausted Carpet fake-player hands |
 
 Multiple stacks of cobblestone still count as one type. Actual stack merging always compares components, independently of the classification option, and respects each item's maximum stack size.
 

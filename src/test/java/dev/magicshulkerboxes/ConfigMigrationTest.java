@@ -132,12 +132,12 @@ class ConfigMigrationTest {
     }
 
     @Test void oldSettingsChannelsCannotUploadPreResetPreferences() {
-        assertEquals("preferences_v5", SettingsNetwork.Preferences.ID.id().getPath());
-        assertEquals("policy_v5", SettingsNetwork.Policy.ID.id().getPath());
-        assertEquals("editor_save_v5", EditorNetwork.Save.ID.id().getPath());
-        assertEquals("editor_query_v5", EditorNetwork.Query.ID.id().getPath());
-        assertEquals("editor_result_v5", EditorNetwork.Result.ID.id().getPath());
-        assertEquals("editor_state_v5", EditorNetwork.State.ID.id().getPath());
+        assertEquals("preferences_v6", SettingsNetwork.Preferences.ID.id().getPath());
+        assertEquals("policy_v6", SettingsNetwork.Policy.ID.id().getPath());
+        assertEquals("editor_save_v6", EditorNetwork.Save.ID.id().getPath());
+        assertEquals("editor_query_v6", EditorNetwork.Query.ID.id().getPath());
+        assertEquals("editor_result_v6", EditorNetwork.Result.ID.id().getPath());
+        assertEquals("editor_state_v6", EditorNetwork.State.ID.id().getPath());
     }
 
     @Test void versionedSavesSurviveRestartAndResetDoesNotFillInPersonalOverrides() throws IOException {

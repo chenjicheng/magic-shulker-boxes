@@ -160,9 +160,5 @@
   "key.magic_shulker_boxes.toggle.ipnRefill": "切换：允许 IPN 从潜影盒补货",
   "key.magic_shulker_boxes.toggle.enderChestRefill": "切换：末影箱取料",
   "magic_shulker_boxes.server.field_allowed": "个人修改权限开放（仍受总开关限制）",
-  "magic_shulker_boxes.server.field_locked": "个人修改权限锁定",
-  "magic_shulker_boxes.gui.group.carpet": "Carpet 假人",
-  "magic_shulker_boxes.option.carpetRefill": "从潜影盒补充假人手持物品",
-  "magic_shulker_boxes.description.carpetRefill": "由服务端在假人手持物品用完或工具损坏后补货。先用普通背包，再从随身潜影盒取物；严格匹配组件，工具仅忽略耐久损耗。空瓶等使用余留物安全保存，无法保存时不取物。独立于 IPN 和其他补货开关，无需客户端。主动丢弃或交换双手不触发补货。",
-  "key.magic_shulker_boxes.toggle.carpetRefill": "切换：Carpet 假人补货"
+  "magic_shulker_boxes.server.field_locked": "个人修改权限锁定"
 }

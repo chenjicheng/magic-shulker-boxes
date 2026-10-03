@@ -58,6 +58,9 @@ dependencies {
     if (providers.gradleProperty('carpetJar').isPresent()) {
         modLocalRuntime files(providers.gradleProperty('carpetJar').get())
     }
+    if (providers.gradleProperty('gcaJar').isPresent()) {
+        modLocalRuntime files(providers.gradleProperty('gcaJar').get())
+    }
 }
 
 test {

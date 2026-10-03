@@ -160,9 +160,5 @@
   "key.magic_shulker_boxes.toggle.ipnRefill": "Toggle: Let IPN refill from shulker boxes",
   "key.magic_shulker_boxes.toggle.enderChestRefill": "Toggle: Ender chest sources",
   "magic_shulker_boxes.server.field_allowed": "Personal permission granted (master switch still applies)",
-  "magic_shulker_boxes.server.field_locked": "Personal permission locked",
-  "magic_shulker_boxes.gui.group.carpet": "Carpet fake players",
-  "magic_shulker_boxes.option.carpetRefill": "Refill Carpet fake-player hands",
-  "magic_shulker_boxes.description.carpetRefill": "On the server, refill a fake player after its hand item runs out or its tool breaks. Loose backpack supplies come first, then carried shulker boxes. Matches all components except tool damage. Preserves bottles and other use remainders atomically. Independent of IPN and other refill switches; no client required. Explicit drops and hand swaps do not trigger refill.",
-  "key.magic_shulker_boxes.toggle.carpetRefill": "Toggle: Refill Carpet fake-player hands"
+  "magic_shulker_boxes.server.field_locked": "Personal permission locked"
 }

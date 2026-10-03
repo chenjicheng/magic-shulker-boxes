@@ -92,7 +92,7 @@ npm run docs:preview
 
 `restock_v2` 增加整个来源盒指纹，仍校验数量、目标、掩码及请求 ID。工具候选使用 `swapToolForRestock`，把来源内原格和主手/副手一起交换；来源盒变化或无法安全拆分时拒绝。客户端观察实际装备同步后结束等待，不再执行第二次 IPN 换手。消耗品保留原有取到背包再换手的流程。
 
-`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v5` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.5.0。磁盘格式仍为版本 2，新字段是可选新增。
+`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v6` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.8.0。磁盘格式仍为版本 2，新字段是可选新增。
 
 `MenuStorageGameTests` 覆盖真实容器与交易、光标、满背包、部分容量、拒绝取物、整份交易的扣款/次数/经验。`EnderSourcesGameTests` 覆盖本人隔离、请求重复/过期、来源优先级、禁用与无空间、真实配方书和连续补货。`SettingPermissionsGameTests` 检查命令、恶意网络/GUI、既存文件和运行时撤权。客户端的 `clientSmoke` 覆盖真实容器点击，`withIpn` 覆盖末影箱直接药水与原格工具回存；`craftClient` 检查末影箱配方统计和实际请求。加 `-PwithConfigGui -PclientSmoke` 检查逐项锁定页面。
 
@@ -123,19 +123,17 @@ npm run docs:preview
 
 `CraftingRefillTest` 覆盖多材料原子补货、组件和余留物、满背包与堆叠盒。`CraftingGameTests` 运行真实 2×2/3×3、配方批量、普通/Shift 合成、空间与组件回退、蛋糕空桶及个人覆盖。`CraftingClientGameTests` 使用原版配方点击和物品点击请求，验证配方书盒内统计/刷新、两种网格、连续补货和服务端确认的成品数量；客户端预测完成不代替服务端验收。
 
-### Carpet 假人服务端补货
+### Carpet 与 GCA 兼容
 
-`magic_shulker_boxes.carpet.mixins.json` 使用 `@Pseudo` 接入可选的 Carpet 类，无编译或发行依赖。`CarpetFakePlayerMixin` 包围 `EntityPlayerMPFake.tick`，覆盖 `super.tick` 中的 Carpet 动作和 `doTick` 中的延迟饮用/进食完成。该覆盖方法在开发环境名为 `tick`、Carpet 发行包名为 `method_5773`，两个选择器共用一个实现。普通玩家没有此入口。
+0.8.0 删除假人 tick/drop Mixin，以及玩法、字段许可、命令、GUI 和快捷键中的 `carpetRefill`。Carpet 仍为堆叠盒兼容的可选共存模组，MSB 不再实现假人手持补货。`CarpetCompatibilityGameTests` 使用发行版真实 Carpet 假人及连续 USE，验证关闭 GCA 时手持耗空、来源盒不变；开启 GCA 后，从内栏 25 有剩余物品的未满盒和第二盒连续放置恰好 7 个铁砧，补货完全由 GCA 负责。
 
-`FakePlayerRefill` 观察双手原始引用与组件副本，只在引用耗空后补货；快捷栏选择改变、未耗空的手持引用（交换双手）和 `CarpetActionPackMixin` 标记的显式 `drop` 都不取物。观察作用域通过 `finally` 清理。服务端在补货前后校验模式、存活、菜单/光标和有效 `carpetRefill`；无需新增补货请求。普通背包优先、盒子较空优先，严格匹配组件，损坏工具仅忽略 `DAMAGE`。复用 `CraftingMaterials` 的副本事务保存余留物和拆盒；规划时预留目标手持栏，避免把拆出的盒子覆盖掉。
-
-新增选项仍使用磁盘 `configVersion: 2`，省略时默认开启，不重置已有配置。严格设置 JSON 字段集合增加 `carpetRefill`，因此个人策略/偏好与 GUI 协议改用 v5，旧 v1/v2/v3/v4 设置接收器不注册，避免向旧客户端发送它无法解析的新选项。原理图 `refill_v4` 和 IPN `restock_v2` 保持各自请求版本；设置 GUI 与同步需要两端同协议构建，假人补货本身由服务端执行。
-
-`FakePlayerRefillTest` 覆盖双手、组件/工具匹配、独立开关、普通背包优先、瓶子保存/回滚、堆叠盒额外空栏及副手来源。`FakePlayerRefillGameTests` 在有 Carpet 时运行发布 JAR 的真实假人及连续 USE：耗空雪球后继续使用、主手/副手、延迟喝药与空瓶保存；另校验真实工具损坏、丢弃/交换、切栏、个人覆盖和不安全状态。无 Carpet 时跳过这些可选场景，普通服务端测试继续执行。
+`ConfigFile.migrateRemovedCarpetSetting` 仅在版本 2 磁盘文件兼容旧字段，验证布尔类型、所有剩余设置和许可后，先保存原字节 `.pre-0.8.0.bak`，再原子移除字段及同名许可。服务端、客户端和 UUID 文件共用此入口；命令与网络输入拒绝旧字段。相同备份允许恢复中断，冲突/不可读备份和无效值保留原文件。磁盘版本保持 2，策略/偏好和 GUI 改为 v6，取料协议保持各自格式。
 
 ```powershell
-.\gradlew.bat build '-PcarpetJar=C:/path/to/fabric-carpet-1.21.11-1.4.194+v251223.jar'
+.\gradlew.bat build '-PcarpetJar=C:/path/to/fabric-carpet-1.21.11-1.4.194+v251223.jar' '-PgcaJar=C:/path/to/gugle-carpet-addition-mc1.21.11-v2.12.8+build.97.jar'
 ```
+
+这些依赖只用于测试，不进入发行 JAR。没有 GCA 时跳过其专属用例；Carpet 用例仍验证 MSB 不补货。`RemovedCarpetSettingsTest` 覆盖其他设置保留、稀疏许可、离线 UUID、旧网络输入拒绝、无效文件、原字节备份和中断恢复。
 
 ### IPN 来源扩展与客户端验证
 
@@ -235,7 +233,7 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 腾栏事务先为被移动栏位的全部物品预留容量，再计算可接收的掉落物数量。丢出模式只有世界接纳了掉落实体才提交背包变更；同步回收只允许写入刚预留的那个单盒，目标被替换就保留掉落物。临时预留在 `finally` 清理；未收回的实体带有禁止再次腾栏的持久标记。真实 GameTest 覆盖两种模式、非满组、连续杂物收纳及重复触碰不循环腾栏。
 
-正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v5` 和 `preferences_v5` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
+正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v6` 和 `preferences_v6` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
 
 有效配置先由 `allowPlayerSettings` 决定是否读取个人覆盖项。允许时，先按 `playerEditableSettings` 过滤，再由 `ConfigFile.apply` 将获授权的显式字段覆盖到服务端默认值；`pickupStorageEnabled` 与 `schematicRefill` 相互独立，玩家可开启服务端默认关闭的任一项。关闭策略时直接使用统一配置。个人文件在存档中按 UUID 隔离并缓存，写入使用临时文件与原子替换；非法个人文件不被静默覆盖，读取失败时回退服务端配置并记录日志。重载时先验证新配置，成功后替换并清缓存。
 
@@ -249,7 +247,7 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，继承会删除键。`SettingsSession` 用连接与策略修订号隔离打开的编辑器和待确认保存；超时保留请求号并发起恢复查询，重复或旧连接回复不能写入。`PreferenceSync` 在发送保存前写入服务器地址/存档路径与玩家 UUID 对应的哈希文件名恢复标记，位于 `config/magic_shulker_boxes-recovery/`；标记不包含设置值或明文地址。收到确认后先更新内存快照，再写个人文件并清除标记。失败时内存仍跟随服务端，重连/进程重启遇到标记时先查询，不自动上传旧文件。`ClientSettings` 协调通知、超时和本地服务端提交。
 
-`EditorNetwork` 使用 `editor_state_v5`（策略和默认值）、`editor_save_v5`（请求号和覆盖项）、`editor_query_v5`（只读恢复查询请求号）及 `editor_result_v5`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧设置同步与 GUI v1/v2/v3/v4 通道不再注册，避免旧客户端上传旧键；新版 GUI 保存要求对端支持 v5 查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
+`EditorNetwork` 使用 `editor_state_v6`（策略和默认值）、`editor_save_v6`（请求号和覆盖项）、`editor_query_v6`（只读恢复查询请求号）及 `editor_result_v6`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧设置同步与 GUI v1/v2/v3/v4/v5 通道不再注册，避免旧客户端上传旧键；新版 GUI 保存要求对端支持 v6 查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
 
 `RefillRegressionGameTests` 覆盖请求途中改名、未变化的改名材料、保存超时后查询、玩家隔离及限流，以及满背包只取一个时的重复失败规划。测试在支持线程分配计数的 JVM 上限制该夹具每请求分配低于 4 MiB，同时记录耗时；不使用机器相关的耗时阈值。`PreferenceSyncTest` 注入本地文件替换失败并验证内存状态、恢复标记和重启行为。
 

@@ -17,7 +17,7 @@
       "dev.magicshulkerboxes.SettingPermissionsGameTests",
       "dev.magicshulkerboxes.AdminSettingsGameTests",
       "dev.magicshulkerboxes.CommandChatGameTests",
-      "dev.magicshulkerboxes.FakePlayerRefillGameTests"
+      "dev.magicshulkerboxes.CarpetCompatibilityGameTests"
     ],
     "fabric-client-gametest": [
       "${clientTest}"

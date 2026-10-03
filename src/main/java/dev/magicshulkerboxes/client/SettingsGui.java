@@ -28,7 +28,6 @@ public final class SettingsGui {
             case "schematicRefill", "enderChestRefill", "refillFullStack", "refillMakeSpace", "refillFailureMessages" -> "refill";
             case "ipnRefill" -> "ipn";
             case "craftRefill" -> "craft";
-            case "carpetRefill" -> "carpet";
             case "useMatchingBoxes", "useEmptyBoxes", "useMixedBoxes", "allowOtherSingleTypeBoxes", "includeOffhand" -> "boxes";
             case "splitStackedBoxes", "makeSpaceMode", "useHotbarForSpace", "allowPartialStacksForSpace", "allowMixedItemsWhenMakingSpace", "preferExistingBoxesBeforeMakingSpace" -> "space";
             default -> "pickup";
