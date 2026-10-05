@@ -17,7 +17,7 @@ All eligible boxes in one category are tried before moving to the next. Within a
 
 `/msb show [option]` displays your preferences, `/msb admin show [option]` displays server settings, and `/msb admin player <name|UUID> show` displays another player's preferences. Boolean values, modes, inheritance/defaults and individual permissions have clickable buttons. Hover to preview the complete command, click to place it in chat, then press Enter to apply. Chat buttons need only the server mod.
 
-Client 0.8.0 provides separate key bindings for all personal boolean options under **Options → Controls → Key Binds → Magic Shulker Boxes: personal toggles**. Every binding starts unbound; players choose their own keyboard or mouse buttons. Bindings stay in vanilla client `options.txt` and are never sent to the server. In-game keys flip the effective value through the existing preference save/confirmation protocol. Servers validate permission to edit the setting value and cannot choose or restrict a player's bound key. Locked options explain why; pending saves, recovery and unsupported connections do not overwrite preferences.
+Client 0.9.0 provides separate key bindings for all personal boolean options under **Options → Controls → Key Binds → Magic Shulker Boxes: personal toggles**. Every binding starts unbound; players choose their own keyboard or mouse buttons. Bindings stay in vanilla client `options.txt` and are never sent to the server. In-game keys flip the effective value through the existing preference save/confirmation protocol. Servers validate permission to edit the setting value and cannot choose or restrict a player's bound key. Locked options explain why; pending saves, recovery and unsupported connections do not overwrite preferences.
 
 `craftRefill` defaulted to off in 0.6.0 and returns to on from 0.6.1. New configurations and omitted fields use `true`; existing explicit `false` values remain disabled. Administrators can run `/msb admin set craftRefill true` to enable it on an existing server. Permitted players can switch it with chat buttons or their own key binding.
 
@@ -106,7 +106,8 @@ The menu has a **Schematic materials** group:
 | `schematicRefill` | `true` | Enable refilling independently; players can override the server default when personal settings are allowed |
 | `refillFullStack` | `true` | Take up to one stack from one box slot; off takes one item |
 | `refillMakeSpace` | `true` | Direct relocation when full, even with pickup storage disabled; independent of pickup drop mode |
-| `refillFailureMessages` | `true` | Controls non-space refill failure notices; space failures always show a notice, and success is silent |
+| `refillFailureMessages` | `true` | Controls non-space refill failure notices; space failures use their independent setting, and success is silent |
+| `spaceFailureMessages` | `true` | Independently show space failures for storage, extraction, tool swaps and crafting; shared 40-tick cooldown, with no effect on items |
 
 Notices distinguish missing matching materials, unsafe inventory space, disabled refilling and unsupported servers. Turning notices off does not affect refilling. Personal overrides still require `allowPlayerSettings`.
 
@@ -150,7 +151,7 @@ Starting with 0.8.0, MSB no longer replenishes Carpet fake-player hands or repla
 
 The second rule enables shulker-box sources; the first alone only enables ordinary-inventory replenishment. GCA controls source ordering, hand replenishment, splitting and failure behavior. MSB's `refillFullStack`, `includeOffhand` and space-making options do not control GCA. GCA tool replacement has its own rule. MSB retains Carpet stacked-box compatibility and ordinary-player IPN, schematic and crafting refilling.
 
-Existing version-2 server, client and UUID preference files containing `carpetRefill` or its `playerEditableSettings` entry are backed up byte-for-byte to `.pre-0.8.0.bak`, then only those retired entries are removed. Other choices and field permissions are preserved. Invalid files or conflicting backups stay unchanged. Disk configuration remains version 2; settings/GUI channels use v6 and require matching client/server versions.
+Existing version-2 server, client and UUID preference files containing `carpetRefill` or its `playerEditableSettings` entry are backed up byte-for-byte to `.pre-0.8.0.bak` when this is the only retirement, or `.pre-single-type.bak` when single-type storage settings also migrate, then only those retired entries are removed. Other choices and field permissions are preserved. Invalid files or conflicting backups stay unchanged. Disk configuration remains version 2; settings/GUI channels use v7 and require matching client/server versions.
 
 ## Carpet stacking
 
@@ -287,4 +288,4 @@ See [building, testing, and implementation](development.md).
 
 The three retired mixing options and their permissions are removed from valid disk settings after an exact-byte `.pre-single-type.bak` backup. Legacy `onlyWhenInventoryFull` migrates to the inverse `preferEmptyBoxesOverInventory` value, with its permission renamed too. Other choices are retained. Commands and network input reject the retired options; update clients that use personal settings too. Invalid files and conflicting backups are preserved.
 
-Space failures always show an action-bar notice, shared across storage and refill paths and limited to once per player every 40 ticks (two seconds at normal TPS). Missing materials and stale requests are not reported as space failures. `refillFailureMessages=false` suppresses only other refill notices.
+Space failures show an action-bar notice by default, controlled independently by `spaceFailureMessages`, shared across storage and refill paths and limited to once per player every 40 ticks (two seconds at normal TPS). Missing materials and stale requests are not reported as space failures. `refillFailureMessages=false` suppresses only other refill notices.

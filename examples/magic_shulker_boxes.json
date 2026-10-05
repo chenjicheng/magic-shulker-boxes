@@ -38,7 +38,9 @@
     "ipnRefill",
     "craftRefill",
     "enderChestRefill",
-    "carpetRefill"
+    "carpetRefill",
+    "spaceFailureMessages"
   ],
-  "preferEmptyBoxesOverInventory": false
+  "preferEmptyBoxesOverInventory": false,
+  "spaceFailureMessages": true
 }

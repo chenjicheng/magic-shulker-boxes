@@ -100,7 +100,7 @@
   "magic_shulker_boxes.gui.group.refill": "原理图取料",
   "magic_shulker_boxes.option.schematicRefill": "Litematica 自动取料",
   "magic_shulker_boxes.refill.disabled": "无法取料：原理图自动取料已关闭。",
-  "magic_shulker_boxes.description.refillFailureMessages": "控制禁用、材料变化等补货失败提示；空间不足始终提示。成功补货不提示。",
+  "magic_shulker_boxes.description.refillFailureMessages": "控制禁用、材料变化等补货失败提示；空间不足提示由独立开关控制。成功补货不提示。",
   "magic_shulker_boxes.option.refillFailureMessages": "提示取料失败",
   "magic_shulker_boxes.description.schematicRefill": "轻松放置缺少材料时，优先从装载较少的未满潜影盒取出。与自动入盒开关独立；取料腾栏仍可把背包物品移入来源盒。客户端与服务端都需安装本模组。允许个人设置时可覆盖服务端默认值。",
   "magic_shulker_boxes.gui.inherit_value": "继承服务端（%s）",
@@ -152,5 +152,8 @@
   "key.magic_shulker_boxes.toggle.enderChestRefill": "切换：末影箱取料",
   "magic_shulker_boxes.server.field_allowed": "个人修改权限开放（仍受总开关限制）",
   "magic_shulker_boxes.server.field_locked": "个人修改权限锁定",
-  "magic_shulker_boxes.storage.no_space": "空间不足：腾栏物品无法放入同类盒或独立空盒。"
+  "magic_shulker_boxes.storage.no_space": "空间不足：腾栏物品无法放入同类盒或独立空盒。",
+  "magic_shulker_boxes.option.spaceFailureMessages": "空间不足提示",
+  "magic_shulker_boxes.description.spaceFailureMessages": "无法将腾栏物品放入同类盒或独立空盒时，在快捷栏上方显示原因。各收纳和补货入口共享两秒限频；关闭后仅隐藏此提示，不改变物品或腾栏行为。",
+  "key.magic_shulker_boxes.toggle.spaceFailureMessages": "切换：空间不足提示"
 }

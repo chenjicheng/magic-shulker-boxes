@@ -100,7 +100,7 @@
   "magic_shulker_boxes.gui.group.refill": "Schematic materials",
   "magic_shulker_boxes.option.schematicRefill": "Refill materials for Litematica",
   "magic_shulker_boxes.refill.disabled": "Cannot refill: schematic refilling is disabled.",
-  "magic_shulker_boxes.description.refillFailureMessages": "Controls disabled or changed-material refill notices. Space failures always show a notice; successful refills remain silent.",
+  "magic_shulker_boxes.description.refillFailureMessages": "Controls disabled or changed-material refill notices. Space notices have their own setting; successful refills remain silent.",
   "magic_shulker_boxes.option.refillFailureMessages": "Show refill failures",
   "magic_shulker_boxes.description.schematicRefill": "When Easy Place lacks materials, prefer the least filled non-full shulker box. Independent of pickup storage; refill space-making may still move inventory items into the source box. Both sides need this mod. Personal settings can override the server default when allowed.",
   "magic_shulker_boxes.gui.inherit_value": "Inherit server (%s)",
@@ -152,5 +152,8 @@
   "key.magic_shulker_boxes.toggle.enderChestRefill": "Toggle: Ender chest sources",
   "magic_shulker_boxes.server.field_allowed": "Personal permission granted (master switch still applies)",
   "magic_shulker_boxes.server.field_locked": "Personal permission locked",
-  "magic_shulker_boxes.storage.no_space": "Not enough space: displaced items need a matching box or a separate empty box."
+  "magic_shulker_boxes.storage.no_space": "Not enough space: displaced items need a matching box or a separate empty box.",
+  "magic_shulker_boxes.option.spaceFailureMessages": "Show space failures",
+  "magic_shulker_boxes.description.spaceFailureMessages": "Show an action-bar notice when displaced items cannot fit in matching or separate empty boxes. Storage and refill paths share a two-second cooldown. Turning this off hides the notice without changing items or relocation.",
+  "key.magic_shulker_boxes.toggle.spaceFailureMessages": "Toggle: Show space failures"
 }

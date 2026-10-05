@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.8.0**.
+Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.9.0**.
 
 After enabling pickup storage, use matching single-type boxes first, then inventory capacity, then empty boxes for overflow. Pickup storage is off by default. Supports Carpet shulker stacking, safe splitting, automatic space-making and partial stacks. All relocation paths store displaced items in matching or separate empty boxes.
 
@@ -13,7 +13,7 @@ After enabling pickup storage, use matching single-type boxes first, then invent
 - 0.5.0 adds container/trade storage, optional own ender sources, IPN original-slot tool returns and per-option server permissions. Update both sides for GUI/refill/IPN.
 - Optional Mod Menu + YACL settings in English and Simplified Chinese.
 - IPN consumable and tool refilling can use backpack shulker boxes, retaining IPN's triggers, matching and sorting, independently controlled by `ipnRefill`.
-- 0.8.0 removes MSB fake-player refilling. Use GCA for Carpet bots; ordinary-player refilling remains available. Update both sides for settings/GUI protocol v6.
+- 0.8.0 removes MSB fake-player refilling. Use GCA for Carpet bots; ordinary-player refilling remains available. Update both sides for settings/GUI protocol v7.
 - Inventory/crafting-table ingredients can refill from carried boxes for recipe placement, output clicks and Shift crafting, independently controlled by `craftRefill` without IPN.
 - 0.2.0-alpha adds Litematica Easy Place refilling from inventory shulker boxes, with optional space-making and failure notices. Both client and server need the new version for this feature.
 
@@ -21,7 +21,7 @@ After enabling pickup storage, use matching single-type boxes first, then invent
 
 ## Install
 
-Install `magic-shulker-boxes-fabric-0.8.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
+Install `magic-shulker-boxes-fabric-0.9.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading.
 
 0.4.0 retains 0.3.2 settings and choices; new `ipnRefill` and `craftRefill` switches default to enabled. See the [0.4.0 release notes](docs/releases/0.4.0.md) for features and installation requirements.
 

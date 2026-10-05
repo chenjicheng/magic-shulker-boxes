@@ -21,13 +21,13 @@ public final class SettingsNetwork {
     private SettingsNetwork() {}
 
     public record Policy(boolean allowed) implements CustomPacketPayload {
-        public static final Type<Policy> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "policy_v6"));
+        public static final Type<Policy> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "policy_v7"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Policy> CODEC = StreamCodec.composite(ByteBufCodecs.BOOL, Policy::allowed, Policy::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }
     }
 
     public record Preferences(String json) implements CustomPacketPayload {
-        public static final Type<Preferences> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "preferences_v6"));
+        public static final Type<Preferences> ID = new Type<>(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "preferences_v7"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Preferences> CODEC = StreamCodec.composite(
                 ByteBufCodecs.stringUtf8(ConfigFile.MAX_PREFERENCES_LENGTH), Preferences::json, Preferences::new);
         @Override public Type<? extends CustomPacketPayload> type() { return ID; }

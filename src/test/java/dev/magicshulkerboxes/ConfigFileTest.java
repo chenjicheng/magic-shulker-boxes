@@ -12,6 +12,22 @@ class ConfigFileTest {
     @TempDir Path directory;
 
     @Test
+    void spaceNoticesDefaultOnAndRemainIndependentOfOtherRefillNotices() throws IOException {
+        var config = ConfigFile.parseServer("{\"refillFailureMessages\":false}");
+        assertTrue(config.spaceFailureMessages);
+        var preferences = ConfigFile.parsePreferences("{\"spaceFailureMessages\":false}");
+        var effective = ConfigFile.apply(config, preferences);
+        assertFalse(effective.spaceFailureMessages);
+        assertFalse(effective.refillFailureMessages);
+        assertTrue(config.spaceFailureMessages, "Personal choice does not change server defaults");
+        var path = directory.resolve("old.json");
+        var original = "{\"configVersion\":2,\"refillFailureMessages\":false}";
+        Files.writeString(path, original);
+        assertTrue(ConfigFile.load(path).spaceFailureMessages);
+        assertEquals(original, Files.readString(path), "The additive setting does not rewrite old files");
+    }
+
+    @Test
     void craftingRefillDefaultsOnAndKeepsExplicitOptOuts() throws IOException {
         assertTrue(new StorageConfig().craftRefill);
         assertTrue(ConfigFile.parseServer("{}").craftRefill);

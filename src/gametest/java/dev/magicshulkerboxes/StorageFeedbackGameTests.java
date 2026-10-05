@@ -21,6 +21,51 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 
 public class StorageFeedbackGameTests {
+    @GameTest public void personalSpaceNoticeChoiceObeysItsOwnPermission(GameTestHelper helper) throws Exception {
+        var config = MagicShulkerBoxes.config();
+        boolean allowed = config.allowPlayerSettings;
+        var editable = config.playerEditableSettings;
+        var player = full(helper);
+        var store = MagicShulkerBoxes.players(helper.getLevel().getServer());
+        try {
+            config.allowPlayerSettings = true;
+            config.playerEditableSettings = List.of("spaceFailureMessages");
+            check(helper, SettingsNetwork.accept(player, "{\"spaceFailureMessages\":false}"), "Allowed personal preference is accepted");
+            StorageFailure.noSpace(player);
+            check(helper, player.notices.isEmpty(), "Personal opt-out hides the shared space notice");
+            config.playerEditableSettings = List.of();
+            StorageFailure.noSpace(player);
+            check(helper, player.notices.size() == 1, "Revoked preference immediately inherits the default");
+            check(helper, !store.read(player.getUUID()).get("spaceFailureMessages").getAsBoolean(), "Policy changes preserve the stored choice");
+            helper.succeed();
+        } finally {
+            config.allowPlayerSettings = allowed;
+            config.playerEditableSettings = editable;
+            store.save(player.getUUID(), new com.google.gson.JsonObject());
+        }
+    }
+
+    @GameTest public void spaceNoticeSettingCanBeDisabledAndEnabledThroughAdminCommand(GameTestHelper helper) throws Exception {
+        var original = ConfigFile.json(MagicShulkerBoxes.config());
+        var player = full(helper);
+        var commands = helper.getLevel().getServer().getCommands().getDispatcher();
+        var source = player.createCommandSourceStack().withPermission(net.minecraft.server.permissions.PermissionSet.ALL_PERMISSIONS);
+        try {
+            MagicShulkerBoxes.config().pickupStorageEnabled = true;
+            MagicShulkerBoxes.config().refillFailureMessages = false;
+            check(helper, commands.execute("msb admin set spaceFailureMessages false", source) == 1, "Independent space notice setting is accepted");
+            var dropped = new ItemEntity(helper.getLevel(), 0, 4, 0, new ItemStack(Items.COBBLESTONE, 5));
+            dropped.setNoPickUpDelay(); dropped.playerTouch(player);
+            check(helper, player.notices.isEmpty(), "Disabled space notices stay silent on real pickup");
+            check(helper, !dropped.isRemoved() && dropped.getItem().getCount() == 5, "Notice setting does not change item ownership");
+            check(helper, commands.execute("msb admin set spaceFailureMessages true", source) == 1, "Space notices can be enabled independently");
+            dropped.playerTouch(player);
+            check(helper, player.notices.size() == 1 && player.actionBar, "Re-enabling the setting immediately restores the notice");
+            check(helper, !MagicShulkerBoxes.config().refillFailureMessages, "Other refill notices retain their setting");
+            helper.succeed();
+        } finally { MagicShulkerBoxes.replaceConfig(ConfigFile.parseServer(original)); }
+    }
+
     @GameTest public void defaultPickupUsesMatchingBoxBeforeFreeInventory(GameTestHelper helper) {
         withPickup(() -> {
             var player = new RecordingPlayer(helper);

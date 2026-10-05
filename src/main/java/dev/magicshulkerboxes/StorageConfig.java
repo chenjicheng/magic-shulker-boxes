@@ -20,6 +20,7 @@ public class StorageConfig {
     public boolean refillFullStack = true;
     public boolean refillMakeSpace = true;
     public boolean refillFailureMessages = true;
+    public boolean spaceFailureMessages = true;
 
     public enum MakeSpaceMode {
         DISABLED, MOVE_TO_BOX, DROP_AND_PICKUP

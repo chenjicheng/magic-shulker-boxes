@@ -94,7 +94,7 @@ npm run docs:preview
 
 `restock_v2` 增加整个来源盒指纹，仍校验数量、目标、掩码及请求 ID。工具候选使用 `swapToolForRestock`，把来源内原格和主手/副手一起交换；来源盒变化或无法安全拆分时拒绝。客户端观察实际装备同步后结束等待，不再执行第二次 IPN 换手。消耗品保留原有取到背包再换手的流程。
 
-`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v6` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.8.0。磁盘格式仍为版本 2，新字段是可选新增。
+`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v7` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.9.0。磁盘格式仍为版本 2，新字段是可选新增。
 
 `MenuStorageGameTests` 覆盖真实容器与交易、光标、满背包、部分容量、拒绝取物、整份交易的扣款/次数/经验。`EnderSourcesGameTests` 覆盖本人隔离、请求重复/过期、来源优先级、禁用与无空间、真实配方书和连续补货。`SettingPermissionsGameTests` 检查命令、恶意网络/GUI、既存文件和运行时撤权。客户端的 `clientSmoke` 覆盖真实容器点击，`withIpn` 覆盖末影箱直接药水与原格工具回存；`craftClient` 检查末影箱配方统计和实际请求。加 `-PwithConfigGui -PclientSmoke` 检查逐项锁定页面。
 
@@ -129,7 +129,7 @@ npm run docs:preview
 
 0.8.0 删除假人 tick/drop Mixin，以及玩法、字段许可、命令、GUI 和快捷键中的 `carpetRefill`。Carpet 仍为堆叠盒兼容的可选共存模组，MSB 不再实现假人手持补货。`CarpetCompatibilityGameTests` 使用发行版真实 Carpet 假人及连续 USE，验证关闭 GCA 时手持耗空、来源盒不变；开启 GCA 后，从内栏 25 有剩余物品的未满盒和第二盒连续放置恰好 7 个铁砧，补货完全由 GCA 负责。
 
-`ConfigFile.migrateRemovedCarpetSetting` 仅在版本 2 磁盘文件兼容旧字段，验证布尔类型、所有剩余设置和许可后，先保存原字节 `.pre-0.8.0.bak`，再原子移除字段及同名许可。服务端、客户端和 UUID 文件共用此入口；命令与网络输入拒绝旧字段。相同备份允许恢复中断，冲突/不可读备份和无效值保留原文件。磁盘版本保持 2，策略/偏好和 GUI 改为 v6，取料协议保持各自格式。
+`ConfigFile.migrateRemovedSettings` 仅在版本 2 磁盘文件兼容旧字段，验证布尔类型、所有剩余设置和许可后，仅涉及旧 Carpet 项时保存原字节 `.pre-0.8.0.bak`；同时迁移旧收纳设置时使用 `.pre-single-type.bak`，再原子移除字段及同名许可。服务端、客户端和 UUID 文件共用此入口；命令与网络输入拒绝旧字段。相同备份允许恢复中断，冲突/不可读备份和无效值保留原文件。磁盘版本保持 2，策略/偏好和 GUI 改为 v7，取料协议保持各自格式。
 
 ```powershell
 .\gradlew.bat build '-PcarpetJar=C:/path/to/fabric-carpet-1.21.11-1.4.194+v251223.jar' '-PgcaJar=C:/path/to/gugle-carpet-addition-mc1.21.11-v2.12.8+build.97.jar'
@@ -233,7 +233,7 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 腾栏事务先为被移动栏位的全部物品预留容量，再计算可接收的掉落物数量。丢出模式只有世界接纳了全部掉落实体才提交背包变更；同步回收只允许写入刚预留的那个单盒，目标被替换就保留掉落物。临时预留在 `finally` 清理；未收回的实体带有禁止再次腾栏的持久标记。真实 GameTest 覆盖两种模式、非满组、连续不同物品的独立收纳及重复触碰不循环腾栏。
 
-正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v6` 和 `preferences_v6` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
+正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v7` 和 `preferences_v7` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
 
 有效配置先由 `allowPlayerSettings` 决定是否读取个人覆盖项。允许时，先按 `playerEditableSettings` 过滤，再由 `ConfigFile.apply` 将获授权的显式字段覆盖到服务端默认值；`pickupStorageEnabled` 与 `schematicRefill` 相互独立，玩家可开启服务端默认关闭的任一项。关闭策略时直接使用统一配置。个人文件在存档中按 UUID 隔离并缓存，写入使用临时文件与原子替换；非法个人文件不被静默覆盖，读取失败时回退服务端配置并记录日志。重载时先验证新配置，成功后替换并清缓存。
 
@@ -247,7 +247,7 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，继承会删除键。`SettingsSession` 用连接与策略修订号隔离打开的编辑器和待确认保存；超时保留请求号并发起恢复查询，重复或旧连接回复不能写入。`PreferenceSync` 在发送保存前写入服务器地址/存档路径与玩家 UUID 对应的哈希文件名恢复标记，位于 `config/magic_shulker_boxes-recovery/`；标记不包含设置值或明文地址。收到确认后先更新内存快照，再写个人文件并清除标记。失败时内存仍跟随服务端，重连/进程重启遇到标记时先查询，不自动上传旧文件。`ClientSettings` 协调通知、超时和本地服务端提交。
 
-`EditorNetwork` 使用 `editor_state_v6`（策略和默认值）、`editor_save_v6`（请求号和覆盖项）、`editor_query_v6`（只读恢复查询请求号）及 `editor_result_v6`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧设置同步与 GUI v1/v2/v3/v4/v5 通道不再注册，避免旧客户端上传旧键；新版 GUI 保存要求对端支持 v6 查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
+`EditorNetwork` 使用 `editor_state_v7`（策略和默认值）、`editor_save_v7`（请求号和覆盖项）、`editor_query_v7`（只读恢复查询请求号）及 `editor_result_v7`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧设置同步与 GUI v1/v2/v3/v4/v5/v6 通道不再注册，避免旧客户端上传旧键；新版 GUI 保存要求对端支持 v7 查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
 
 `RefillRegressionGameTests` 覆盖请求途中改名、未变化的改名材料、保存超时后查询、玩家隔离及限流，以及满背包只取一个时的重复失败规划。测试在支持线程分配计数的 JVM 上限制该夹具每请求分配低于 4 MiB，同时记录耗时；不使用机器相关的耗时阈值。`PreferenceSyncTest` 注入本地文件替换失败并验证内存状态、恢复标记和重启行为。
 
@@ -270,6 +270,6 @@ YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，�
 
 `ConfigFile` 仅在磁盘读取时移除旧混装选项和权限，在验证剩余字段后完整备份到 `.pre-single-type.bak`，保留其他稀疏偏好。命令、GUI、按键和网络输入不再包含这些字段。版本 1 文件在原有 `.pre-0.3.2.bak` 迁移中同时移除旧项；无效文件和备份冲突保持原样。历史发行说明仍对应各自发布时的行为。
 
-`ItemEntityMixin` 与菜单转移先执行 `ShulkerStorage.storeMatching`，默认再走原版背包，最后使用空盒收纳余量；`preferEmptyBoxesOverInventory=true` 将空盒阶段提前到背包前。旧优先设置按反值迁移并重命名权限，不接受同时含新旧字段的冲突文件。`StorageFailure` 对可确认的空间失败统一发送服务端语言回退的快捷栏提示，按玩家限频 40 tick；空间失败不受其他补货失败提示开关影响。合成规划仅在来源拆盒或余留物安置失败时触发此提示，材料缺失和配方变化保持原有处理。
+`ItemEntityMixin` 与菜单转移先执行 `ShulkerStorage.storeMatching`，默认再走原版背包，最后使用空盒收纳余量；`preferEmptyBoxesOverInventory=true` 将空盒阶段提前到背包前。旧优先设置按反值迁移并重命名权限，不接受同时含新旧字段的冲突文件。`StorageFailure` 对可确认的空间失败统一发送服务端语言回退的快捷栏提示，按玩家限频 40 tick；空间失败由独立的 `spaceFailureMessages` 控制，不受 `refillFailureMessages` 影响。合成规划仅在来源拆盒或余留物安置失败时触发此提示，材料缺失和配方变化保持原有处理。
 
 设置界面仅构建含选项的分组，避免已移除选项留下空分组导致 YACL 打开失败。`ClientSmokeGameTests` 实际打开个人与世界设置、检查字段权限并生成截图；新增优先设置沿用同一编辑与确认流程。

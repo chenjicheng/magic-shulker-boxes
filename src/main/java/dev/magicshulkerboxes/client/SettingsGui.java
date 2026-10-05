@@ -29,7 +29,7 @@ public final class SettingsGui {
             case "ipnRefill" -> "ipn";
             case "craftRefill" -> "craft";
             case "useMatchingBoxes", "useEmptyBoxes", "includeOffhand" -> "boxes";
-            case "splitStackedBoxes", "makeSpaceMode", "useHotbarForSpace", "allowPartialStacksForSpace", "preferExistingBoxesBeforeMakingSpace" -> "space";
+            case "splitStackedBoxes", "makeSpaceMode", "useHotbarForSpace", "allowPartialStacksForSpace", "preferExistingBoxesBeforeMakingSpace", "spaceFailureMessages" -> "space";
             default -> "pickup";
         };
     }

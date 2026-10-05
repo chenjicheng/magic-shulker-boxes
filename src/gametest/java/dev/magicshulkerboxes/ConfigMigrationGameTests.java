@@ -62,7 +62,8 @@ public class ConfigMigrationGameTests {
         for (var old : List.of("preferences_v1", "editor_save_v1", "editor_query_v1",
                 "preferences_v2", "editor_save_v2", "editor_query_v2", "refill_v2",
                 "preferences_v3", "editor_save_v3", "editor_query_v3", "refill_v3", "restock_v1",
-                "preferences_v4", "editor_save_v4", "editor_query_v4")) {
+                "preferences_v4", "editor_save_v4", "editor_query_v4", "preferences_v5", "editor_save_v5", "editor_query_v5",
+                "preferences_v6", "editor_save_v6", "editor_query_v6")) {
             helper.assertTrue(!channels.contains(Identifier.fromNamespaceAndPath("magic_shulker_boxes", old)),
                     Component.literal("Old client cannot re-upload legacy settings: " + old));
         }
