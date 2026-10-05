@@ -104,6 +104,25 @@ npm run docs:preview
 
 `MenuStorageGameTests` cover actual container/trade operations, cursor deposits, full inventory, partial capacity, denied slots and complete trade costs/uses/XP. `EnderSourcesGameTests` cover ownership, repeated/stale requests, priority, disabled/full storage, real recipe placement and continuous crafting. `SettingPermissionsGameTests` cover commands, malicious network/GUI requests, existing files and live revocation. Client smoke tests send actual container clicks; IPN tests cover direct ender potions and exact-slot tool returns; crafting client tests cover ender recipe statistics and real placement. Add `-PwithConfigGui -PclientSmoke` for the partial-permission screen.
 
+### Junk slot state and protocol (unreleased development branch)
+
+`JunkSlots` uses bits for native inventory/hotbar indices 0–35, independent of menu slot IDs. `JunkSlotStore` persists `{schemaVersion:1, slots:[...]}` under `world/data/magic_shulker_boxes/junk-slots/<UUID>.json`. Runtime revisions support compare-and-set. Writes recheck disk content; future versions, invalid/duplicate indices and malformed files stay untouched. Confirmation follows successful atomic replacement. The transient `StorageConfig.junkBoxSlots` is injected only into a player-specific copy and never enters existing schema2 preferences, permissions or v7 payloads.
+
+The independent `junk_slots_save_v1`, `junk_slots_query_v1` and `junk_slots_state_v1` channels carry a positive request ID, expected/current revision, finite mask and response status. The authenticated connection owns identity. SAVED/SNAPSHOT confirm server data, STALE rejects changed choices, INVALID rejects bounds, BUSY coalesces a retry and FAILED retains the server selection. Revision -1 indicates unreadable data. Disconnect clears the client session; selections are not uploaded across servers. `JunkSlotSession` retains one pending save and a newer queued choice, rejects obsolete replies and queries after timeout instead of replaying snapshots blindly.
+
+`JunkSlotsClient` handles Fabric screen keyboard/mouse events and native corner rendering. `JunkSlotGesture` fixes assign/erase mode for one held-key stroke and visits each slot once. Editing roles never edits items. Item tooltip additions and empty-slot tooltips explain active, inactive and pending states, including pending removal.
+
+Storage and relocation classify assigned positions separately between matching and empty boxes. A split keeps the filled single box in its assigned position and conserves the remaining boxes and item components. Assigned slots are excluded from automatic eviction and empty split/extraction destinations. Drop recollection waits for native pickup, then routes only real received quantities into its reserved box. `IpnJunkSlots` projects read-only locks only during IPN's own sorting calculation, leaving configuration and normal refill matching untouched.
+
+Run actual client input, marker, persistence and sorting verification with:
+
+```powershell
+.\gradlew.bat runClientGameTest -PjunkClient
+.\gradlew.bat runClientGameTest -PjunkClient -PwithIpn
+```
+
+`JunkSlotsClientGameTests` checks keyboard/mouse strokes, revisits, clearing, server persistence, empty/filled markers, English/Chinese, window resizing and IPN sorting. Unit and server tests cover persisted choices, stale/invalid data, player isolation, both relocation modes, item conservation and unverified-menu protection. Editing requires both sides to support the dedicated channels.
+
 ## Test commands
 
 See [Scheduled release staging](release-staging.md) for five-minute GitHub release checks, verification, backups and staging of both mods. The shared tool is `scripts/stage_releases.py`, with systemd units/configuration in `deploy/`; its regressions are included in the Python test command above.

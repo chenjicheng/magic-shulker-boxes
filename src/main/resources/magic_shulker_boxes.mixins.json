@@ -3,7 +3,7 @@
   "package": "dev.magicshulkerboxes.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": ["ItemEntityMixin", "MenuStorageMixin", "CompoundContainerAccess", "MerchantContainerAccess", "CraftingMenuMixin", "ServerPlaceRecipeMixin", "CraftingResultMixin"],
-  "client": ["CraftingInventoryClientMixin"],
+  "client": ["CraftingInventoryClientMixin", "JunkSlotScreenAccess"],
   "injectors": {
     "defaultRequire": 1
   }

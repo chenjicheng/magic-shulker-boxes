@@ -26,11 +26,7 @@ public final class MenuStorage {
                 || !canWriteCarriedContainers(player)) return;
         for (int i = 0; i < 36; i++) {
             var current = inventory.getItem(i);
-            var old = before.getItem(i);
-            int added = current.getCount()
-                    - (ItemStack.isSameItemSameComponents(current, old) ? old.getCount() : 0);
-            // A slot increase can also be vanilla rearranging old items. Bound it by the whole inventory's net receipt.
-            added = Math.min(added, countLoose(inventory, current) - countLoose(before, current));
+            int added = receivedQuantity(inventory, before, i);
             if (added <= 0 || ShulkerStorage.isShulker(current)) continue;
             // The plan removes newly received items before inserting them; a snapshot is never a source.
             var original = CraftingMaterials.copy(inventory);
@@ -60,6 +56,14 @@ public final class MenuStorage {
 
     public static Container snapshot(Inventory inventory) {
         return CraftingMaterials.copy(inventory);
+    }
+
+    static int receivedQuantity(Container inventory, Container before, int slot) {
+        var current = inventory.getItem(slot);
+        var old = before.getItem(slot);
+        int added = current.getCount() - (ItemStack.isSameItemSameComponents(current, old) ? old.getCount() : 0);
+        // Slot increases can be rearrangement; only a matching whole-inventory net increase is received stock.
+        return Math.max(0, Math.min(added, countLoose(inventory, current) - countLoose(before, current)));
     }
 
     private static int countLoose(Container inventory, ItemStack wanted) {

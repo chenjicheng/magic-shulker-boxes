@@ -74,6 +74,7 @@ fabricApi {
         enableGameTests = true
         enableClientGameTests = providers.gradleProperty('withIpn').isPresent() || providers.gradleProperty('clientSmoke').isPresent()
                 || providers.gradleProperty('craftClient').isPresent() || providers.gradleProperty('dedicatedClient').isPresent()
+                || providers.gradleProperty('junkClient').isPresent()
     }
 }
 
@@ -83,7 +84,8 @@ if (providers.gradleProperty('withIpn').isPresent()) {
 }
 
 processGametestResources {
-    def clientTest = providers.gradleProperty('dedicatedClient').isPresent() ? 'dev.magicshulkerboxes.DedicatedClientGameTests'
+    def clientTest = providers.gradleProperty('junkClient').isPresent() ? 'dev.magicshulkerboxes.JunkSlotsClientGameTests'
+            : providers.gradleProperty('dedicatedClient').isPresent() ? 'dev.magicshulkerboxes.DedicatedClientGameTests'
             : providers.gradleProperty('withIpn').isPresent() ? 'dev.magicshulkerboxes.IpnClientGameTests'
             : providers.gradleProperty('craftClient').isPresent() ? 'dev.magicshulkerboxes.CraftingClientGameTests'
             : 'dev.magicshulkerboxes.ClientSmokeGameTests'

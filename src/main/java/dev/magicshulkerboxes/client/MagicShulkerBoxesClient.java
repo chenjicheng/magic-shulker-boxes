@@ -19,6 +19,7 @@ public final class MagicShulkerBoxesClient implements ClientModInitializer {
     public void onInitializeClient() {
         ClientSettings.register();
         SettingsKeybindings.register();
+        JunkSlotsClient.register();
         SchematicRefillClient.register();
         CraftingRefillClient.register();
         ClientPlayNetworking.registerGlobalReceiver(dev.magicshulkerboxes.EnderSourcesNetwork.Snapshot.ID, (payload, context) -> {

@@ -3,6 +3,6 @@
   "package": "dev.magicshulkerboxes.mixin",
   "plugin": "dev.magicshulkerboxes.mixin.IpnMixinPlugin",
   "compatibilityLevel": "JAVA_21",
-  "client": ["IpnSlotFinder", "IpnCandidatesMixin", "IpnMonitorMixin"],
+  "client": ["IpnSlotFinder", "IpnCandidatesMixin", "IpnMonitorMixin", "IpnJunkSortMixin", "IpnJunkLocksMixin"],
   "injectors": { "defaultRequire": 1 }
 }

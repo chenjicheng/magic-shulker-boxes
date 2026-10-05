@@ -155,5 +155,17 @@
   "magic_shulker_boxes.storage.no_space": "Not enough space: displaced items need a matching box or a separate empty box.",
   "magic_shulker_boxes.option.spaceFailureMessages": "Show space failures",
   "magic_shulker_boxes.description.spaceFailureMessages": "Show an action-bar notice when displaced items cannot fit in matching or separate empty boxes. Storage and refill paths share a two-second cooldown. Turning this off hides the notice without changing items or relocation.",
-  "key.magic_shulker_boxes.toggle.spaceFailureMessages": "Toggle: Show space failures"
+  "key.magic_shulker_boxes.toggle.spaceFailureMessages": "Toggle: Show space failures",
+  "key.magic_shulker_boxes.junk_slots": "Assign junk box slots (hold to select several)",
+  "magic_shulker_boxes.junk.title": "Junk box slot",
+  "magic_shulker_boxes.junk.active": "Accepts miscellaneous items",
+  "magic_shulker_boxes.junk.empty": "No shulker here; the slot remains assigned",
+  "magic_shulker_boxes.junk.pending": "Selection awaiting server confirmation",
+  "magic_shulker_boxes.junk.hint": "Hold %s to assign or clear several slots",
+  "magic_shulker_boxes.junk.unsupported": "This server does not support junk box slots",
+  "magic_shulker_boxes.junk.unavailable": "Junk slots have not synchronized or could not be read",
+  "magic_shulker_boxes.junk.changed": "Junk slots changed; select them again",
+  "magic_shulker_boxes.junk.failed": "Junk slots could not be saved; the server selection is retained",
+  "magic_shulker_boxes.junk.removing": "Removal awaiting server confirmation",
+  "key.category.magic_shulker_boxes.slots": "Magic Shulker Boxes: slot selection"
 }

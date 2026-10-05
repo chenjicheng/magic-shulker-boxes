@@ -44,12 +44,12 @@ public final class ShulkerRefill {
 
         var before = CraftingMaterials.copy(inventory);
         var planned = CraftingMaterials.copy(inventory);
-        int destination = BoxRelocation.freeSlot(planned, eligibleSlots);
+        int destination = BoxRelocation.freeSlot(planned, eligibleSlots & ~config.junkBoxSlots);
         int splitSlot = boxSlot;
         if (box.getCount() > 1) {
-            if (ender) splitSlot = RefillSources.freeBoxSlot(planned, boxSlot);
-            else splitSlot = BoxRelocation.freeSlot(planned, destination < 0 ? eligibleSlots
-                    : eligibleSlots & ~(1L << destination));
+            if (ender) splitSlot = RefillSources.freeBoxSlot(planned, boxSlot, config);
+            else splitSlot = BoxRelocation.freeSlot(planned,
+                    (destination < 0 ? eligibleSlots : eligibleSlots & ~(1L << destination)) & ~config.junkBoxSlots);
             if (splitSlot < 0) return 0;
             planned.getItem(boxSlot).shrink(1);
         }
@@ -110,9 +110,10 @@ public final class ShulkerRefill {
         if (box.getCount() > 1) {
             if (!config.splitStackedBoxes) return 0;
             destination = -1;
-            if (ender) destination = RefillSources.freeBoxSlot(inventory, boxSlot);
+            if (ender) destination = RefillSources.freeBoxSlot(inventory, boxSlot, config);
             else for (int slot = 9; slot < 36; slot++) {
-                if ((eligible & (1 << (slot - 9))) != 0 && inventory.getItem(slot).isEmpty()) { destination = slot; break; }
+                if ((eligible & (1 << (slot - 9))) != 0 && !JunkSlots.selected(config.junkBoxSlots, slot)
+                        && inventory.getItem(slot).isEmpty()) { destination = slot; break; }
             }
             if (destination < 0) return 0;
         }

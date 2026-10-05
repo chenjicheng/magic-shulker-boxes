@@ -83,7 +83,7 @@ public final class CraftingRecipeSources {
         }
         for (int slot : BoxOrder.emptiestFirst(inventory, config)) {
             var box = inventory.getItem(slot);
-            if (!allowedBox.test(box) || (box.getCount() > 1 && (!config.splitStackedBoxes || RefillSources.freeBoxSlot(inventory, slot) < 0))) continue;
+            if (!allowedBox.test(box) || (box.getCount() > 1 && (!config.splitStackedBoxes || RefillSources.freeBoxSlot(inventory, slot, config) < 0))) continue;
             box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream()
                     .filter(stack -> !stack.isEmpty() && stack.getItem().canFitInsideContainerItems()).forEach(contents::accountSimpleStack);
         }

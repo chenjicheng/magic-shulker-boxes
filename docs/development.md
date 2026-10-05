@@ -104,6 +104,25 @@ npm run docs:preview
 
 `MenuStorageGameTests` 覆盖真实容器与交易、光标、满背包、部分容量、拒绝取物、整份交易的扣款/次数/经验。`EnderSourcesGameTests` 覆盖本人隔离、请求重复/过期、来源优先级、禁用与无空间、真实配方书和连续补货。`SettingPermissionsGameTests` 检查命令、恶意网络/GUI、既存文件和运行时撤权。客户端的 `clientSmoke` 覆盖真实容器点击，`withIpn` 覆盖末影箱直接药水与原格工具回存；`craftClient` 检查末影箱配方统计和实际请求。加 `-PwithConfigGui -PclientSmoke` 检查逐项锁定页面。
 
+### 杂物槽位状态与协议（开发分支，未发布）
+
+`JunkSlots` 用 36 位掩码描述实际背包/快捷栏索引0–35，不使用菜单slot ID，不允许装备、副手或末影箱格。`JunkSlotStore` 在 `world/data/magic_shulker_boxes/junk-slots/<UUID>.json` 写入独立的 `{schemaVersion:1, slots:[...]}` 文档。当前运行修订用于CAS；写入前重新核对磁盘内容，未知版本、重复/非法索引及损坏文件保留原样。原子替换成功后才确认选择。运行时 `StorageConfig.junkBoxSlots` 是transient，仅由当前玩家的服务端数据注入副本，不进入设置schema2、选项/许可或v7载荷，不改变其他玩家与共享默认值。
+
+`junk_slots_save_v1` 携带正request ID、预期revision和mask，`junk_slots_query_v1` 查询状态；`junk_slots_state_v1` 回传request、状态、revision与mask。身份只取认证连接。SAVED/SNAPSHOT确认服务器数据，STALE拒绝覆盖已变化选择，INVALID拒绝越界，BUSY保留客户端待发选择并合并重试，FAILED保留原选择；revision=-1表示数据不可读取。客户端断开即清空会话，不跨服务器上传旧位置。`JunkSlotSession` 仅保留一项在途保存及更新后的待发选择，过期回复不能发布角色，超时先查询，不盲目回放旧快照。
+
+`JunkSlotsClient` 使用Fabric屏幕键盘/鼠标事件和afterRender，`JunkSlotGesture` 在一轮中固定添加/移除模式并去重，屏幕移除时结束手势。保存只改变角色文件，不能改变物品。角标原生绘制在左上，提示追加到原版物品tooltip；空格使用独立tooltip。角色有待确认/生效/无盒三种状态，取消确认前也显示待确认标记。
+
+`ShulkerStorage` 和 `BoxRelocation` 将指定格独立分类为JUNK，排在匹配盒与空盒之间。堆叠盒拆分保持指定格的单盒位置，其他盒与全部组件/数量保留。被保护的格不被腾栏或自动拆盒/取料占用。丢出回收先执行原版拾取；新收到的实际数量再路由到同步预留盒，仍不使用删除实体恢复的旧count。`IpnJunkSlots` 仅在IPN自己的整理计算作用域扩展只读锁定集合，退出即清理，不修改配置或普通补货候选。
+
+新增回归包括 `JunkStorageTest/JunkSlotStoreTest/JunkSlotGestureTest/JunkSlotSessionTest`、`JunkSlotsGameTests` 和真实 `JunkSlotsClientGameTests`：
+
+```powershell
+.\gradlew.bat runClientGameTest -PjunkClient
+.\gradlew.bat runClientGameTest -PjunkClient -PwithIpn
+```
+
+真实客户端检查键盘/鼠标按住多选、重复经过、清除、服务器保存、空格与单盒角标、中英文、窗口尺寸变化和IPN整理；服务端检查原版优先、两种腾栏模式、组件/数量守恒、未知菜单保护与玩家隔离。该功能使用独立通道，客户端未安装或服务端不支持时不发送槽位编辑。
+
 ## 测试命令
 
 服务器每五分钟检查 GitHub Release、校验并保留两模组暂存包的安装、配置与运行边界见[定时下载与暂存](release-staging.md)。共享更新器位于 `scripts/stage_releases.py`，systemd 单元和示例配置位于 `deploy/`；其回归已纳入前文的 Python 测试命令。

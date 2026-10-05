@@ -29,6 +29,11 @@ public final class RefillSources {
         return -1;
     }
 
+    public static int freeBoxSlot(Container inventory, int source, StorageConfig config) {
+        if (!isEnder(inventory, source)) return BoxRelocation.freeSlot(inventory, BoxRelocation.ALL_SLOTS & ~config.junkBoxSlots);
+        return freeBoxSlot(inventory, source);
+    }
+
     public static ItemStack item(Container inventory, int outer, int inner) {
         if (outer < 0 || outer >= inventory.getContainerSize()) return ItemStack.EMPTY;
         var source = inventory.getItem(outer);

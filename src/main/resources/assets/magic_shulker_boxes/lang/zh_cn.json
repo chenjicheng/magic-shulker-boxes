@@ -155,5 +155,17 @@
   "magic_shulker_boxes.storage.no_space": "空间不足：腾栏物品无法放入同类盒或独立空盒。",
   "magic_shulker_boxes.option.spaceFailureMessages": "空间不足提示",
   "magic_shulker_boxes.description.spaceFailureMessages": "无法将腾栏物品放入同类盒或独立空盒时，在快捷栏上方显示原因。各收纳和补货入口共享两秒限频；关闭后仅隐藏此提示，不改变物品或腾栏行为。",
-  "key.magic_shulker_boxes.toggle.spaceFailureMessages": "切换：空间不足提示"
+  "key.magic_shulker_boxes.toggle.spaceFailureMessages": "切换：空间不足提示",
+  "key.magic_shulker_boxes.junk_slots": "指定杂物盒格子（按住多选）",
+  "magic_shulker_boxes.junk.title": "杂物盒槽位",
+  "magic_shulker_boxes.junk.active": "此格潜影盒可接收杂物",
+  "magic_shulker_boxes.junk.empty": "未放置潜影盒，标记仍保留",
+  "magic_shulker_boxes.junk.pending": "选择待服务器确认",
+  "magic_shulker_boxes.junk.hint": "按住 %s 划过格子可批量指定或取消",
+  "magic_shulker_boxes.junk.unsupported": "当前服务器不支持杂物盒槽位",
+  "magic_shulker_boxes.junk.unavailable": "杂物盒槽位尚未同步或无法读取",
+  "magic_shulker_boxes.junk.changed": "杂物盒槽位已变化，请重新选择",
+  "magic_shulker_boxes.junk.failed": "杂物盒槽位未能保存，保留服务器原选择",
+  "magic_shulker_boxes.junk.removing": "取消指定待服务器确认",
+  "key.category.magic_shulker_boxes.slots": "魔法潜影盒：槽位选择"
 }

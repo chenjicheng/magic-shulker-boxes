@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.Container;
 
 /** Short, synchronous reservations route our own drops back into their dedicated boxes. */
 public final class PickupRelocation {
@@ -54,6 +55,24 @@ public final class PickupRelocation {
         var reservation = ACTIVE.get();
         if (reservation == null || reservation.inventory != inventory || reservation.incoming != incoming) return -1;
         return ShulkerStorage.collectRelocated(inventory, reservation.destination, reservation.box, incoming, config);
+    }
+
+    /** Native pickup may use a newly freed slot first. Move its actual receipt into the reserved box afterward. */
+    public static boolean collectReceived(Inventory inventory, Container before, ItemStack originalStack, StorageConfig config) {
+        var reservation = ACTIVE.get();
+        if (reservation == null || reservation.inventory != inventory || reservation.incoming != originalStack) return false;
+        if (inventory.getItem(reservation.destination) != reservation.box) return true;
+        for (int slot = 0; slot < JunkSlots.SLOT_COUNT; slot++) {
+            var current = inventory.getItem(slot);
+            if (!ItemStack.isSameItemSameComponents(current, originalStack)) continue;
+            int added = MenuStorage.receivedQuantity(inventory, before, slot);
+            if (added == 0) continue;
+            // Debit the real inventory receipt; the restored count on a removed entity is never used as stock.
+            var received = current.split(added);
+            ShulkerStorage.collectRelocated(inventory, reservation.destination, reservation.box, received, config);
+            if (!received.isEmpty()) current.grow(received.getCount());
+        }
+        return true;
     }
 
     private record Reservation(Inventory inventory, int destination, ItemStack box, ItemStack incoming) {}

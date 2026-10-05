@@ -13,6 +13,22 @@ With pickup storage enabled, vanilla first completes inventory insertion, source
 
 All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
 
+## Development branch: manually assigned junk box slots
+
+This feature is not released yet and requires this branch on both client and server. The public 0.9.2 release does not include slot selection.
+
+Bind **Assign junk box slots** under **Options → Controls → Key Binds → Magic Shulker Boxes: slot selection**. It starts unbound and accepts keyboard or mouse buttons. In an inventory or container screen, hold the key and move across your own inventory slots. The first valid slot chooses assign or erase mode for the whole gesture; revisiting a slot does not toggle it again. Release the key to save with server confirmation.
+
+Roles belong to fixed main-inventory and hotbar positions, never to an item. Empty slots and ordinary items retain their markers but do not receive junk. Moving a box away removes its role, while another shulker placed in the slot becomes the junk box. Equipment, offhand and external container slots cannot be assigned. Selections belong to each player and world and recover from the server after reconnecting or restarting.
+
+A small box glyph appears at the top-left: aqua for a usable shulker, gray for no box, and yellow for an unconfirmed change. Pending removal remains indicated until confirmed. Holding the key also outlines the selection; hover for status and the current binding. Counts, durability bars and IPN's lock glyph remain visible.
+
+Box priority is dedicated matching boxes → assigned junk boxes → empty boxes. Assigned boxes retain their role when empty or single-type; unassigned mixed boxes are not automatic junk boxes. Default post-insertion collection uses matching boxes and otherwise leaves receipts in inventory. `preferEmptyBoxesOverInventory` also permits junk and empty boxes. Real ground remainders and relocation can use junk boxes. Stack merging still requires identical components, preserving potion effects, names and enchantments.
+
+MSB never evicts an assigned slot or uses it as an automatic empty destination for splitting or extraction. Splitting a stack in an assigned slot keeps the filled single box there and safely moves the remaining boxes elsewhere. Failed plans remain unchanged. Vanilla-first processing and unverified-menu ownership protection still apply. Matching items inside junk boxes remain valid extraction sources.
+
+With IPN 2.2.6, sorting projects these positions as temporary locks without changing stored IPN locks or refill filtering. Other sorting mods should use their own fixed-slot facilities; MSB roles always follow positions, never items.
+
 ## 0.6.0: clickable command previews and key bindings
 
 `/msb show [option]` displays your preferences, `/msb admin show [option]` displays server settings, and `/msb admin player <name|UUID> show` displays another player's preferences. Boolean values, modes, inheritance/defaults and individual permissions have clickable buttons. Hover to preview the complete command, click to place it in chat, then press Enter to apply. Chat buttons need only the server mod.

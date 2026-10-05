@@ -1,6 +1,8 @@
 package dev.magicshulkerboxes;
 
 public class StorageConfig {
+    /** Player-owned slot roles are supplied at runtime, never included in shared settings or item data. */
+    public transient long junkBoxSlots;
     // Pickup storage and schematic refilling are independent personal choices.
     public boolean pickupStorageEnabled = false;
     public boolean preferEmptyBoxesOverInventory = false;

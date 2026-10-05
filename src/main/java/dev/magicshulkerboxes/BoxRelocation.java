@@ -61,7 +61,8 @@ final class BoxRelocation {
     }
 
     static boolean canDisplace(ItemStack stack, int slot, StorageConfig config) {
-        return !stack.isEmpty() && !ShulkerStorage.isShulker(stack) && stack.getItem().canFitInsideContainerItems()
+        return !JunkSlots.selected(config.junkBoxSlots, slot)
+                && !stack.isEmpty() && !ShulkerStorage.isShulker(stack) && stack.getItem().canFitInsideContainerItems()
                 && (slot >= 9 || config.useHotbarForSpace)
                 && (config.allowPartialStacksForSpace || stack.getCount() >= stack.getMaxStackSize());
     }
@@ -69,7 +70,7 @@ final class BoxRelocation {
     /** May consolidate several same-type inventory stacks into one new box to obtain a free slot. */
     static int makeSpace(Container inventory, StorageConfig config, long eligible, ItemStack preferred,
                          List<Transfer> transfers) {
-        int free = freeSlot(inventory, eligible);
+        int free = freeSlot(inventory, eligible & ~config.junkBoxSlots);
         if (free >= 0) return free;
         int size = Math.min(Inventory.INVENTORY_SIZE, inventory.getContainerSize());
         var rejected = new java.util.ArrayList<ItemStack>();
@@ -85,52 +86,60 @@ final class BoxRelocation {
                 if (destination < 0) { rejected.add(displaced.copy()); continue; }
                 rejected.clear();
                 if (transfers != null) transfers.add(new Transfer(displaced.copy(), destination));
-                if (destination != slot) return slot;
+                if (inventory.getItem(slot).isEmpty()) return slot;
             }
         }
         return -1;
     }
 
-    /** Move the entire stack into a same-type box, then an empty box. Never mix unrelated items. */
+    /** Move the entire stack into a same-type box, an explicit junk slot, then an empty box. */
     static int store(Container inventory, ItemStack displaced, int vacatedSlot, StorageConfig config, long eligible) {
+        if (displaced.isEmpty() || ShulkerStorage.isShulker(displaced)
+                || !displaced.getItem().canFitInsideContainerItems()) return -1;
         var ordered = BoxOrder.fullestFirst(inventory, config);
-        for (boolean empty : new boolean[] {false, true}) {
+        for (DestinationKind kind : DestinationKind.values()) {
             for (int slot : ordered) {
                 if (!allowedBox(inventory, slot, eligible, config)) continue;
                 var box = inventory.getItem(slot);
-                if (box.getCount() != 1) continue;
                 var stored = box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-                if (stored.stream().count() > 27 || empty != stored.stream().allMatch(ItemStack::isEmpty)
-                        || !stored.stream().allMatch(stack -> stack.isEmpty() || sameType(stack, displaced, config))) continue;
+                if (stored.stream().count() > 27) continue;
+                boolean junk = JunkSlots.selected(config.junkBoxSlots, slot);
+                boolean empty = stored.stream().allMatch(ItemStack::isEmpty);
+                boolean accepts = switch (kind) {
+                    case SAME_TYPE -> !junk && !empty && stored.stream().allMatch(stack -> stack.isEmpty() || sameType(stack, displaced, config));
+                    case JUNK -> junk;
+                    case EMPTY -> !junk && empty;
+                };
+                if (!accepts || (box.getCount() > 1 && (kind == DestinationKind.SAME_TYPE || !config.splitStackedBoxes))) continue;
                 var contents = contents(box);
                 if (ShulkerStorage.insert(contents, displaced) != displaced.getCount()) continue;
                 var filled = box.copyWithCount(1);
                 filled.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
-                CraftingMaterials.write(inventory, slot, filled);
-                if (vacatedSlot >= 0 && slot != vacatedSlot) inventory.setItem(vacatedSlot, ItemStack.EMPTY);
-                return slot;
+                if (box.getCount() == 1) {
+                    if (vacatedSlot >= 0 && slot != vacatedSlot) inventory.setItem(vacatedSlot, ItemStack.EMPTY);
+                    CraftingMaterials.write(inventory, slot, filled);
+                    return slot;
+                }
+                int spare = freeSlot(inventory, eligible & ~config.junkBoxSlots);
+                if (spare < 0 && vacatedSlot >= 0 && !JunkSlots.selected(config.junkBoxSlots, vacatedSlot)
+                        && (eligible & (1L << vacatedSlot)) != 0) spare = vacatedSlot;
+                if (spare < 0) continue;
+                if (vacatedSlot >= 0 && spare != vacatedSlot) inventory.setItem(vacatedSlot, ItemStack.EMPTY);
+                if (junk) {
+                    var rest = box.copyWithCount(box.getCount() - 1);
+                    CraftingMaterials.write(inventory, slot, filled);
+                    CraftingMaterials.write(inventory, spare, rest);
+                    return slot;
+                }
+                box.shrink(1);
+                CraftingMaterials.write(inventory, spare, filled);
+                return spare;
             }
-        }
-        if (!config.splitStackedBoxes) return -1;
-        for (int slot : ordered) {
-            if (!allowedBox(inventory, slot, eligible, config)) continue;
-            var box = inventory.getItem(slot);
-            if (box.getCount() <= 1) continue;
-            var stored = box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-            if (stored.stream().count() > 27 || stored.stream().anyMatch(stack -> !stack.isEmpty())) continue;
-            var contents = contents(box);
-            int destination = freeSlot(inventory, eligible);
-            if (destination < 0) destination = vacatedSlot;
-            if (destination < 0 || ShulkerStorage.insert(contents, displaced) != displaced.getCount()) continue;
-            var filled = box.copyWithCount(1);
-            filled.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
-            box.shrink(1);
-            CraftingMaterials.write(inventory, destination, filled);
-            if (vacatedSlot >= 0 && destination != vacatedSlot) inventory.setItem(vacatedSlot, ItemStack.EMPTY);
-            return destination;
         }
         return -1;
     }
+
+    private enum DestinationKind { SAME_TYPE, JUNK, EMPTY }
 
     private static boolean allowedBox(Container inventory, int slot, long eligible, StorageConfig config) {
         return (slot < Inventory.INVENTORY_SIZE && (eligible & (1L << slot)) != 0)

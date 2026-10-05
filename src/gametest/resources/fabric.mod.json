@@ -16,6 +16,7 @@
       "dev.magicshulkerboxes.CraftingGameTests",
       "dev.magicshulkerboxes.MenuStorageGameTests",
       "dev.magicshulkerboxes.ItemBackedMenuGameTests",
+      "dev.magicshulkerboxes.JunkSlotsGameTests",
       "dev.magicshulkerboxes.EnderSourcesGameTests",
       "dev.magicshulkerboxes.SettingPermissionsGameTests",
       "dev.magicshulkerboxes.AdminSettingsGameTests",

@@ -14,7 +14,8 @@ public final class PickupStorage {
                               ItemStack originalStack, int remaining, boolean vanillaAccepted) {
         var config = MagicShulkerBoxes.configFor(player);
         if (!config.pickupStorageEnabled || !MenuStorage.canWriteCarriedContainers(player)) return;
-        MenuStorage.collectDeposited(player.getInventory(), before, config);
+        if (!PickupRelocation.collectReceived(player.getInventory(), before, originalStack, config))
+            MenuStorage.collectDeposited(player.getInventory(), before, config);
         // Vanilla restores a removed entity's stack count for callbacks. It is no longer live stock.
         if (entity.isRemoved() || entity.getItem() != originalStack || originalStack.isEmpty()
                 || originalStack.getCount() != remaining) return;

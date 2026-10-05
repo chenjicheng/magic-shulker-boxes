@@ -87,7 +87,7 @@ final class CraftingMaterials {
                 if (box.getCount() > 1 && !config.splitStackedBoxes) { blockedSpace.run(); break; }
                 int destination = slot;
                 if (box.getCount() > 1) {
-                    destination = RefillSources.freeBoxSlot(inventory, slot);
+                    destination = RefillSources.freeBoxSlot(inventory, slot, config);
                     if (destination < 0) { blockedSpace.run(); break; }
                 }
                 int amount = Math.min(count, source.getCount());

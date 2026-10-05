@@ -65,14 +65,14 @@ public final class ShulkerStorage {
                 if (stored.stream().count() > 27) continue;
                 var contents = NonNullList.withSize(27, ItemStack.EMPTY);
                 stored.copyInto(contents);
-                if (classify(contents, incoming, config) != kind) continue;
+                if (classify(contents, incoming, config, slot) != kind) continue;
 
                 int destination = slot;
                 if (box.getCount() > 1) {
                     if (!config.splitStackedBoxes) continue;
-                    destination = findFreeMainSlot(inventory);
+                    destination = findFreeMainSlot(inventory, config);
                     if (destination < 0) {
-                        if (makeSpace) tryMakingSpace(inventory, incoming, config, box, contents, dropHandler);
+                        if (makeSpace) tryMakingSpace(inventory, incoming, config, slot, box, contents, dropHandler);
                         continue;
                     }
                 }
@@ -83,55 +83,64 @@ public final class ShulkerStorage {
                 // Work on copies, then commit one box only. Mutating a stacked box in place duplicates contents.
                 ItemStack filledBox = box.copyWithCount(1);
                 filledBox.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
-                inventory.setItem(destination, filledBox);
-                if (destination != slot) box.shrink(1);
                 incoming.shrink(accepted);
+                if (destination != slot && JunkSlots.selected(config.junkBoxSlots, slot)) {
+                    var rest = box.copyWithCount(box.getCount() - 1);
+                    inventory.setItem(slot, filledBox);
+                    CraftingMaterials.write(inventory, destination, rest);
+                } else {
+                    if (destination != slot) box.shrink(1);
+                    inventory.setItem(destination, filledBox);
+                }
                 inventory.setChanged();
             }
         }
     }
 
     private static void tryMakingSpace(Container inventory, ItemStack incoming, StorageConfig config,
-                                       ItemStack stacked, NonNullList<ItemStack> contents,
+                                       int stackedSlot, ItemStack stacked, NonNullList<ItemStack> contents,
                                        RelocationHandler dropHandler) {
         boolean dropping = config.makeSpaceMode == StorageConfig.MakeSpaceMode.DROP_AND_PICKUP;
         if (dropping && dropHandler == null) return;
-        // A displaced stack of the incoming type can share its dedicated box.
-        for (int index = 0; index < Inventory.INVENTORY_SIZE; index++) {
-            int slot = (index + 9) % Inventory.INVENTORY_SIZE;
-            if (slot < 9 && !config.useHotbarForSpace) continue;
-            if (slot >= inventory.getContainerSize()) continue;
-            ItemStack displaced = inventory.getItem(slot);
-            if (displaced.isEmpty() || isShulker(displaced) || !displaced.getItem().canFitInsideContainerItems()) continue;
-            if (!sameType(displaced, incoming, config)) continue;
-            if (!config.allowPartialStacksForSpace && displaced.getCount() < displaced.getMaxStackSize()) continue;
+        if (!JunkSlots.selected(config.junkBoxSlots, stackedSlot)) {
+            // A displaced stack of the incoming type can share its dedicated box.
+            for (int index = 0; index < Inventory.INVENTORY_SIZE; index++) {
+                int slot = (index + 9) % Inventory.INVENTORY_SIZE;
+                if (slot < 9 && !config.useHotbarForSpace) continue;
+                if (JunkSlots.selected(config.junkBoxSlots, slot)) continue;
+                if (slot >= inventory.getContainerSize()) continue;
+                ItemStack displaced = inventory.getItem(slot);
+                if (displaced.isEmpty() || isShulker(displaced) || !displaced.getItem().canFitInsideContainerItems()) continue;
+                if (!sameType(displaced, incoming, config)) continue;
+                if (!config.allowPartialStacksForSpace && displaced.getCount() < displaced.getMaxStackSize()) continue;
 
-            var combined = copyContents(contents);
-            // The entire occupied slot must fit, even when it contains fewer than a full stack.
-            if (insert(combined, displaced) != displaced.getCount()) continue;
-            int accepted = insert(combined, incoming);
-            if (accepted == 0) continue;
-            if (dropping) {
-                combined = copyContents(contents);
-                insert(combined, incoming.copyWithCount(accepted));
+                var combined = copyContents(contents);
+                // The entire occupied slot must fit, even when it contains fewer than a full stack.
+                if (insert(combined, displaced) != displaced.getCount()) continue;
+                int accepted = insert(combined, incoming);
+                if (accepted == 0) continue;
+                if (dropping) {
+                    combined = copyContents(contents);
+                    insert(combined, incoming.copyWithCount(accepted));
+                }
+                ItemStack filled = stacked.copyWithCount(1);
+                filled.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(combined));
+                Runnable commit = () -> {
+                    inventory.setItem(slot, filled);
+                    stacked.shrink(1);
+                    incoming.shrink(accepted);
+                    inventory.setChanged();
+                };
+                if (dropping) dropHandler.relocate(List.of(new RelocatedStack(displaced.copy(), slot, filled)), commit);
+                else commit.run();
+                return;
             }
-            ItemStack filled = stacked.copyWithCount(1);
-            filled.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(combined));
-            Runnable commit = () -> {
-                inventory.setItem(slot, filled);
-                stacked.shrink(1);
-                incoming.shrink(accepted);
-                inventory.setChanged();
-            };
-            if (dropping) dropHandler.relocate(List.of(new RelocatedStack(displaced.copy(), slot, filled)), commit);
-            else commit.run();
-            return;
         }
 
         var original = CraftingMaterials.copy(inventory);
         var planned = CraftingMaterials.copy(inventory);
         var transfers = new ArrayList<BoxRelocation.Transfer>();
-        if (BoxRelocation.makeSpace(planned, config, BoxRelocation.ALL_SLOTS, incoming, transfers) < 0) return;
+        BoxRelocation.makeSpace(planned, config, BoxRelocation.ALL_SLOTS, incoming, transfers);
         var remainder = incoming.copy();
         storePass(planned, remainder, config, false, null);
         int accepted = incoming.getCount() - remainder.getCount();
@@ -179,11 +188,11 @@ public final class ShulkerStorage {
         if (inventory.getItem(slot) != expectedBox || expectedBox.getCount() != 1) return 0;
         var contents = BoxRelocation.contents(expectedBox);
         if (contents == null) return 0;
-        if (!BoxRelocation.acceptsType(contents, incoming, config)) return 0;
+        if (!JunkSlots.selected(config.junkBoxSlots, slot) && !BoxRelocation.acceptsType(contents, incoming, config)) return 0;
         int accepted = insert(contents, incoming);
         if (accepted > 0) {
-            expectedBox.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
             incoming.shrink(accepted);
+            expectedBox.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
             inventory.setChanged();
         }
         return accepted;
@@ -202,14 +211,15 @@ public final class ShulkerStorage {
                 && block.getBlock() instanceof ShulkerBoxBlock;
     }
 
-    private static int findFreeMainSlot(Container inventory) {
+    private static int findFreeMainSlot(Container inventory, StorageConfig config) {
         for (int slot = 0; slot < Math.min(Inventory.INVENTORY_SIZE, inventory.getContainerSize()); slot++) {
-            if (inventory.getItem(slot).isEmpty()) return slot;
+            if (!JunkSlots.selected(config.junkBoxSlots, slot) && inventory.getItem(slot).isEmpty()) return slot;
         }
         return -1;
     }
 
-    private static BoxKind classify(NonNullList<ItemStack> contents, ItemStack incoming, StorageConfig config) {
+    private static BoxKind classify(NonNullList<ItemStack> contents, ItemStack incoming, StorageConfig config, int slot) {
+        if (JunkSlots.selected(config.junkBoxSlots, slot)) return BoxKind.JUNK;
         if (contents.stream().allMatch(ItemStack::isEmpty)) return BoxKind.EMPTY;
         return BoxRelocation.acceptsType(contents, incoming, config) ? BoxKind.MATCHING : null;
     }
@@ -239,11 +249,12 @@ public final class ShulkerStorage {
     }
 
     private enum BoxKind {
-        MATCHING, EMPTY;
+        MATCHING, JUNK, EMPTY;
 
         boolean enabled(StorageConfig config) {
             return switch (this) {
                 case MATCHING -> config.useMatchingBoxes;
+                case JUNK -> config.junkBoxSlots != 0;
                 case EMPTY -> config.useEmptyBoxes;
             };
         }
