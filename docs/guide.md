@@ -110,7 +110,7 @@ IPN 从盒中选择备用工具时，服务器在同一次事务中装备备用�
 
 ## 原理图自动取料
 
-客户端安装 **Litematica 0.26.16 / MaLiLib 0.27.20（Minecraft 1.21.11）**，客户端与服务端都安装 Magic Shulker Boxes **0.5.0**。新版不再接受旧取料协议，个人设置需使用兼容的同步协议。单人游戏只需在客户端实例安装；专用服务端不需要 Litematica 或 MaLiLib。
+客户端安装 **Litematica 0.26.16 / MaLiLib 0.27.20（Minecraft 1.21.11）**，客户端与服务端都安装 Magic Shulker Boxes **0.10.0**，保持版本一致。新版不再接受旧取料协议，个人设置需使用兼容的同步协议。单人游戏只需在客户端实例安装；专用服务端不需要 Litematica 或 MaLiLib。
 
 启用 Litematica 轻松放置，对准原理图并使用它的放置键。背包及副手已有材料时沿用原有行为；缺料时从潜影盒取出匹配材料，等服务端同步背包后继续放置。持续按住放置键即可继续；单次点击可能只完成取料，此时再点一次。支持旧版及重写版轻松放置。普通选取方块、创造模式、箱子界面及鼠标光标持物时不自动取料。
 
@@ -134,7 +134,7 @@ IPN 从盒中选择备用工具时，服务器在同一次事务中装备备用�
 
 ## IPN 消耗品与工具补货
 
-0.4.0 起支持此功能。客户端安装 [Inventory Profiles Next 2.2.6（Fabric 1.21.11）](https://modrinth.com/mod/inventory-profiles-next/version/fabric-1.21.11-2.2.6) 及它要求的 libIPN、Fabric Language Kotlin；客户端与服务端都安装 Magic Shulker Boxes 0.5.0。服务端无需 IPN，单人实例同时提供两端。
+0.4.0 起支持此功能。客户端安装 [Inventory Profiles Next 2.2.6（Fabric 1.21.11）](https://modrinth.com/mod/inventory-profiles-next/version/fabric-1.21.11-2.2.6) 及它要求的 libIPN、Fabric Language Kotlin；客户端与服务端都安装 Magic Shulker Boxes 0.10.0，保持版本一致。服务端无需 IPN，单人实例同时提供两端。
 
 启用 IPN 原有自动补货后，主手或副手的消耗品补货、工具替换先查找背包候选。没有可用物品时，本模组将背包潜影盒内物品交给 **IPN 原有的筛选和排序方法**。是否触发、等待时间、药水效果、食物替代、名称/组件匹配、工具类别、耐久阈值、自定义排序和禁用补货栏位均由 IPN 决定。本模组不另设这些规则，也不接入盔甲补货。
 
