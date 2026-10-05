@@ -110,7 +110,7 @@ npm run docs:preview
 
 `junk_slots_save_v1` 携带正request ID、预期revision和mask，`junk_slots_query_v1` 查询状态；`junk_slots_state_v1` 回传request、状态、revision与mask。身份只取认证连接。SAVED/SNAPSHOT确认服务器数据，STALE拒绝覆盖已变化选择，INVALID拒绝越界，BUSY保留客户端待发选择并合并重试，FAILED保留原选择；revision=-1表示数据不可读取。客户端断开即清空会话，不跨服务器上传旧位置。`JunkSlotSession` 仅保留一项在途保存及更新后的待发选择，过期回复不能发布角色，超时先查询，不盲目回放旧快照。
 
-`JunkSlotsClient` 使用Fabric屏幕键盘/鼠标事件，`JunkSlotGesture` 在一轮中固定添加/移除模式并去重，屏幕移除时结束手势。保存只改变角色文件，不能改变物品。`JunkSlotTooltipMixin` 在 `Screen.renderWithTooltipAndSubtitles` 调用 `GuiGraphics.renderDeferredElements` 前绘制左上角标并安排空格提示；随后原版在新stratum绘制tooltip，提示始终盖住角标与选区边框。不能使用Fabric的afterRender绘制角标，该事件在原版tooltip之后触发。物品提示沿用原版tooltip追加状态；角色有待确认/生效/无盒三种状态，取消确认前也显示待确认标记。
+`JunkSlotsClient` 使用Fabric屏幕键盘/鼠标事件，0.10.1起默认键为F9，绑定保存/加载与重置由原版 `options.txt` 管理，不覆盖旧的自定义或显式未绑定值。`JunkSlotGesture` 在一轮中固定添加/移除模式并去重，屏幕移除时结束手势。保存只改变角色文件，不能改变物品。`JunkSlotTooltipMixin` 在 `Screen.renderWithTooltipAndSubtitles` 调用 `GuiGraphics.renderDeferredElements` 前绘制左上角标并安排空格提示；随后原版在新stratum绘制tooltip，提示始终盖住角标与选区边框。不能使用Fabric的afterRender绘制角标，该事件在原版tooltip之后触发。物品提示沿用原版tooltip追加状态；角色有待确认/生效/无盒三种状态，取消确认前也显示待确认标记。
 
 `ShulkerStorage` 和 `BoxRelocation` 将指定格独立分类为JUNK，排在匹配盒与空盒之间。堆叠盒拆分保持指定格的单盒位置，其他盒与全部组件/数量保留。被保护的格不被腾栏或自动拆盒/取料占用。丢出回收先执行原版拾取；新收到的实际数量再路由到同步预留盒，仍不使用删除实体恢复的旧count。`IpnJunkSlots` 仅在IPN自己的整理计算作用域扩展只读锁定集合，退出即清理，不修改配置或普通补货候选。
 

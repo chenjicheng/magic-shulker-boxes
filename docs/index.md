@@ -20,4 +20,4 @@ features:
     details: 服务端可开放个人设置；客户端提供中英文 Mod Menu + YACL 配置界面。
 ---
 
-当前版本为 **0.10.0**。阅读[发布说明](releases/0.10.0.md)，或查看[开发、测试与发布流程](development.md)。
+当前版本为 **0.10.1**。阅读[发布说明](releases/0.10.1.md)，或查看[开发、测试与发布流程](development.md)。

@@ -2,9 +2,11 @@
 
 [简体中文](README.md) | **English**
 
-Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.10.0**.
+Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.10.1**.
 
 After enabling pickup storage, vanilla completes inventory insertion, source deductions and callbacks before MSB organizes actual receipts. Matching boxes take priority, assigned junk and empty boxes follow preferences, and real ground remainders may be stored afterward. Pickup storage is off by default. Supports Carpet shulker stacking, safe splitting, automatic space-making and partial stacks. Relocation stores displaced items in matching, assigned junk or separate empty boxes.
+
+0.10.1 makes F9 the default junk-slot key, preserving saved custom bindings. See the [0.10.1 release notes](docs/releases/0.10.1.md).
 
 0.10.0 adds manually assigned junk box slots: bind a key and hold it while moving across inventory slots. Roles belong to positions, with corner status markers below tooltips. IPN sorting preserves assigned slots. See the [0.10.0 release notes](docs/releases/0.10.0.md).
 
@@ -27,7 +29,7 @@ After enabling pickup storage, vanilla completes inventory insertion, source ded
 
 ## Install
 
-Install `magic-shulker-boxes-fabric-0.10.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading. Update both sides to 0.10.0 for junk-slot selection and markers.
+Install `magic-shulker-boxes-fabric-0.10.1+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading. Update both sides to 0.10.0 for junk-slot selection and markers.
 
 0.4.0 retains 0.3.2 settings and choices; new `ipnRefill` and `craftRefill` switches default to enabled. See the [0.4.0 release notes](docs/releases/0.4.0.md) for features and installation requirements.
 

@@ -1,6 +1,5 @@
 package dev.magicshulkerboxes.client;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import dev.magicshulkerboxes.JunkSlots;
 import dev.magicshulkerboxes.JunkSlotsNetwork;
 import dev.magicshulkerboxes.ShulkerStorage;
@@ -24,6 +23,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import org.lwjgl.glfw.GLFW;
 
 /** Inventory-only input and rendering; role persistence and item ownership remain on the server. */
 public final class JunkSlotsClient {
@@ -44,7 +44,7 @@ public final class JunkSlotsClient {
     public static void register() {
         var category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("magic_shulker_boxes", "slots"));
         binding = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.magic_shulker_boxes.junk_slots",
-                InputConstants.UNKNOWN.getValue(), category));
+                GLFW.GLFW_KEY_F9, category));
         ClientPlayConnectionEvents.INIT.register((handler, client) -> reset());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
         ClientPlayNetworking.registerGlobalReceiver(JunkSlotsNetwork.State.ID, (state, context) -> {

@@ -36,8 +36,6 @@ public class JunkSlotsClientGameTests implements FabricClientGameTest {
             context.runOnClient(client -> {
                 if (JunkSlotsClient.binding().getCategory().label().getString().startsWith("key.category"))
                     throw new AssertionError("The slot-selection key category is not translated in the actual controls UI");
-                JunkSlotsClient.binding().setKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_F9));
-                KeyMapping.resetMapping();
             });
             context.getInput().pressKey(options -> options.keyInventory);
             context.waitForScreen(InventoryScreen.class);
@@ -74,12 +72,25 @@ public class JunkSlotsClientGameTests implements FabricClientGameTest {
             context.runOnClient(client -> {
                 JunkSlotsClient.binding().setKey(InputConstants.Type.MOUSE.getOrCreate(GLFW.GLFW_MOUSE_BUTTON_4));
                 KeyMapping.resetMapping();
+                client.options.save();
+                JunkSlotsClient.binding().setKey(JunkSlotsClient.binding().getDefaultKey());
+                client.options.load();
+                KeyMapping.resetMapping();
             });
             move(context, 10); context.getInput().holdMouse(GLFW.GLFW_MOUSE_BUTTON_4); move(context, 35);
             context.getInput().releaseMouse(GLFW.GLFW_MOUSE_BUTTON_4);
             context.waitFor(client -> JunkSlotsClient.confirmedMask() == ((1L << 10) | (1L << 35)));
             move(context, 10); context.getInput().holdMouse(GLFW.GLFW_MOUSE_BUTTON_4); move(context, 35);
             context.getInput().releaseMouse(GLFW.GLFW_MOUSE_BUTTON_4);
+            context.waitFor(client -> JunkSlotsClient.confirmedMask() == 0);
+            context.runOnClient(client -> {
+                JunkSlotsClient.binding().setKey(JunkSlotsClient.binding().getDefaultKey());
+                KeyMapping.resetMapping();
+            });
+            move(context, 10); context.getInput().holdKey(GLFW.GLFW_KEY_F9);
+            context.getInput().releaseKey(GLFW.GLFW_KEY_F9);
+            context.waitFor(client -> JunkSlotsClient.confirmedMask() == (1L << 10));
+            context.getInput().holdKey(GLFW.GLFW_KEY_F9); context.getInput().releaseKey(GLFW.GLFW_KEY_F9);
             context.waitFor(client -> JunkSlotsClient.confirmedMask() == 0);
             server.runOnServer(actual -> {
                 try {
