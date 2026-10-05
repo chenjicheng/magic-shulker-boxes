@@ -1,10 +1,11 @@
 package dev.magicshulkerboxes;
 
+import java.util.ArrayList;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
-/** A short, synchronous reservation routes our own drop back into the newly split box. */
+/** Short, synchronous reservations route our own drops back into their dedicated boxes. */
 public final class PickupRelocation {
     public static final String RELOCATED_TAG = "magic_shulker_boxes:relocated";
     private static final ThreadLocal<Reservation> ACTIVE = new ThreadLocal<>();
@@ -12,19 +13,35 @@ public final class PickupRelocation {
     private PickupRelocation() {}
 
     public static ShulkerStorage.RelocationHandler handler(Inventory inventory) {
-        return (displaced, destination, filledBox, commit) -> {
+        return (transfers, commit) -> {
             var player = inventory.player;
-            var dropped = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), displaced);
-            dropped.setTarget(player.getUUID());
-            dropped.setNoPickUpDelay();
-            // Persist the guard if another mod blocks pickup or the world is saved with this item still on the ground.
-            dropped.addTag(RELOCATED_TAG);
-            if (!player.level().addFreshEntity(dropped)) return;
+            var droppedItems = new ArrayList<ItemEntity>();
+            for (var transfer : transfers) {
+                var dropped = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), transfer.stack().copy());
+                dropped.setTarget(player.getUUID());
+                dropped.setNoPickUpDelay();
+                // Persist the guard if a mod blocks pickup or this item is saved on the ground.
+                dropped.addTag(RELOCATED_TAG);
+                if (!player.level().addFreshEntity(dropped)) {
+                    droppedItems.forEach(ItemEntity::discard);
+                    return;
+                }
+                droppedItems.add(dropped);
+            }
             commit.run();
+            var reservations = new ArrayList<Reservation>();
+            for (int i = 0; i < transfers.size(); i++) {
+                var transfer = transfers.get(i);
+                var installed = inventory.getItem(transfer.destination());
+                reservations.add(new Reservation(inventory, transfer.destination(),
+                        ItemStack.matches(installed, transfer.box()) ? installed : transfer.box(), droppedItems.get(i).getItem()));
+            }
             var previous = ACTIVE.get();
-            ACTIVE.set(new Reservation(inventory, destination, filledBox, dropped.getItem()));
             try {
-                dropped.playerTouch(player);
+                for (int i = 0; i < droppedItems.size(); i++) {
+                    ACTIVE.set(reservations.get(i));
+                    droppedItems.get(i).playerTouch(player);
+                }
             } finally {
                 if (previous == null) ACTIVE.remove();
                 else ACTIVE.set(previous);

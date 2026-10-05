@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.magicshulkerboxes.MagicShulkerBoxes;
 import dev.magicshulkerboxes.ShulkerStorage;
 import dev.magicshulkerboxes.PickupRelocation;
+import dev.magicshulkerboxes.StorageFailure;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -22,21 +23,28 @@ abstract class ItemEntityMixin {
                 ? MagicShulkerBoxes.configFor(player) : MagicShulkerBoxes.config();
         if (!config.pickupStorageEnabled) return original.call(inventory, incoming);
         int relocated = PickupRelocation.collectReserved(inventory, incoming);
-        if (relocated >= 0) return incoming.isEmpty() || original.call(inventory, incoming) || relocated > 0;
+        if (relocated >= 0) {
+            boolean accepted = incoming.isEmpty() || original.call(inventory, incoming);
+            if (!incoming.isEmpty() && inventory.player instanceof ServerPlayer player) StorageFailure.noSpace(player);
+            return accepted || relocated > 0;
+        }
         var source = (ItemEntity) (Object) this;
         boolean allowMakingSpace = !source.getTags().contains(PickupRelocation.RELOCATED_TAG);
         var dropHandler = PickupRelocation.handler(inventory);
 
-        int stored = 0;
-        if (!config.onlyWhenInventoryFull) {
-            stored = ShulkerStorage.store(inventory, incoming, config, allowMakingSpace, dropHandler);
+        int stored = ShulkerStorage.storeMatching(inventory, incoming, config);
+        if (incoming.isEmpty()) return true;
+        if (config.preferEmptyBoxesOverInventory) {
+            stored += ShulkerStorage.store(inventory, incoming, config, allowMakingSpace, dropHandler);
             if (incoming.isEmpty()) return true;
         }
 
         boolean vanillaAccepted = original.call(inventory, incoming);
-        if (config.onlyWhenInventoryFull) {
-            stored = ShulkerStorage.store(inventory, incoming, config, allowMakingSpace, dropHandler);
+        if (!config.preferEmptyBoxesOverInventory) {
+            stored += ShulkerStorage.store(inventory, incoming, config, allowMakingSpace, dropHandler);
         }
+        if (!incoming.isEmpty() && !ShulkerStorage.isShulker(incoming) && incoming.getItem().canFitInsideContainerItems()
+                && inventory.player instanceof ServerPlayer player) StorageFailure.noSpace(player);
         // Vanilla remains responsible for pickup animation, statistics, and removing an exhausted item entity.
         return vanillaAccepted || stored > 0;
     }

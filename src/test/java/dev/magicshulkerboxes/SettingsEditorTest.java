@@ -52,7 +52,7 @@ class SettingsEditorTest {
     }
     @Test
     void editsAreDetachedAndInheritanceRemovesOnlyTheSelectedOverride() throws Exception {
-        var original = ConfigFile.parsePreferences("{\"pickupStorageEnabled\":false,\"useMixedBoxes\":true,\"makeSpaceMode\":\"DROP_AND_PICKUP\"}");
+        var original = ConfigFile.parsePreferences("{\"pickupStorageEnabled\":false,\"useMatchingBoxes\":true,\"makeSpaceMode\":\"DROP_AND_PICKUP\"}");
         var draft = new SettingsDraft(original);
         assertEquals(SettingsDraft.Toggle.OFF, draft.toggle("pickupStorageEnabled"));
         assertEquals(SettingsDraft.Space.DROP_AND_PICKUP, draft.space());
@@ -61,11 +61,11 @@ class SettingsEditorTest {
         draft.space(SettingsDraft.Space.INHERIT);
         assertFalse(draft.values().has("pickupStorageEnabled"));
         assertFalse(draft.values().has("makeSpaceMode"));
-        assertTrue(draft.values().get("useMixedBoxes").getAsBoolean());
+        assertTrue(draft.values().get("useMatchingBoxes").getAsBoolean());
         assertTrue(draft.values().get("useHotbarForSpace").getAsBoolean());
         assertEquals(3, original.size(), "Cancel never changes the source preferences");
-        draft.values().remove("useMixedBoxes");
-        assertTrue(draft.values().has("useMixedBoxes"), "Snapshot cannot mutate the draft");
+        draft.values().remove("useMatchingBoxes");
+        assertTrue(draft.values().has("useMatchingBoxes"), "Snapshot cannot mutate the draft");
     }
 
     @Test

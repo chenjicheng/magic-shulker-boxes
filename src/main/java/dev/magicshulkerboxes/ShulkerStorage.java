@@ -1,5 +1,7 @@
 package dev.magicshulkerboxes;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.world.Container;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
@@ -15,6 +17,15 @@ public final class ShulkerStorage {
     /** Stores only the supplied remainder; the caller controls when vanilla pickup runs. */
     public static int store(Container inventory, ItemStack incoming, StorageConfig config) {
         return store(inventory, incoming, config, true, null);
+    }
+
+    /** Matching boxes precede vanilla inventory; new boxes follow the player's empty-box preference. */
+    public static int storeMatching(Container inventory, ItemStack incoming, StorageConfig config) {
+        if (!config.pickupStorageEnabled || incoming.isEmpty() || isShulker(incoming)
+                || !incoming.getItem().canFitInsideContainerItems()) return 0;
+        int originalCount = incoming.getCount();
+        storePass(inventory, incoming, config, false, null, true);
+        return originalCount - incoming.getCount();
     }
 
     public static int store(Container inventory, ItemStack incoming, StorageConfig config,
@@ -35,8 +46,14 @@ public final class ShulkerStorage {
 
     private static void storePass(Container inventory, ItemStack incoming, StorageConfig config,
                                   boolean makeSpace, RelocationHandler dropHandler) {
+        storePass(inventory, incoming, config, makeSpace, dropHandler, false);
+    }
+
+    private static void storePass(Container inventory, ItemStack incoming, StorageConfig config,
+                                  boolean makeSpace, RelocationHandler dropHandler, boolean matchingOnly) {
         var orderedSlots = BoxOrder.fullestFirst(inventory, config);
         for (BoxKind kind : BoxKind.values()) {
+            if (matchingOnly && kind != BoxKind.MATCHING) continue;
             if (!kind.enabled(config)) continue;
             for (int slot : orderedSlots) {
                 if (incoming.isEmpty()) break;
@@ -55,7 +72,7 @@ public final class ShulkerStorage {
                     if (!config.splitStackedBoxes) continue;
                     destination = findFreeMainSlot(inventory);
                     if (destination < 0) {
-                        if (makeSpace) tryMakingSpace(inventory, incoming, config, box, contents, kind, dropHandler);
+                        if (makeSpace) tryMakingSpace(inventory, incoming, config, box, contents, dropHandler);
                         continue;
                     }
                 }
@@ -75,44 +92,80 @@ public final class ShulkerStorage {
     }
 
     private static void tryMakingSpace(Container inventory, ItemStack incoming, StorageConfig config,
-                                       ItemStack stacked, NonNullList<ItemStack> contents, BoxKind kind,
+                                       ItemStack stacked, NonNullList<ItemStack> contents,
                                        RelocationHandler dropHandler) {
         boolean dropping = config.makeSpaceMode == StorageConfig.MakeSpaceMode.DROP_AND_PICKUP;
         if (dropping && dropHandler == null) return;
-        // Prefer a same-kind stack across the main inventory before considering unrelated items.
-        for (boolean matching : new boolean[] {true, false}) {
-            if (!matching && (!config.allowMixedItemsWhenMakingSpace || kind == BoxKind.MATCHING)) continue;
-            for (int index = 0; index < Inventory.INVENTORY_SIZE; index++) {
-                int slot = (index + 9) % Inventory.INVENTORY_SIZE;
-                if (slot < 9 && !config.useHotbarForSpace) continue;
-                if (slot >= inventory.getContainerSize()) continue;
-                ItemStack displaced = inventory.getItem(slot);
-                if (displaced.isEmpty() || isShulker(displaced) || !displaced.getItem().canFitInsideContainerItems()) continue;
-                if (matching != sameType(displaced, incoming, config)) continue;
-                if (!config.allowPartialStacksForSpace && displaced.getCount() < displaced.getMaxStackSize()) continue;
+        // A displaced stack of the incoming type can share its dedicated box.
+        for (int index = 0; index < Inventory.INVENTORY_SIZE; index++) {
+            int slot = (index + 9) % Inventory.INVENTORY_SIZE;
+            if (slot < 9 && !config.useHotbarForSpace) continue;
+            if (slot >= inventory.getContainerSize()) continue;
+            ItemStack displaced = inventory.getItem(slot);
+            if (displaced.isEmpty() || isShulker(displaced) || !displaced.getItem().canFitInsideContainerItems()) continue;
+            if (!sameType(displaced, incoming, config)) continue;
+            if (!config.allowPartialStacksForSpace && displaced.getCount() < displaced.getMaxStackSize()) continue;
 
-                var combined = copyContents(contents);
-                // The entire occupied slot must fit, even when it contains fewer than a full stack.
-                if (insert(combined, displaced) != displaced.getCount()) continue;
-                int accepted = insert(combined, incoming);
-                if (accepted == 0) continue;
-                if (dropping) {
-                    combined = copyContents(contents);
-                    insert(combined, incoming.copyWithCount(accepted));
-                }
-                ItemStack filled = stacked.copyWithCount(1);
-                filled.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(combined));
-                Runnable commit = () -> {
-                    inventory.setItem(slot, filled);
-                    stacked.shrink(1);
-                    incoming.shrink(accepted);
-                    inventory.setChanged();
-                };
-                if (dropping) dropHandler.relocate(displaced.copy(), slot, filled, commit);
-                else commit.run();
-                return;
+            var combined = copyContents(contents);
+            // The entire occupied slot must fit, even when it contains fewer than a full stack.
+            if (insert(combined, displaced) != displaced.getCount()) continue;
+            int accepted = insert(combined, incoming);
+            if (accepted == 0) continue;
+            if (dropping) {
+                combined = copyContents(contents);
+                insert(combined, incoming.copyWithCount(accepted));
             }
+            ItemStack filled = stacked.copyWithCount(1);
+            filled.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(combined));
+            Runnable commit = () -> {
+                inventory.setItem(slot, filled);
+                stacked.shrink(1);
+                incoming.shrink(accepted);
+                inventory.setChanged();
+            };
+            if (dropping) dropHandler.relocate(List.of(new RelocatedStack(displaced.copy(), slot, filled)), commit);
+            else commit.run();
+            return;
         }
+
+        var original = CraftingMaterials.copy(inventory);
+        var planned = CraftingMaterials.copy(inventory);
+        var transfers = new ArrayList<BoxRelocation.Transfer>();
+        if (BoxRelocation.makeSpace(planned, config, BoxRelocation.ALL_SLOTS, incoming, transfers) < 0) return;
+        var remainder = incoming.copy();
+        storePass(planned, remainder, config, false, null);
+        int accepted = incoming.getCount() - remainder.getCount();
+        if (accepted == 0) return;
+
+        if (dropping) {
+            // Leave each displaced stack out until its own guarded pickup succeeds.
+            for (var transfer : transfers) removeTransferred(planned, transfer);
+        }
+        Runnable commit = () -> {
+            CraftingMaterials.commitChanges(original, planned, inventory);
+            incoming.shrink(accepted);
+        };
+        if (dropping) dropHandler.relocate(relocatedFromPlan(planned, transfers), commit);
+        else commit.run();
+    }
+
+    private static List<RelocatedStack> relocatedFromPlan(Container planned, List<BoxRelocation.Transfer> transfers) {
+        return transfers.stream().map(transfer -> new RelocatedStack(transfer.stack(), transfer.destination(),
+                planned.getItem(transfer.destination()))).toList();
+    }
+
+    private static void removeTransferred(Container planned, BoxRelocation.Transfer transfer) {
+        var box = planned.getItem(transfer.destination());
+        var contents = BoxRelocation.contents(box);
+        int remaining = transfer.stack().getCount();
+        for (var stack : contents) {
+            if (!ItemStack.isSameItemSameComponents(stack, transfer.stack())) continue;
+            int removed = Math.min(remaining, stack.getCount());
+            stack.shrink(removed);
+            remaining -= removed;
+        }
+        if (remaining != 0) throw new IllegalStateException("Relocation plan lost displaced items");
+        box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
     }
 
     private static NonNullList<ItemStack> copyContents(NonNullList<ItemStack> original) {
@@ -124,8 +177,9 @@ public final class ShulkerStorage {
     /** Only the synchronously reserved single box may receive a relocation pickup. */
     static int collectRelocated(Container inventory, int slot, ItemStack expectedBox, ItemStack incoming) {
         if (inventory.getItem(slot) != expectedBox || expectedBox.getCount() != 1) return 0;
-        var contents = NonNullList.withSize(27, ItemStack.EMPTY);
-        expectedBox.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).copyInto(contents);
+        var contents = BoxRelocation.contents(expectedBox);
+        if (contents == null) return 0;
+        if (contents.stream().anyMatch(stack -> !stack.isEmpty() && !ItemStack.isSameItem(stack, incoming))) return 0;
         int accepted = insert(contents, incoming);
         if (accepted > 0) {
             expectedBox.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
@@ -137,9 +191,11 @@ public final class ShulkerStorage {
 
     @FunctionalInterface
     public interface RelocationHandler {
-        // Spawn successfully before committing. A rejected spawn must leave the inventory untouched.
-        void relocate(ItemStack displaced, int destination, ItemStack filledBox, Runnable commit);
+        // Spawn every transfer before committing. A rejected spawn leaves the inventory untouched.
+        void relocate(List<RelocatedStack> displaced, Runnable commit);
     }
+
+    public record RelocatedStack(ItemStack stack, int destination, ItemStack box) {}
 
     public static boolean isShulker(ItemStack stack) {
         return !stack.isEmpty() && stack.getItem() instanceof BlockItem block
@@ -154,19 +210,12 @@ public final class ShulkerStorage {
     }
 
     private static BoxKind classify(NonNullList<ItemStack> contents, ItemStack incoming, StorageConfig config) {
-        ItemStack first = ItemStack.EMPTY;
-        for (ItemStack stack : contents) {
-            if (stack.isEmpty()) continue;
-            if (first.isEmpty()) first = stack;
-            else if (!sameType(first, stack, config)) return BoxKind.MIXED;
-        }
-        if (first.isEmpty()) return BoxKind.EMPTY;
-        return sameType(first, incoming, config) ? BoxKind.MATCHING : BoxKind.OTHER_SINGLE_TYPE;
+        if (contents.stream().allMatch(ItemStack::isEmpty)) return BoxKind.EMPTY;
+        return BoxRelocation.acceptsType(contents, incoming, config) ? BoxKind.MATCHING : null;
     }
 
     private static boolean sameType(ItemStack first, ItemStack second, StorageConfig config) {
-        return config.matchItemComponents ? ItemStack.isSameItemSameComponents(first, second)
-                : ItemStack.isSameItem(first, second);
+        return BoxRelocation.sameType(first, second, config);
     }
 
     static int insert(NonNullList<ItemStack> contents, ItemStack incoming) {
@@ -190,14 +239,12 @@ public final class ShulkerStorage {
     }
 
     private enum BoxKind {
-        MATCHING, EMPTY, MIXED, OTHER_SINGLE_TYPE;
+        MATCHING, EMPTY;
 
         boolean enabled(StorageConfig config) {
             return switch (this) {
                 case MATCHING -> config.useMatchingBoxes;
                 case EMPTY -> config.useEmptyBoxes;
-                case MIXED -> config.useMixedBoxes;
-                case OTHER_SINGLE_TYPE -> config.allowOtherSingleTypeBoxes;
             };
         }
     }

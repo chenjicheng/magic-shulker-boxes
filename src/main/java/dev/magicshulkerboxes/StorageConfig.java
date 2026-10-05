@@ -3,16 +3,13 @@ package dev.magicshulkerboxes;
 public class StorageConfig {
     // Pickup storage and schematic refilling are independent personal choices.
     public boolean pickupStorageEnabled = false;
-    public boolean onlyWhenInventoryFull = true;
+    public boolean preferEmptyBoxesOverInventory = false;
     public boolean useMatchingBoxes = true;
     public boolean useEmptyBoxes = true;
-    public boolean useMixedBoxes = true;
-    public boolean allowOtherSingleTypeBoxes = false;
     public boolean splitStackedBoxes = true;
     public MakeSpaceMode makeSpaceMode = MakeSpaceMode.MOVE_TO_BOX;
     public boolean useHotbarForSpace = false;
     public boolean allowPartialStacksForSpace = true;
-    public boolean allowMixedItemsWhenMakingSpace = true;
     public boolean preferExistingBoxesBeforeMakingSpace = true;
     public boolean includeOffhand = false;
     public boolean matchItemComponents = false;

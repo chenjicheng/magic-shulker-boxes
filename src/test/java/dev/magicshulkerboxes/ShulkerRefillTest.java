@@ -111,9 +111,9 @@ class ShulkerRefillTest {
         }
     }
 
-    @Test void makingSpaceRespectsMixedItemProtection() {
+    @Test void makingSpaceNeverMixesUnrelatedItems() {
         var inv = full(); inv.setItem(35, box(new ItemStack(Items.STONE, 12), new ItemStack(Items.COBBLESTONE)));
-        var config = new StorageConfig(); config.allowMixedItemsWhenMakingSpace = false;
+        var config = new StorageConfig();
         assertEquals(0, ShulkerRefill.take(inv, 35, 0, Items.STONE, config));
         assertEquals(13, contents(inv.getItem(35)).stream().mapToInt(ItemStack::getCount).sum());
     }

@@ -160,7 +160,7 @@ npm run docs:preview
 
 `RefillSearch` 只读查找组件完全匹配的材料。可选 Mixin 包围 Litematica `WorldUtils.doEasyPlaceAction` 和 `EasyPlaceUtils.handleEasyPlace`，仅在轻松放置调用 `InventoryUtils.schematicWorldPickBlock` 时触发取料，普通选取方块不受影响。`LitematicaMixinPlugin` 在未安装 Litematica 时跳过这些客户端目标；构建和专用服务端不依赖其 JAR。
 
-`refill_v4` 请求包含盒子栏位、盒内栏位、有长度上限的物品 ID 和 64 字符 SHA-256 指纹。`ItemFingerprint` 使用原版 `HashOps`、物品编解码器及注册表上下文计算与数量无关的规范化指纹；无法编码或含临时组件时拒绝，不接收完整客户端物品数据。旧 v1/v2/v3 通道不再注册。`RefillNetwork` 在服务端线程检查来源指纹、游戏模式、菜单/光标状态和玩家有效设置，并重新读取真实物品；每位玩家每 10 个服务端 tick 最多处理一次，重复请求遇到背包已有材料时直接停止。相同盒内组件和数量相同的候选只规划一次，数量不同仍分别尝试。`ShulkerRefill` 先在副本中规划取出、腾栏和拆盒，全部可行后才提交；失败不修改背包。成功只走原版背包同步，失败可发送限频快捷栏提示。
+`refill_v4` 请求包含盒子栏位、盒内栏位、有长度上限的物品 ID 和 64 字符 SHA-256 指纹。`ItemFingerprint` 使用原版 `HashOps`、物品编解码器及注册表上下文计算与数量无关的规范化指纹；无法编码或含临时组件时拒绝，不接收完整客户端物品数据。旧 v1/v2/v3 通道不再注册。`RefillNetwork` 在服务端线程检查来源指纹、游戏模式、菜单/光标状态和玩家有效设置，并重新读取真实物品；每位玩家每 10 个服务端 tick 最多处理一次，重复请求遇到背包已有材料时直接停止。相同盒内组件和数量相同的候选只规划一次，数量不同仍分别尝试。`ShulkerRefill` 先在副本中规划取出、同类收纳腾栏和拆盒，全部可行后才提交；失败不修改背包。成功只走原版背包同步，失败可发送限频快捷栏提示。
 
 取料不会直接放置方块或绕过 Litematica 的快捷栏保护和放置校验。等待同步期间抑制的是本次缺料产生的通用轻松放置警告；继续按住放置键后，由原有流程选物并放置。
 
@@ -188,7 +188,7 @@ npm run docs:preview
 
 `carpetJar` 只追加本地测试/开发运行依赖，不将 Carpet 打包进模组。游戏测试在每个用例执行期间将 Carpet 的实际堆叠上限设为 64，并验证其 Mixin 已生效；用例结束后恢复原设置。
 
-单元测试报告：`build/reports/tests/test/index.html`。GameTest 的执行结果会输出到控制台和测试运行目录日志。每个拾取用例使用实际的 Minecraft 服务端玩家、背包和物品实体；覆盖原版优先、部分拾取、拾取归属/延迟、堆叠无空栏回退、主动收纳拆分、禁用配置等路径。
+单元测试报告：`build/reports/tests/test/index.html`。GameTest 的执行结果会输出到控制台和测试运行目录日志。每个拾取用例使用实际的 Minecraft 服务端玩家、背包和物品实体；覆盖同类盒优先与无同类盒时的背包/空盒优先设置、部分拾取、拾取归属/延迟、堆叠无空栏回退、主动收纳拆分、禁用配置等路径。
 
 ### 游戏界面复测
 
@@ -201,14 +201,12 @@ npm run docs:preview
 | `/function msb_test:refill_silent` | 在失败场景关闭提示；再次尝试不出现取料提示 |
 | `/function msb_test:refill_disabled` | 关闭取料并开启提示；尝试时说明功能已禁用 |
 | `/function msb_test:refill_enabled` | 清除个人覆盖并恢复取料场景 |
-| `/function msb_test:matching` | 同类蓝盒 63 个圆石变成 64＋4，前面的空盒和杂物盒不变 |
-| `/function msb_test:mixed` | 默认优先复用已有红色杂物盒，16 个堆叠空盒不变 |
+| `/function msb_test:matching` | 同类蓝盒 63 个圆石变成 64＋4，前面的空盒和含无关物品的盒子不变 |
 | `/function msb_test:partial` | 蓝盒只剩 1 个容量，拾取 5 个后地面留下 4 个 |
-| `/function msb_test:split` | 先设置 `onlyWhenInventoryFull=false` 并重启；16 个命名蓝盒变成 15 个空盒与 1 个装有 5 个圆石的盒子 |
-| `/function msb_test:auto_space` | 无空栏，3 个石头腾栏后与圆石、砂砾一起进入一个新盒；盒子数量为 15＋1 |
-| `/function msb_test:fallback` | `allowOtherSingleTypeBoxes=false` 时圆石留地；设为 `true` 并重启后可进入仅含泥土的盒子 |
+| `/function msb_test:split` | 先设置 `preferEmptyBoxesOverInventory=true` 并重启；16 个命名蓝盒变成 15 个空盒与 1 个装有 5 个圆石的盒子 |
+| `/function msb_test:auto_space` | 无空栏，将同类石头合并后拆出独立盒；最终 13 个空盒与石头、圆石、砂砾各一个盒 |
 
-`auto_space` 可分别在 `MOVE_TO_BOX`、`DROP_AND_PICKUP` 下运行；默认设置下只拆一个盒子，主背包第一栏最终包含石头 3、圆石 5、砂砾 7。`DISABLED` 时盒子保持 16，掉落物留地。测试配置修改后须重启，结束后恢复所需配置。
+`auto_space` 可分别在 `MOVE_TO_BOX`、`DROP_AND_PICKUP` 下运行；默认设置下拆出三个单类盒，分别包含石头 131、圆石 5、砂砾 7；空盒剩余 13 个。`DISABLED` 时盒子保持 16，掉落物留地。测试配置修改后须重启，结束后恢复所需配置。
 
 ## 代码结构与约束
 
@@ -233,7 +231,7 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 收纳先在内容副本上计算实际可接收数量，成功后才提交一个盒子的内容并扣除输入数量。堆叠源盒只减 1，其余盒子的内容不变；没有可接收容量时不拆盒、不占空栏。超过原版 27 栏的非标准潜影盒数据会整体跳过，以免截断其他模组的数据。
 
-腾栏事务先为被移动栏位的全部物品预留容量，再计算可接收的掉落物数量。丢出模式只有世界接纳了掉落实体才提交背包变更；同步回收只允许写入刚预留的那个单盒，目标被替换就保留掉落物。临时预留在 `finally` 清理；未收回的实体带有禁止再次腾栏的持久标记。真实 GameTest 覆盖两种模式、非满组、连续杂物收纳及重复触碰不循环腾栏。
+腾栏事务先为被移动栏位的全部物品预留容量，再计算可接收的掉落物数量。丢出模式只有世界接纳了全部掉落实体才提交背包变更；同步回收只允许写入刚预留的那个单盒，目标被替换就保留掉落物。临时预留在 `finally` 清理；未收回的实体带有禁止再次腾栏的持久标记。真实 GameTest 覆盖两种模式、非满组、连续不同物品的独立收纳及重复触碰不循环腾栏。
 
 正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v6` 和 `preferences_v6` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
 
@@ -267,3 +265,11 @@ YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，�
 - [Fabric 1.21.11 网络同步](https://docs.fabricmc.net/1.21.11/develop/networking)
 - [Carpet 1.21.11 潜影盒堆叠实现](https://github.com/gnembon/fabric-carpet/blob/1.21.11/src/main/java/carpet/mixins/ItemStack_stackableShulkerBoxesMixin.java)
 - [Carpet 1.4.194 官方发布](https://github.com/gnembon/fabric-carpet/releases/tag/1.4.194)
+
+`BoxRelocation` 在背包副本上规划被移动物品，优先使用同类单盒，再使用空盒。必要时可将多栏同类物品合并到单独拆出的盒子，腾出一个栏位。拾取规划只有确认能接收新物品后才提交，取料和合成则要求整个操作成功。IPN 掩码同时保护被移动栏位和随身目的盒。含无关物品的盒子即使有容量也不作为自动收纳目的地。
+
+`ConfigFile` 仅在磁盘读取时移除旧混装选项和权限，在验证剩余字段后完整备份到 `.pre-single-type.bak`，保留其他稀疏偏好。命令、GUI、按键和网络输入不再包含这些字段。版本 1 文件在原有 `.pre-0.3.2.bak` 迁移中同时移除旧项；无效文件和备份冲突保持原样。历史发行说明仍对应各自发布时的行为。
+
+`ItemEntityMixin` 与菜单转移先执行 `ShulkerStorage.storeMatching`，默认再走原版背包，最后使用空盒收纳余量；`preferEmptyBoxesOverInventory=true` 将空盒阶段提前到背包前。旧优先设置按反值迁移并重命名权限，不接受同时含新旧字段的冲突文件。`StorageFailure` 对可确认的空间失败统一发送服务端语言回退的快捷栏提示，按玩家限频 40 tick；空间失败不受其他补货失败提示开关影响。合成规划仅在来源拆盒或余留物安置失败时触发此提示，材料缺失和配方变化保持原有处理。
+
+设置界面仅构建含选项的分组，避免已移除选项留下空分组导致 YACL 打开失败。`ClientSmokeGameTests` 实际打开个人与世界设置、检查字段权限并生成截图；新增优先设置沿用同一编辑与确认流程。

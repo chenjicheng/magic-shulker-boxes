@@ -102,8 +102,8 @@ class PlayerSettingsStoreTest {
         store.save(first, ConfigFile.parsePreferences("{\"makeSpaceMode\":\"DISABLED\"}"));
         assertEquals(StorageConfig.MakeSpaceMode.DISABLED, store.resolve(first, server).makeSpaceMode);
         assertEquals(StorageConfig.MakeSpaceMode.MOVE_TO_BOX, store.resolve(second, server).makeSpaceMode);
-        server.useMixedBoxes = false;
-        assertFalse(store.resolve(first, server).useMixedBoxes);
+        server.useMatchingBoxes = false;
+        assertFalse(store.resolve(first, server).useMatchingBoxes);
         store = new PlayerSettingsStore(directory);
         assertEquals(StorageConfig.MakeSpaceMode.DISABLED, store.resolve(first, server).makeSpaceMode);
         var returned = store.read(first);

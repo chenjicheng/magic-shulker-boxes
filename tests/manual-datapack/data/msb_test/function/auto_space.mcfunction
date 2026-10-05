@@ -3,4 +3,4 @@ item replace entity @s hotbar.0 with minecraft:blue_shulker_box[minecraft:custom
 item replace entity @s inventory.0 with minecraft:stone 3
 summon minecraft:item ~ ~0.5 ~ {Item:{id:"minecraft:cobblestone",count:5},PickupDelay:20s}
 summon minecraft:item ~ ~0.5 ~ {Item:{id:"minecraft:gravel",count:7},PickupDelay:40s}
-tellraw @s {text:"MSB auto space: 15 empty boxes + 1 box with stone 3, cobblestone 5, gravel 7. No lost items."}
+tellraw @s {text:"MSB auto space: 13 empty boxes + 3 single-type boxes: stone 131, cobblestone 5, gravel 7. No lost items."}

@@ -10,6 +10,12 @@ public final class CraftingRefill {
 
     public static boolean refill(Container inventory, Container grid, List<ItemStack> template,
                                  List<ItemStack> remainders, StorageConfig config) {
+        return refill(inventory, grid, template, remainders, config, () -> {});
+    }
+
+    /** Reports a capacity failure once; missing materials and changed input patterns remain silent. */
+    public static boolean refill(Container inventory, Container grid, List<ItemStack> template,
+                                 List<ItemStack> remainders, StorageConfig config, Runnable blockedSpace) {
         if (!config.craftRefill || grid.getContainerSize() < 1 || grid.getContainerSize() > 9
                 || template.size() != grid.getContainerSize() || remainders.size() != template.size()) return false;
         var originalInventory = CraftingMaterials.copy(inventory);
@@ -23,7 +29,6 @@ public final class CraftingRefill {
             if (!current.isEmpty() && ItemStack.isSameItemSameComponents(wanted, current)) continue;
             if (!current.isEmpty() && !ItemStack.matches(current, remainders.get(cell))) return false;
             ItemStack replacement = ItemStack.EMPTY;
-            int boxSlot = -1;
             for (int slot = 0; slot < Math.min(36, plannedInventory.getContainerSize()); slot++) {
                 var source = plannedInventory.getItem(slot);
                 if (!source.isEmpty() && ItemStack.isSameItemSameComponents(source, wanted)) {
@@ -31,12 +36,19 @@ public final class CraftingRefill {
                 }
             }
             if (replacement.isEmpty()) {
+                boolean[] spaceBlocked = {false};
                 var taken = CraftingMaterials.takeBox(plannedInventory, stack -> ItemStack.isSameItemSameComponents(stack, wanted),
-                        1, config, box -> template.stream().noneMatch(input -> !input.isEmpty() && input.is(box.getItem())));
-                if (taken == null) return false;
-                replacement = taken.stack(); boxSlot = taken.boxSlot();
+                        1, config, box -> template.stream().noneMatch(input -> !input.isEmpty() && input.is(box.getItem())),
+                        () -> spaceBlocked[0] = true);
+                if (taken == null) {
+                    if (spaceBlocked[0]) blockedSpace.run();
+                    return false;
+                }
+                replacement = taken.stack();
             }
-            if (!current.isEmpty() && !CraftingMaterials.keepRemainder(plannedInventory, current, boxSlot, config)) return false;
+            if (!current.isEmpty() && !CraftingMaterials.keepRemainder(plannedInventory, current, config)) {
+                blockedSpace.run(); return false;
+            }
             CraftingMaterials.write(plannedGrid, cell, replacement);
             changed = true;
         }

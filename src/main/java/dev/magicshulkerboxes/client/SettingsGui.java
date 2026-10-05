@@ -28,8 +28,8 @@ public final class SettingsGui {
             case "schematicRefill", "enderChestRefill", "refillFullStack", "refillMakeSpace", "refillFailureMessages" -> "refill";
             case "ipnRefill" -> "ipn";
             case "craftRefill" -> "craft";
-            case "useMatchingBoxes", "useEmptyBoxes", "useMixedBoxes", "allowOtherSingleTypeBoxes", "includeOffhand" -> "boxes";
-            case "splitStackedBoxes", "makeSpaceMode", "useHotbarForSpace", "allowPartialStacksForSpace", "allowMixedItemsWhenMakingSpace", "preferExistingBoxesBeforeMakingSpace" -> "space";
+            case "useMatchingBoxes", "useEmptyBoxes", "includeOffhand" -> "boxes";
+            case "splitStackedBoxes", "makeSpaceMode", "useHotbarForSpace", "allowPartialStacksForSpace", "preferExistingBoxesBeforeMakingSpace" -> "space";
             default -> "pickup";
         };
     }
@@ -66,6 +66,7 @@ public final class SettingsGui {
             }
             for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
+                boolean hasOptions = false;
                 for (String key : ConfigFile.optionNames()) {
                     if (!group(key).equals(section)) continue;
                     Option<?> option;
@@ -85,9 +86,10 @@ public final class SettingsGui {
                                 .available(ClientSettings.session.editable(revision) && ClientSettings.canEdit(key)).build();
                     }
                     group.option(option);
+                    hasOptions = true;
                     editable.add(option);
                 }
-                category.group(group.build());
+                if (hasOptions) category.group(group.build());
             }
             var builder = YetAnotherConfigLib.createBuilder().title(text("title")).category(category.build())
                     .save(() -> ClientSettings.savePersonal(revision, draft.values()));
@@ -109,6 +111,7 @@ public final class SettingsGui {
             var editable = new ArrayList<Option<?>>();
             for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
+                boolean hasOptions = false;
                 for (String key : values.keySet()) {
                     if (key.equals("playerEditableSettings")) continue;
                     if (!group(key).equals(section)) continue;
@@ -126,9 +129,10 @@ public final class SettingsGui {
                                 .customController(o -> new SettingsChoice<>(o, v -> text("gui.toggle." + v.name()))).build();
                     }
                     group.option(option);
+                    hasOptions = true;
                     editable.add(option);
                 }
-                category.group(group.build());
+                if (hasOptions) category.group(group.build());
             }
             var permissions = OptionGroup.createBuilder().name(text("gui.permissions"))
                     .option(LabelOption.create(text("gui.permissions_hint")));

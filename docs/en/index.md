@@ -13,7 +13,7 @@ hero:
       link: https://github.com/chenjicheng/magic-shulker-boxes/releases
 features:
   - title: Ordered storage
-    details: Fill matching, empty, then mixed boxes, with an optional single-type fallback.
+    details: Fill matching single-type boxes, then empty boxes; keep displaced items separate.
   - title: Carpet stacking support
     details: Separate one box before changing its contents; optionally free a slot automatically.
   - title: Server rules, personal preferences

@@ -4,7 +4,7 @@
 
 Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.8.0**.
 
-After enabling pickup storage, store overflow in matching, empty, then mixed boxes, with an optional single-type fallback. Pickup storage is off by default. Supports Carpet shulker stacking, safe box splitting, automatic space-making, partial stacks and mixed-box reuse.
+After enabling pickup storage, use matching single-type boxes first, then inventory capacity, then empty boxes for overflow. Pickup storage is off by default. Supports Carpet shulker stacking, safe splitting, automatic space-making and partial stacks. All relocation paths store displaced items in matching or separate empty boxes.
 
 - Server-only installation works for multiplayer; singleplayer and LAN storage runs on the host.
 - Pickup storage and schematic refilling have independent switches. Servers can permit personal preferences, letting players override either server default.

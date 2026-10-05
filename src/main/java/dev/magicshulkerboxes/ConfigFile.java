@@ -23,6 +23,8 @@ public final class ConfigFile {
     private static final int CONFIG_VERSION = 2;
     private static final String VERSION_KEY = "configVersion";
     private static final String REMOVED_CARPET_SETTING = "carpetRefill";
+    private static final Set<String> REMOVED_MIXED_SETTINGS = Set.of(
+            "useMixedBoxes", "allowOtherSingleTypeBoxes", "allowMixedItemsWhenMakingSpace");
 
     public static JsonObject parsePreferences(String json) throws IOException {
         if (json.length() > MAX_PREFERENCES_LENGTH) throw new IOException("Player settings exceed 4096 characters");
@@ -109,7 +111,7 @@ public final class ConfigFile {
             if (!version.getAsString().equals(Integer.toString(CONFIG_VERSION))) {
                 throw new IOException("Unsupported configVersion; file kept unchanged: " + path);
             }
-            return migrateRemovedCarpetSetting(path, document, defaults);
+            return migrateRemovedSettings(path, document, defaults);
         }
         // 0.3.0 and earlier had no schema marker and cannot be distinguished reliably.
         // The upgrade policy deliberately resets all of them, preserving exact original bytes first.
@@ -119,13 +121,67 @@ public final class ConfigFile {
         return defaults;
     }
 
-    /** Disk-only compatibility: retire the 0.7 setting without accepting it in commands or network input. */
-    private static JsonObject migrateRemovedCarpetSetting(Path path, JsonObject document, JsonObject defaults) throws IOException {
+    /** Disk-only compatibility; retired choices are rejected in commands and network input. */
+    private static JsonObject migrateRemovedSettings(Path path, JsonObject document, JsonObject defaults) throws IOException {
         var migrated = document.deepCopy();
-        var removed = migrated.remove(REMOVED_CARPET_SETTING);
-        boolean changed = removed != null;
-        if (removed != null && (!removed.isJsonPrimitive() || !removed.getAsJsonPrimitive().isBoolean())) {
-            throw new IOException("Retired carpetRefill setting must be true or false; file kept unchanged: " + path);
+        var permissions = migrated.get("playerEditableSettings");
+        boolean storageChanged = hasRetiredMixedSetting(migrated) || migrated.has("onlyWhenInventoryFull")
+                || (permissions != null && permissions.isJsonArray()
+                    && permissions.getAsJsonArray().contains(new com.google.gson.JsonPrimitive("onlyWhenInventoryFull")));
+        boolean changed = removeRetiredSettings(migrated);
+        changed |= migrateInventoryPriority(migrated);
+        if (!changed) return document;
+        // Validate every remaining choice before touching the file or creating its exact-byte backup.
+        validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
+        var backup = backupOriginal(path, storageChanged ? ".pre-single-type.bak" : ".pre-0.8.0.bak");
+        writeDocument(path, migrated);
+        MagicShulkerBoxes.LOGGER.info("Removed retired settings; backup: {} / 已移除旧设置，备份：{}", backup, backup);
+        return migrated;
+    }
+
+    private static boolean hasRetiredMixedSetting(JsonObject document) {
+        if (REMOVED_MIXED_SETTINGS.stream().anyMatch(document::has)) return true;
+        var permissions = document.get("playerEditableSettings");
+        return permissions != null && permissions.isJsonArray() && permissions.getAsJsonArray().asList().stream()
+                .anyMatch(name -> name.isJsonPrimitive() && name.getAsJsonPrimitive().isString()
+                        && REMOVED_MIXED_SETTINGS.contains(name.getAsString()));
+    }
+
+    private static boolean migrateInventoryPriority(JsonObject document) throws IOException {
+        var old = document.remove("onlyWhenInventoryFull");
+        boolean changed = old != null;
+        if (old != null) {
+            if (!old.isJsonPrimitive() || !old.getAsJsonPrimitive().isBoolean()
+                    || document.has("preferEmptyBoxesOverInventory")) {
+                throw new IOException("Invalid or conflicting inventory priority settings");
+            }
+            document.addProperty("preferEmptyBoxesOverInventory", !old.getAsBoolean());
+        }
+        var permissions = document.get("playerEditableSettings");
+        if (permissions != null && permissions.isJsonArray()) {
+            for (int i = 0; i < permissions.getAsJsonArray().size(); i++) {
+                var key = permissions.getAsJsonArray().get(i);
+                if (key.isJsonPrimitive() && key.getAsJsonPrimitive().isString()
+                        && key.getAsString().equals("onlyWhenInventoryFull")) {
+                    permissions.getAsJsonArray().set(i, new com.google.gson.JsonPrimitive("preferEmptyBoxesOverInventory"));
+                    changed = true;
+                }
+            }
+        }
+        return changed;
+    }
+
+    private static boolean removeRetiredSettings(JsonObject migrated) throws IOException {
+        boolean changed = false;
+        var retired = new java.util.HashSet<>(REMOVED_MIXED_SETTINGS);
+        retired.add(REMOVED_CARPET_SETTING);
+        for (var key : retired) {
+            var removed = migrated.remove(key);
+            if (removed == null) continue;
+            changed = true;
+            if (!removed.isJsonPrimitive() || !removed.getAsJsonPrimitive().isBoolean()) {
+                throw new IOException("Retired setting must be true or false: " + key);
+            }
         }
         var permissions = migrated.get("playerEditableSettings");
         if (permissions != null && permissions.isJsonArray()) {
@@ -133,20 +189,14 @@ public final class ConfigFile {
             var seen = new java.util.HashSet<String>();
             for (var name : permissions.getAsJsonArray()) {
                 if (!name.isJsonPrimitive() || !name.getAsJsonPrimitive().isString() || !seen.add(name.getAsString())) {
-                    throw new IOException("Invalid or duplicate editable option; file kept unchanged: " + path);
+                    throw new IOException("Invalid or duplicate editable option");
                 }
-                if (name.getAsString().equals(REMOVED_CARPET_SETTING)) changed = true;
+                if (retired.contains(name.getAsString())) changed = true;
                 else retained.add(name.deepCopy());
             }
             migrated.add("playerEditableSettings", retained);
         }
-        if (!changed) return document;
-        // Validate every remaining choice before touching the file or creating its exact-byte backup.
-        validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
-        var backup = backupOriginal(path, ".pre-0.8.0.bak");
-        writeDocument(path, migrated);
-        MagicShulkerBoxes.LOGGER.info("Removed retired Carpet setting; backup: {} / 已移除旧假人设置，备份：{}", backup, backup);
-        return migrated;
+        return changed;
     }
 
     /** Version 1 stored the pickup switch as `enabled`; migrate the file, not the runtime schema. */
@@ -157,6 +207,8 @@ public final class ConfigFile {
         var migrated = old.deepCopy();
         var pickup = migrated.remove("enabled");
         if (pickup != null) migrated.add("pickupStorageEnabled", pickup);
+        removeRetiredSettings(migrated);
+        migrateInventoryPriority(migrated);
         validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
         var backup = backupOriginal(path, ".pre-0.3.2.bak");
         writeDocument(path, migrated);

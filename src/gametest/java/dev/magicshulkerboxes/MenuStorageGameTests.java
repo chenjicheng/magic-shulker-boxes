@@ -292,18 +292,18 @@ public class MenuStorageGameTests {
     private static void withConfig(boolean overflow, Runnable test) {
         var c = MagicShulkerBoxes.config();
         boolean oldEnabled = c.pickupStorageEnabled,
-                oldFull = c.onlyWhenInventoryFull,
+                oldFull = c.preferEmptyBoxesOverInventory,
                 oldAllow = c.allowPlayerSettings;
         var oldSpace = c.makeSpaceMode;
         try {
             c.pickupStorageEnabled = true;
-            c.onlyWhenInventoryFull = overflow;
+            c.preferEmptyBoxesOverInventory = !overflow;
             c.allowPlayerSettings = false;
             c.makeSpaceMode = StorageConfig.MakeSpaceMode.DISABLED;
             test.run();
         } finally {
             c.pickupStorageEnabled = oldEnabled;
-            c.onlyWhenInventoryFull = oldFull;
+            c.preferEmptyBoxesOverInventory = oldFull;
             c.allowPlayerSettings = oldAllow;
             c.makeSpaceMode = oldSpace;
         }

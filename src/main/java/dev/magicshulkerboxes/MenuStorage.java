@@ -48,13 +48,17 @@ public final class MenuStorage {
         if (!config.pickupStorageEnabled) return vanilla.getAsBoolean();
         // Trade outputs are indivisible: never charge a full offer for a partial result.
         if (source instanceof MerchantResultSlot
-                && !fits(menu, inventory, incoming, start, end, reverse, config)) return false;
-        int stored = 0;
-        if (!config.onlyWhenInventoryFull)
-            stored = ShulkerStorage.store(inventory, incoming, config, true, null);
+                && !fits(menu, inventory, incoming, start, end, reverse, config)) {
+            StorageFailure.noSpace(player); return false;
+        }
+        int stored = ShulkerStorage.storeMatching(inventory, incoming, config);
+        if (config.preferEmptyBoxesOverInventory)
+            stored += ShulkerStorage.store(inventory, incoming, config, true, null);
         boolean accepted = !incoming.isEmpty() && vanilla.getAsBoolean();
-        if (config.onlyWhenInventoryFull)
-            stored = ShulkerStorage.store(inventory, incoming, config, true, null);
+        if (!config.preferEmptyBoxesOverInventory)
+            stored += ShulkerStorage.store(inventory, incoming, config, true, null);
+        if (!incoming.isEmpty() && !ShulkerStorage.isShulker(incoming)
+                && incoming.getItem().canFitInsideContainerItems()) StorageFailure.noSpace(player);
         return accepted || stored > 0;
     }
 
@@ -68,7 +72,8 @@ public final class MenuStorage {
             StorageConfig config) {
         var copy = CraftingMaterials.copy(inventory);
         var remaining = stack.copy();
-        if (!config.onlyWhenInventoryFull)
+        ShulkerStorage.storeMatching(copy, remaining, config);
+        if (config.preferEmptyBoxesOverInventory)
             ShulkerStorage.store(copy, remaining, config, true, null);
         // Mirror vanilla's merging and its single empty-slot pass, including destination stack
         // limits.
@@ -95,13 +100,13 @@ public final class MenuStorage {
                 }
             }
         }
-        if (config.onlyWhenInventoryFull) ShulkerStorage.store(copy, remaining, config, true, null);
+        if (!config.preferEmptyBoxesOverInventory) ShulkerStorage.store(copy, remaining, config, true, null);
         return remaining.isEmpty();
     }
 
     public static void collectDeposited(
             Inventory inventory, net.minecraft.world.Container before, StorageConfig config) {
-        if (!config.pickupStorageEnabled || config.onlyWhenInventoryFull) return;
+        if (!config.pickupStorageEnabled) return;
         for (int i = 0; i < 36; i++) {
             var current = inventory.getItem(i);
             var old = before.getItem(i);
@@ -117,7 +122,8 @@ public final class MenuStorage {
             var planned = CraftingMaterials.copy(inventory);
             var rest = planned.getItem(i);
             var remaining = rest.split(added);
-            ShulkerStorage.store(planned, remaining, config, false, null);
+            if (config.preferEmptyBoxesOverInventory) ShulkerStorage.store(planned, remaining, config, false, null);
+            else ShulkerStorage.storeMatching(planned, remaining, config);
             if (!remaining.isEmpty()) {
                 var destination = planned.getItem(i);
                 if (destination.isEmpty()) CraftingMaterials.write(planned, i, remaining);

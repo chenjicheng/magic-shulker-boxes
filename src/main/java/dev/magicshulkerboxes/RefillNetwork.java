@@ -101,6 +101,7 @@ public final class RefillNetwork {
     }
 
     private static void failure(ServerPlayer player, StorageConfig config, String reason, int now) {
+        if (reason.equals("space")) { StorageFailure.noSpace(player); return; }
         var last = NOTICES.get(player);
         if (!config.refillFailureMessages || (last != null && now - last < 40)) return;
         NOTICES.put(player, now);

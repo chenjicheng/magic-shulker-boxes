@@ -71,14 +71,14 @@ public class PickupGameTests implements CustomTestMethodInvoker {
     }
 
     @GameTest
-    public void vanillaSlotsReceiveItemsBeforeShulkerBoxes(GameTestHelper helper) {
+    public void matchingBoxesReceivePickupBeforeVanillaSlots(GameTestHelper helper) {
         var player = fullPlayer(helper);
         player.getInventory().setItem(0, box(new ItemStack(Items.COBBLESTONE)));
         player.getInventory().setItem(5, new ItemStack(Items.COBBLESTONE, 62));
         var drop = drop(helper, 5);
         drop.playerTouch(player);
-        check(helper, player.getInventory().getItem(5).getCount() == 64, "Vanilla stack fills first");
-        check(helper, countContents(player.getInventory().getItem(0)) == 4, "Only remainder enters shulker");
+        check(helper, player.getInventory().getItem(5).getCount() == 62, "Vanilla stack stays unchanged when the matching box fits");
+        check(helper, countContents(player.getInventory().getItem(0)) == 6, "Matching box receives the whole pickup first");
         check(helper, drop.isRemoved(), "All five items were collected");
         helper.succeed();
     }
@@ -119,26 +119,27 @@ public class PickupGameTests implements CustomTestMethodInvoker {
     }
 
     @GameTest
-    public void stackedEmptyBoxWithNoSlotFallsBackToMixedBox(GameTestHelper helper) {
-        var player = fullPlayer(helper);
-        var stacked = box();
-        stacked.setCount(16);
-        player.getInventory().setItem(0, stacked);
-        player.getInventory().setItem(1, box(new ItemStack(Items.STONE), new ItemStack(Items.DIRT)));
-        var drop = drop(helper, 5);
-        drop.playerTouch(player);
-        check(helper, stacked.getCount() == 16 && countContents(stacked) == 0, "Stacked empty boxes stay unchanged");
-        check(helper, countContents(player.getInventory().getItem(1)) == 7, "Mixed box receives overflow");
-        check(helper, drop.isRemoved(), "Mixed storage collects entity");
-        helper.succeed();
+    public void unrelatedBoxesAreSkippedWhenMakingSpaceIsDisabled(GameTestHelper helper) {
+        var config = MagicShulkerBoxes.config(); var previous = config.makeSpaceMode;
+        try {
+            config.makeSpaceMode = StorageConfig.MakeSpaceMode.DISABLED;
+            var player = fullPlayer(helper);
+            player.getInventory().setItem(0, box()); player.getInventory().getItem(0).setCount(16);
+            player.getInventory().setItem(1, box(new ItemStack(Items.STONE), new ItemStack(Items.DIRT)));
+            var dropped = drop(helper, 5); dropped.playerTouch(player);
+            check(helper, player.getInventory().getItem(0).getCount() == 16, "Empty boxes stay stacked");
+            check(helper, countContents(player.getInventory().getItem(1)) == 2, "Unrelated contents remain unchanged");
+            check(helper, !dropped.isRemoved() && dropped.getItem().getCount() == 5, "Overflow stays on the ground");
+            helper.succeed();
+        } finally { config.makeSpaceMode = previous; }
     }
 
     @GameTest
     public void boxesFirstModeSplitsOneBoxIntoFreeMainSlot(GameTestHelper helper) {
         var config = MagicShulkerBoxes.config();
-        boolean previous = config.onlyWhenInventoryFull;
+        boolean previous = config.preferEmptyBoxesOverInventory;
         try {
-            config.onlyWhenInventoryFull = false;
+            config.preferEmptyBoxesOverInventory = true;
             var player = fullPlayer(helper);
             var stacked = new ItemStack(Items.BLUE_SHULKER_BOX, 16);
             stacked.set(DataComponents.CUSTOM_NAME, Component.literal("Building blocks"));
@@ -154,7 +155,7 @@ public class PickupGameTests implements CustomTestMethodInvoker {
             check(helper, countContents(filled) == 5 && drop.isRemoved(), "Pickup was stored in split box");
             helper.succeed();
         } finally {
-            config.onlyWhenInventoryFull = previous;
+            config.preferEmptyBoxesOverInventory = previous;
         }
     }
 
@@ -192,23 +193,23 @@ public class PickupGameTests implements CustomTestMethodInvoker {
     }
 
     @GameTest
-    public void defaultMakesSpaceAndRepeatedMixedPickupsReuseOneBox(GameTestHelper helper) {
+    public void repeatedPickupsKeepEachTypeInItsOwnBox(GameTestHelper helper) {
         var player = fullPlayer(helper);
         var stacked = new ItemStack(Items.BLUE_SHULKER_BOX, 16);
         stacked.set(DataComponents.CUSTOM_NAME, Component.literal("Auto space"));
         player.getInventory().setItem(0, stacked);
         player.getInventory().setItem(9, new ItemStack(Items.STONE, 3));
-        var first = drop(helper, 5);
-        first.playerTouch(player);
-        var filled = player.getInventory().getItem(9);
-        check(helper, stacked.getCount() == 15 && countContents(stacked) == 0, "Exactly one box split");
-        check(helper, countContents(filled) == 8 && first.isRemoved(), "Partial inventory stack and pickup conserved");
-        check(helper, filled.getHoverName().getString().equals("Auto space"), "Box name preserved");
+        var first = drop(helper, 5); first.playerTouch(player);
+        check(helper, stacked.getCount() == 14 && countContents(stacked) == 0, "Two dedicated boxes split");
+        checkContents(helper, player.getInventory().getItem(9), Items.STONE, 67);
+        checkContents(helper, player.getInventory().getItem(10), Items.COBBLESTONE, 5);
+        check(helper, first.isRemoved(), "First pickup collected");
+        check(helper, player.getInventory().getItem(9).getHoverName().getString().equals("Auto space"), "Box name preserved");
         var second = new ItemEntity(helper.getLevel(), 0, 4, 0, new ItemStack(Items.GRAVEL, 7));
-        second.setNoPickUpDelay();
-        second.playerTouch(player);
-        check(helper, stacked.getCount() == 15, "Mixed pickup reuses box without another split");
-        check(helper, countContents(player.getInventory().getItem(9)) == 15 && second.isRemoved(), "Mixed items conserved");
+        second.setNoPickUpDelay(); second.playerTouch(player);
+        check(helper, stacked.getCount() == 13 && second.isRemoved(), "One additional box for the next type");
+        checkContents(helper, player.getInventory().getItem(9), Items.STONE, 131);
+        checkContents(helper, player.getInventory().getItem(11), Items.GRAVEL, 7);
         helper.succeed();
     }
 
@@ -228,8 +229,10 @@ public class PickupGameTests implements CustomTestMethodInvoker {
             var incoming = drop(helper, 5);
             incoming.playerTouch(player);
             var filled = player.getInventory().getItem(9);
-            check(helper, stacked.getCount() == 15 && countContents(filled) == 8, "Drop and repick preserves all eight items");
+            check(helper, stacked.getCount() == 14 && countContents(filled) == 67, "Drop and repick preserves every displaced item");
             check(helper, filled.get(DataComponents.CONTAINER).stream().anyMatch(s -> s.getHoverName().getString().equals("Three stones") && s.getCount() == 3), "Displaced components preserved");
+            checkContents(helper, filled, Items.STONE, 67);
+            checkContents(helper, player.getInventory().getItem(10), Items.COBBLESTONE, 5);
             check(helper, incoming.isRemoved(), "Original pickup collected");
             check(helper, helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(3)).stream().noneMatch(e -> e.getTags().contains("magic_shulker_boxes:relocated")), "Recollected entity removed from world");
             helper.succeed();
@@ -411,6 +414,11 @@ public class PickupGameTests implements CustomTestMethodInvoker {
     private static int countContents(ItemStack box) {
         return box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY)
                 .stream().mapToInt(ItemStack::getCount).sum();
+    }
+
+    private static void checkContents(GameTestHelper helper, ItemStack box, net.minecraft.world.item.Item type, int count) {
+        check(helper, box.get(DataComponents.CONTAINER).stream().allMatch(stack -> stack.isEmpty() || stack.is(type)), "Only its dedicated type enters a box");
+        check(helper, countContents(box) == count, "All item counts are conserved");
     }
 
     private static void check(GameTestHelper helper, boolean condition, String message) {

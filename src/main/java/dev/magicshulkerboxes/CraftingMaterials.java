@@ -11,7 +11,7 @@ import net.minecraft.world.item.component.ItemContainerContents;
 /** Copy-based inventory operations shared by recipe placement and continuous crafting. */
 final class CraftingMaterials {
     private CraftingMaterials() {}
-    record Taken(ItemStack stack, int boxSlot) {}
+    record Taken(ItemStack stack) {}
 
     static Container copy(Container inventory) {
         if (inventory instanceof RefillSources.View view) return new RefillSources.View(copy(view.inventory), copy(view.ender));
@@ -29,7 +29,12 @@ final class CraftingMaterials {
 
     static void commitChanges(Container original, Container changed, Container target) {
         for (int i = 0; i < changed.getContainerSize(); i++) {
-            if (!ItemStack.matches(original.getItem(i), changed.getItem(i))) write(target, i, changed.getItem(i));
+            if (ItemStack.matches(original.getItem(i), changed.getItem(i))) continue;
+            var current = target.getItem(i);
+            var replacement = changed.getItem(i);
+            if (!current.isEmpty() && !replacement.isEmpty() && ItemStack.isSameItemSameComponents(current, replacement)) {
+                current.setCount(replacement.getCount());
+            } else write(target, i, replacement);
         }
         target.setChanged();
     }
@@ -54,30 +59,36 @@ final class CraftingMaterials {
 
     static Taken takeBox(Container inventory, Predicate<ItemStack> matches, int count, StorageConfig config,
                          Predicate<ItemStack> allowedBox) {
-        var carried = takeBoxPass(inventory, matches, count, config, allowedBox, false);
+        return takeBox(inventory, matches, count, config, allowedBox, () -> {});
+    }
+
+    static Taken takeBox(Container inventory, Predicate<ItemStack> matches, int count, StorageConfig config,
+                         Predicate<ItemStack> allowedBox, Runnable blockedSpace) {
+        var carried = takeBoxPass(inventory, matches, count, config, allowedBox, false, blockedSpace);
         if (carried != null || !config.enderChestRefill || !(inventory instanceof RefillSources.View)) return carried;
         for (int slot = RefillSources.ENDER_START; slot < inventory.getContainerSize(); slot++) {
             var stack = inventory.getItem(slot);
-            if (!stack.isEmpty() && !ShulkerStorage.isShulker(stack) && matches.test(stack)) return new Taken(stack.split(Math.min(count, stack.getCount())), -1);
+            if (!stack.isEmpty() && !ShulkerStorage.isShulker(stack) && matches.test(stack)) return new Taken(stack.split(Math.min(count, stack.getCount())));
         }
-        return takeBoxPass(inventory, matches, count, config, allowedBox, true);
+        return takeBoxPass(inventory, matches, count, config, allowedBox, true, blockedSpace);
     }
 
     private static Taken takeBoxPass(Container inventory, Predicate<ItemStack> matches, int count, StorageConfig config,
-                                    Predicate<ItemStack> allowedBox, boolean ender) {
+                                    Predicate<ItemStack> allowedBox, boolean ender, Runnable blockedSpace) {
         for (int slot : BoxOrder.emptiestFirst(inventory, config)) {
             if (RefillSources.isEnder(inventory, slot) != ender) continue;
             var box = inventory.getItem(slot);
-            if (!allowedBox.test(box) || (box.getCount() > 1 && !config.splitStackedBoxes)) continue;
+            if (!allowedBox.test(box)) continue;
             var contents = NonNullList.withSize(27, ItemStack.EMPTY);
             box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).copyInto(contents);
             for (int inner = 0; inner < 27; inner++) {
                 var source = contents.get(inner);
                 if (source.isEmpty() || !source.getItem().canFitInsideContainerItems() || !matches.test(source)) continue;
+                if (box.getCount() > 1 && !config.splitStackedBoxes) { blockedSpace.run(); break; }
                 int destination = slot;
                 if (box.getCount() > 1) {
                     destination = RefillSources.freeBoxSlot(inventory, slot);
-                    if (destination < 0) break;
+                    if (destination < 0) { blockedSpace.run(); break; }
                 }
                 int amount = Math.min(count, source.getCount());
                 var taken = source.copyWithCount(amount);
@@ -86,7 +97,7 @@ final class CraftingMaterials {
                 single.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
                 if (box.getCount() > 1) box.shrink(1);
                 write(inventory, destination, single);
-                return new Taken(taken, destination);
+                return new Taken(taken);
             }
         }
         return null;
@@ -98,19 +109,13 @@ final class CraftingMaterials {
         return -1;
     }
 
-    static boolean keepRemainder(Container inventory, ItemStack remainder, int sourceBox, StorageConfig config) {
+    static boolean keepRemainder(Container inventory, ItemStack remainder, StorageConfig config) {
         var remaining = remainder.copy();
         if (putBack(inventory, remaining)) return true;
-        if (sourceBox < 0 || !config.refillMakeSpace || (!config.allowPartialStacksForSpace
+        if (!config.refillMakeSpace || (!config.allowPartialStacksForSpace
                 && remaining.getCount() < remaining.getMaxStackSize())) return false;
-        var box = inventory.getItem(sourceBox);
-        if (!ShulkerStorage.isShulker(box) || box.getCount() != 1) return false;
-        var contents = NonNullList.withSize(27, ItemStack.EMPTY);
-        box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).copyInto(contents);
-        if (!config.allowMixedItemsWhenMakingSpace && contents.stream().anyMatch(stack -> !stack.isEmpty()
-                && !(config.matchItemComponents ? ItemStack.isSameItemSameComponents(stack, remaining) : ItemStack.isSameItem(stack, remaining)))) return false;
-        if (ShulkerStorage.insert(contents, remaining) != remaining.getCount()) return false;
-        box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
-        return true;
+        if (BoxRelocation.store(inventory, remaining, -1, config, BoxRelocation.ALL_SLOTS) >= 0) return true;
+        if (BoxRelocation.makeSpace(inventory, config, BoxRelocation.ALL_SLOTS, remaining, null) < 0) return false;
+        return BoxRelocation.store(inventory, remaining, -1, config, BoxRelocation.ALL_SLOTS) >= 0;
     }
 }

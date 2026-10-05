@@ -31,14 +31,14 @@ public class AdminSettingsGameTests {
             config.ipnRefill = true;
             config.playerEditableSettings = List.of("pickupStorageEnabled", "makeSpaceMode");
             store.save(target, ConfigFile.parsePreferences("{\"ipnRefill\":false}"));
-            store.save(other, ConfigFile.parsePreferences("{\"useMixedBoxes\":false}"));
+            store.save(other, ConfigFile.parsePreferences("{\"useMatchingBoxes\":false}"));
             server.services().nameToIdCache().add(new NameAndId(target, "MSBAdminTarget"));
 
             check(h, execute(admin, "msb admin player MSBAdminTarget show") == 1, "Offline name is resolved");
             check(h, output.lines.stream().anyMatch(line -> line.contains("ipnRefill")
                     && line.contains("false") && line.contains("true") && line.contains("locked")),
                     "Show distinguishes a dormant saved choice from the locked effective value");
-            check(h, output.lines.stream().anyMatch(line -> line.contains("useMixedBoxes") && line.contains("inherit")),
+            check(h, output.lines.stream().anyMatch(line -> line.contains("useMatchingBoxes") && line.contains("inherit")),
                     "Show identifies inherited options");
             check(h, execute(admin, "msb admin player " + target + " set pickupStorageEnabled true") == 1,
                     "Console edits an offline UUID");
@@ -48,7 +48,7 @@ public class AdminSettingsGameTests {
             check(h, store.resolve(target, config).pickupStorageEnabled
                     && store.resolve(target, config).makeSpaceMode == StorageConfig.MakeSpaceMode.DISABLED,
                     "Changes are active and survive cache reload");
-            check(h, store.read(target).has("ipnRefill") && !store.read(other).get("useMixedBoxes").getAsBoolean(),
+            check(h, store.read(target).has("ipnRefill") && !store.read(other).get("useMatchingBoxes").getAsBoolean(),
                     "Edits preserve unrelated options and other players");
             check(h, execute(admin, "msb admin player " + target + " reset pickupStorageEnabled") == 1,
                     "Individual reset succeeds");

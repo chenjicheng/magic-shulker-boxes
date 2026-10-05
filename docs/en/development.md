@@ -188,7 +188,7 @@ Run with an official Carpet 1.21.11 release JAR:
 
 `carpetJar` adds a local development/test runtime dependency and never bundles Carpet into the mod. During each game test, Carpet's real stacking limit is set to 64 and its mixin is checked; the previous setting is restored afterward.
 
-Unit reports are in `build/reports/tests/test/index.html`. GameTest results appear in the console and test-run logs. Tests use actual server players, inventories, and item entities. They cover vanilla-first pickup, partial capacity, ownership/delay checks, stacked-box fallback, splitting into a free slot, configuration disabling, both space-making modes, partial stacks, repeated mixed pickups, and recursion prevention.
+Unit reports are in `build/reports/tests/test/index.html`. GameTest results appear in the console and test-run logs. Tests use actual server players, inventories, and item entities. They cover matching-box-first pickup and optional empty-box priority, partial capacity, ownership/delay checks, stacked-box fallback, splitting into a free slot, configuration disabling, both space-making modes, partial stacks, repeated pickups of different types, and recursion prevention.
 
 Additional tests cover per-player persistence and isolation, inheritance from server defaults, independent personal overrides for pickup storage and refilling, immediate pickup-policy changes, player command permissions, administrator policy revocation, client attempts to change server policy, bounded network payloads, and matching translation keys/placeholders.
 
@@ -198,14 +198,12 @@ Additional tests cover per-player persistence and isolation, inheritance from se
 
 | Command | Expected behavior |
 | --- | --- |
-| `/function msb_test:matching` | Blue box changes from 63 cobblestone to 64 + 4; earlier empty/mixed boxes remain unchanged |
-| `/function msb_test:mixed` | Reuse the red mixed box; the stack of 16 empty boxes remains unchanged |
+| `/function msb_test:matching` | Blue box changes from 63 cobblestone to 64 + 4; earlier empty boxes and boxes with unrelated contents remain unchanged |
 | `/function msb_test:partial` | A box with one item of free capacity accepts one of five cobblestone; four stay on the ground |
-| `/function msb_test:split` | Set `onlyWhenInventoryFull=false` first; 16 named blue boxes become 15 empty boxes and one box containing five cobblestone |
-| `/function msb_test:auto_space` | No free slot: three stones are displaced; stones, cobblestone, and gravel enter one box, with box counts 15 + 1 |
-| `/function msb_test:fallback` | Cobblestone stays on the ground with `allowOtherSingleTypeBoxes=false`; enabling it allows storage in a dirt-only box |
+| `/function msb_test:split` | Set `preferEmptyBoxesOverInventory=true` first; 16 named blue boxes become 15 empty boxes and one box containing five cobblestone |
+| `/function msb_test:auto_space` | No free slot: consolidate stone stacks; keep 13 empty boxes plus separate stone, cobblestone and gravel boxes |
 
-Run `auto_space` with both `MOVE_TO_BOX` and `DROP_AND_PICKUP`. The first main-inventory slot should contain a box holding stone 3, cobblestone 5, and gravel 7. With `DISABLED`, the box stack remains 16 and the pickups remain on the ground. Apply changed server configuration with `/msb admin reload` or restart, and restore the desired settings afterward.
+Run `auto_space` with both `MOVE_TO_BOX` and `DROP_AND_PICKUP`. Three separate boxes should hold stone 131, cobblestone 5 and gravel 7; 13 empty boxes remain stacked. With `DISABLED`, the box stack remains 16 and the pickups remain on the ground. Apply changed server configuration with `/msb admin reload` or restart, and restore the desired settings afterward.
 
 For personal-policy verification, toggle `/msb admin player-settings true/false`, set your own `pickupStorageEnabled=true` while the server default is off, inspect `/msb show`, and repeat a pickup fixture. The personal on setting applies only while the server permits it. Switch Minecraft between Simplified Chinese and English to check messages.
 
@@ -236,7 +234,7 @@ The mixin runs after vanilla server-side, pickup-delay, and ownership checks. Va
 
 Storage plans changes on copied contents and commits only accepted items. A stacked box loses exactly one item; the remaining boxes retain their original contents. A full box does not occupy a free slot or get split. Containers with more than the vanilla 27 slots are skipped intact instead of truncated.
 
-Relocation reserves capacity for the entire displaced slot before accepting incoming items. Drop mode commits inventory changes only after the world accepts the spawned entity. Immediate recollection may write only into the exact reserved single box; replacement of that box leaves the dropped items intact. A `finally` block clears temporary reservations, and unrecollected entities carry a persistent marker prohibiting another relocation attempt.
+Relocation reserves capacity for the entire displaced slot before accepting incoming items. Drop mode commits inventory changes only after the world accepts every spawned entity. Immediate recollection may write only into each stack's exact reserved single-type box; replacement of that box leaves the dropped items intact. A `finally` block clears temporary reservations, and unrecollected entities carry a persistent marker prohibiting another relocation attempt.
 
 Inventory changes use vanilla synchronization. Optional settings use the `policy_v6` and `preferences_v6` channels, with capability checks before sending. Fabric's object-payload callbacks run on the game thread. A preference payload contains at most 4096 characters and no target UUID: the sender's identity comes from the connection. The server checks its policy, option allowlist, types, enum values, and size, and limits network updates to one per player per 20 ticks. Server-only installations do not require clients to support these channels.
 
@@ -268,3 +266,11 @@ Besides unit tests and Carpet GameTests, verify the title-screen Mod Menu entry,
 - [Fabric networking](https://docs.fabricmc.net/1.21.11/develop/networking)
 - [Carpet 1.21.11 shulker stacking implementation](https://github.com/gnembon/fabric-carpet/blob/1.21.11/src/main/java/carpet/mixins/ItemStack_stackableShulkerBoxesMixin.java)
 - [Official Carpet 1.4.194 release](https://github.com/gnembon/fabric-carpet/releases/tag/1.4.194)
+
+`BoxRelocation` plans displaced stacks on inventory snapshots, using matching single-type boxes before empty boxes. When necessary it consolidates multiple inventory stacks of one type into a separate split box. Pickup commits only after it can accept incoming items; extraction and crafting commit only after the whole operation succeeds. IPN masks protect both displaced slots and carried destination boxes. Boxes containing unrelated types are skipped as storage destinations, even when they have space.
+
+`ConfigFile` removes retired mixing options and permission entries only on disk, validates remaining choices, preserves exact original bytes in `.pre-single-type.bak`, and retains other sparse preferences. Commands, GUI options, key bindings and network input no longer expose these fields. Version 1 files remove retired choices as part of their existing `.pre-0.3.2.bak` migration; invalid files and backup conflicts are left intact. Historical release notes describe their respective released versions.
+
+`ItemEntityMixin` and menu transfers call `ShulkerStorage.storeMatching` first, then vanilla inventory, then empty-box overflow storage. `preferEmptyBoxesOverInventory=true` moves the empty-box phase before inventory insertion. The old priority setting migrates to its inverse and renames its permission; conflicting old/new fields are rejected. `StorageFailure` sends localized action-bar notices for confirmed capacity failures with a per-player 40-tick cooldown, independently of other refill failure notices. Crafting reports blocked source splitting or remainder placement without reporting missing ingredients or changed recipes as space failures.
+
+The settings editor builds only nonempty option groups, preventing retired fields from leaving a group that YACL refuses to open. `ClientSmokeGameTests` opens personal and world settings, checks field permissions and captures screenshots; the new priority setting uses the existing editing and confirmation flow.

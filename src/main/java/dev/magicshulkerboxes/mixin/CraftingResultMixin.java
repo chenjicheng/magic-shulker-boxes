@@ -40,7 +40,8 @@ public abstract class CraftingResultMixin {
         original.call(player, crafted);
         if (CraftingRecipeSources.allowed(serverPlayer, menu)) {
             var config = MagicShulkerBoxes.configFor(serverPlayer);
-            CraftingRefill.refill(dev.magicshulkerboxes.RefillSources.of(player, config), craftSlots, template, remainders, config);
+            CraftingRefill.refill(dev.magicshulkerboxes.RefillSources.of(player, config), craftSlots, template, remainders, config,
+                    () -> dev.magicshulkerboxes.StorageFailure.noSpace(serverPlayer));
         }
     }
 }

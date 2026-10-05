@@ -42,11 +42,17 @@ public final class CraftingRecipeSources {
         var placement = new Placement(menu, inventory, recipe, level, all, MagicShulkerBoxes.configFor(player));
         // Vanilla's coarse space check can group incompatible components. Prove the old inputs fit without dropping anything.
         var space = CraftingMaterials.copy(inventory);
-        for (var stack : placement.beforeGrid) if (!CraftingMaterials.putBack(space, stack.copy())) return PostPlaceAction.NOTHING;
+        for (var stack : placement.beforeGrid) if (!CraftingMaterials.putBack(space, stack.copy())) {
+            StorageFailure.noSpace(player); return PostPlaceAction.NOTHING;
+        }
         var previous = ACTIVE.get(); ACTIVE.set(placement);
         try {
             var result = vanilla.get();
-            if (placement.failed || (placement.usedSources && !placement.commit())) { placement.restore(); return PostPlaceAction.NOTHING; }
+            if (placement.failed || (placement.usedSources && !placement.commit())) {
+                placement.restore();
+                if (placement.spaceBlocked) StorageFailure.noSpace(player);
+                return PostPlaceAction.NOTHING;
+            }
             return result;
         } catch (RuntimeException | Error exception) {
             if (placement.usedSources || placement.failed) placement.restore();
@@ -88,7 +94,8 @@ public final class CraftingRecipeSources {
         if (placement == null || placement.inventory != inventory) return -1;
         var current = slot.getItem();
         var taken = CraftingMaterials.takeBox(placement.planned, stack -> stack.is(item) && Inventory.isUsableForCrafting(stack)
-                && (current.isEmpty() || ItemStack.isSameItemSameComponents(current, stack)), amount, placement.config, placement.allowedBox);
+                && (current.isEmpty() || ItemStack.isSameItemSameComponents(current, stack)), amount, placement.config, placement.allowedBox,
+                () -> placement.spaceBlocked = true);
         if (taken == null) { placement.failed = true; return -1; }
         placement.usedSources = true;
         int total = current.getCount() + taken.stack().getCount();
@@ -107,7 +114,7 @@ public final class CraftingRecipeSources {
         final Container sources, beforeInventory, planned;
         final List<ItemStack> beforeGrid;
         final Predicate<ItemStack> allowedBox;
-        boolean usedSources, failed;
+        boolean usedSources, failed, spaceBlocked;
         Placement(AbstractCraftingMenu menu, Inventory inventory, CraftingRecipe recipe, ServerLevel level, boolean all, StorageConfig config) {
             this.menu = menu; this.inventory = inventory; this.recipe = recipe; this.level = level; this.all = all; this.config = config;
             sources = RefillSources.of(inventory.player, config);

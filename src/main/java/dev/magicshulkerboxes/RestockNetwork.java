@@ -85,6 +85,7 @@ public final class RestockNetwork {
                 ? ShulkerRefill.swapToolForRestock(sources, request.boxSlot(), request.contentSlot(), request.targetSlot(), config, request.eligibleSlots())
                 : ShulkerRefill.takeForRestock(sources, request.boxSlot(), request.contentSlot(), config, request.eligibleSlots());
         if (moved > 0) player.inventoryMenu.broadcastChanges();
+        else StorageFailure.noSpace(player);
         return moved;
     }
 }

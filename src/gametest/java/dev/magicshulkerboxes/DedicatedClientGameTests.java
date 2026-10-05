@@ -99,7 +99,7 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
                 actual -> {
                     var c = MagicShulkerBoxes.config();
                     c.pickupStorageEnabled = true;
-                    c.onlyWhenInventoryFull = false;
+                    c.preferEmptyBoxesOverInventory = true;
                     c.allowPlayerSettings = false;
                     var p = actual.getPlayerList().getPlayers().getFirst();
                     p.getInventory().clearContent();

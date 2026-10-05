@@ -34,34 +34,27 @@ class ShulkerStorageTest {
     }
 
     @Test
-    void mixedBoxFullnessUsesStackLimitsAndSkipsIncompatibleFullBoxes() {
+    void boxesContainingUnrelatedItemsAreSkippedEvenWhenTheyHaveCapacity() {
         var inventory = fullInventory();
         inventory.setItem(0, box(new ItemStack(Items.STONE, 64), new ItemStack(Items.DIRT, 64)));
-        var packed = new ItemStack[27];
-        java.util.Arrays.setAll(packed, i -> new ItemStack(Items.DIAMOND_PICKAXE));
-        packed[26] = new ItemStack(Items.STONE);
-        inventory.setItem(35, box(packed));
-        // An even fuller mixed box cannot accept any stone and must be skipped.
-        packed[26] = new ItemStack(Items.ENDER_PEARL, 16);
-        inventory.setItem(34, box(packed));
+        inventory.setItem(35, box(new ItemStack(Items.STONE, 60)));
         assertEquals(3, ShulkerStorage.store(inventory, new ItemStack(Items.STONE, 3), pickupEnabled()));
-        assertEquals(30, countContents(inventory.getItem(35)));
+        assertEquals(63, countContents(inventory.getItem(35)));
         assertEquals(128, countContents(inventory.getItem(0)));
-        assertEquals(42, countContents(inventory.getItem(34)));
     }
 
     @Test
     void sixteenStackItemsContributeTheirOwnStackLimitToFullness() {
         var inventory = fullInventory();
-        inventory.setItem(0, box(new ItemStack(Items.STONE, 64), new ItemStack(Items.DIRT)));
-        inventory.setItem(35, box(new ItemStack(Items.ENDER_PEARL, 16), new ItemStack(Items.STONE, 32)));
-        assertEquals(1, ShulkerStorage.store(inventory, new ItemStack(Items.STONE), pickupEnabled()));
-        assertEquals(49, countContents(inventory.getItem(35)), "1.5 occupied stacks precede 1 + 1/64 stacks");
-        assertEquals(65, countContents(inventory.getItem(0)));
+        inventory.setItem(0, box(new ItemStack(Items.ENDER_PEARL)));
+        inventory.setItem(35, box(new ItemStack(Items.ENDER_PEARL, 15)));
+        assertEquals(2, ShulkerStorage.store(inventory, new ItemStack(Items.ENDER_PEARL, 2), pickupEnabled()));
+        assertEquals(17, countContents(inventory.getItem(35)));
+        assertEquals(1, countContents(inventory.getItem(0)));
     }
 
     @Test
-    void matchingBoxWinsEvenWhenEmptyAndMixedBoxesHaveEarlierSlots() {
+    void matchingBoxWinsEvenWhenOtherBoxesHaveEarlierSlots() {
         var inventory = fullInventory();
         inventory.setItem(0, box());
         inventory.setItem(1, box(new ItemStack(Items.DIRT), new ItemStack(Items.STONE)));
@@ -76,7 +69,7 @@ class ShulkerStorageTest {
     }
 
     @Test
-    void overflowUsesEmptyBoxBeforeMixedBox() {
+    void overflowUsesEmptyBoxWithoutChangingUnrelatedBoxes() {
         var inventory = fullInventory();
         var nearlyFull = new ItemStack[27];
         for (int i = 0; i < 27; i++) nearlyFull[i] = new ItemStack(Items.COBBLESTONE, 64);
@@ -93,20 +86,17 @@ class ShulkerStorageTest {
     }
 
     @Test
-    void stackedEmptyBoxWithoutFreeSlotFallsBackToMixedWithoutChangingStack() {
+    void disabledMakingSpaceLeavesUnrelatedBoxesAndStackedEmptyBoxesUnchanged() {
         var inventory = fullInventory();
-        var stacked = box();
-        inventory.setItem(0, stacked);
-        stacked.setCount(16);
+        inventory.setItem(0, box());
+        inventory.getItem(0).setCount(16);
         inventory.setItem(1, box(new ItemStack(Items.DIRT), new ItemStack(Items.STONE)));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = pickupEnabled();
-        config.makeSpaceMode = StorageConfig.MakeSpaceMode.DISABLED;
-
-        assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
-        assertEquals(16, stacked.getCount());
-        assertEquals(0, countContents(stacked));
-        assertEquals(7, countContents(inventory.getItem(1)));
+        var config = pickupEnabled(); config.makeSpaceMode = StorageConfig.MakeSpaceMode.DISABLED;
+        assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
+        assertEquals(5, incoming.getCount());
+        assertEquals(16, inventory.getItem(0).getCount());
+        assertEquals(2, countContents(inventory.getItem(1)));
     }
 
     @Test
@@ -129,17 +119,13 @@ class ShulkerStorageTest {
     }
 
     @Test
-    void otherSingleTypeBoxIsOptInLastResort() {
+    void otherTypesAreNeverAnAutomaticFallback() {
         var inventory = fullInventory();
         inventory.setItem(0, box(new ItemStack(Items.DIRT)));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = pickupEnabled();
-
-        assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
+        assertEquals(0, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
         assertEquals(5, incoming.getCount());
-        config.allowOtherSingleTypeBoxes = true;
-        assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
-        assertEquals(6, countContents(inventory.getItem(0)));
+        assertEquals(1, countContents(inventory.getItem(0)));
     }
 
     @Test
@@ -207,12 +193,10 @@ class ShulkerStorageTest {
         config.pickupStorageEnabled = true;
         config.useMatchingBoxes = false;
         config.useEmptyBoxes = false;
-        config.useMixedBoxes = false;
-        config.allowOtherSingleTypeBoxes = true;
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
-        config.useMixedBoxes = true;
+        config.useEmptyBoxes = true;
         assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
-        assertEquals(7, countContents(inventory.getItem(2)));
+        assertEquals(5, countContents(inventory.getItem(1)));
     }
 
     @Test
@@ -294,14 +278,15 @@ class ShulkerStorageTest {
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
 
         assertEquals(5, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
-        assertEquals(15, stacked.getCount());
+        assertEquals(14, stacked.getCount());
         assertEquals(0, countContents(stacked));
         assertEquals(1, inventory.getItem(9).getCount());
         var contents = inventory.getItem(9).get(DataComponents.CONTAINER).stream().toList();
-        assertEquals(69, countContents(inventory.getItem(9)));
+        assertEquals(128, countContents(inventory.getItem(9)));
         assertEquals(64, contents.get(0).getCount());
         assertEquals("Keep this name", contents.get(0).getHoverName().getString());
-        assertEquals(5, contents.get(1).getCount());
+        assertEquals(64, contents.get(1).getCount());
+        SingleTypeStorageTest.assertContents(inventory.getItem(10), Items.COBBLESTONE, 5);
         assertEquals(64, inventory.getItem(1).getCount(), "Hotbar was not moved");
     }
 
@@ -333,8 +318,9 @@ class ShulkerStorageTest {
         assertEquals(16, stacked.getCount());
         config.useHotbarForSpace = true;
         assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
-        assertEquals(69, countContents(inventory.getItem(0)));
-        assertEquals(15, stacked.getCount());
+        SingleTypeStorageTest.assertContents(inventory.getItem(0), Items.STONE, 128);
+        SingleTypeStorageTest.assertContents(inventory.getItem(1), Items.COBBLESTONE, 5);
+        assertEquals(14, stacked.getCount());
     }
 
     @Test
@@ -385,46 +371,42 @@ class ShulkerStorageTest {
     }
 
     @Test
-    void partialStacksAndMixingHaveIndependentSwitches() {
+    void partialStacksAreOptionalAndEachIncomingTypeGetsItsOwnBox() {
         var inventory = fullInventory();
-        for (int i = 0; i < 36; i++) inventory.setItem(i, box());
-        var stacked = inventory.getItem(0);
-        stacked.setCount(16);
-        // Full boxes cannot be nested or used for this incoming type.
+        inventory.setItem(0, box()); inventory.getItem(0).setCount(16);
         for (int i = 1; i < 36; i++) inventory.setItem(i, box(new ItemStack(Items.DIRT)));
         inventory.setItem(9, new ItemStack(Items.STONE, 3));
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        var config = pickupEnabled();
-        config.allowPartialStacksForSpace = false;
+        var config = pickupEnabled(); config.allowPartialStacksForSpace = false;
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
         config.allowPartialStacksForSpace = true;
-        config.allowMixedItemsWhenMakingSpace = false;
-        assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
-        config.allowMixedItemsWhenMakingSpace = true;
+        assertEquals(0, ShulkerStorage.store(inventory, incoming, config), "One occupied slot cannot hold two boxes");
+        assertEquals(16, inventory.getItem(0).getCount());
+        inventory.setItem(10, new ItemStack(Items.STONE, 64));
+        inventory.setItem(11, new ItemStack(Items.STONE, 64));
         assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
-        assertEquals(8, countContents(inventory.getItem(9)));
-        assertEquals(15, stacked.getCount());
-        // The resulting multi-kind box is reused; repeated junk pickups need no new box.
+        SingleTypeStorageTest.assertContents(inventory.getItem(9), Items.STONE, 67);
+        SingleTypeStorageTest.assertContents(inventory.getItem(10), Items.COBBLESTONE, 5);
         assertEquals(7, ShulkerStorage.store(inventory, new ItemStack(Items.GRAVEL, 7), config));
-        assertEquals(15, countContents(inventory.getItem(9)));
-        assertEquals(15, stacked.getCount());
+        SingleTypeStorageTest.assertContents(inventory.getItem(9), Items.STONE, 131);
+        SingleTypeStorageTest.assertContents(inventory.getItem(11), Items.GRAVEL, 7);
+        assertEquals(13, inventory.getItem(0).getCount());
     }
 
     @Test
     void existingBoxPreferenceCanBeDisabledToMakeSpaceInCategoryOrder() {
         var inventory = fullInventory();
-        var stacked = box();
-        inventory.setItem(0, stacked);
-        stacked.setCount(16);
-        inventory.setItem(1, box(new ItemStack(Items.DIRT), new ItemStack(Items.STONE)));
+        inventory.setItem(0, box(new ItemStack(Items.COBBLESTONE))); inventory.getItem(0).setCount(2);
+        inventory.setItem(1, box()); inventory.setItem(20, new ItemStack(Items.COBBLESTONE, 64));
         var config = pickupEnabled();
         assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), config));
-        assertEquals(16, stacked.getCount());
-        config.preferExistingBoxesBeforeMakingSpace = false;
+        assertEquals(2, inventory.getItem(0).getCount());
+        assertEquals(5, countContents(inventory.getItem(1)));
+        inventory.setItem(1, box()); config.preferExistingBoxesBeforeMakingSpace = false;
         assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), config));
-        assertEquals(15, stacked.getCount());
-        assertEquals(69, countContents(inventory.getItem(9)));
-        assertEquals(7, countContents(inventory.getItem(1)));
+        assertEquals(1, inventory.getItem(0).getCount());
+        assertEquals(70, countContents(inventory.getItem(20)));
+        assertEquals(0, countContents(inventory.getItem(1)));
     }
 
     @Test
@@ -437,7 +419,7 @@ class ShulkerStorageTest {
         config.makeSpaceMode = StorageConfig.MakeSpaceMode.DROP_AND_PICKUP;
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
         int[] attempts = {0};
-        assertEquals(0, ShulkerStorage.store(inventory, incoming, config, true, (displaced, slot, filled, commit) -> {
+        assertEquals(0, ShulkerStorage.store(inventory, incoming, config, true, (transfers, commit) -> {
             attempts[0]++;
             // Simulate the world rejecting creation: do not commit any inventory changes.
         }));
@@ -450,22 +432,22 @@ class ShulkerStorageTest {
     @Test
     void reservedDropCannotWriteIntoAReplacedBox() {
         var inventory = fullInventory();
-        var stacked = box();
-        inventory.setItem(0, stacked);
-        stacked.setCount(16);
+        inventory.setItem(0, box()); inventory.getItem(0).setCount(16);
         inventory.setItem(9, new ItemStack(Items.STONE, 3));
-        var config = pickupEnabled();
-        config.makeSpaceMode = StorageConfig.MakeSpaceMode.DROP_AND_PICKUP;
-        var incoming = new ItemStack(Items.COBBLESTONE, 5);
-        assertEquals(5, ShulkerStorage.store(inventory, incoming, config, true, (displaced, slot, filled, commit) -> {
-            assertEquals(5, countContents(filled), "Displaced stack is not duplicated before repickup");
+        var config = pickupEnabled(); config.makeSpaceMode = StorageConfig.MakeSpaceMode.DROP_AND_PICKUP;
+        assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), config, true, (transfers, commit) -> {
+            assertEquals(2, transfers.size());
             commit.run();
-            inventory.setItem(slot, box());
-            assertEquals(0, ShulkerStorage.collectRelocated(inventory, slot, filled, displaced));
-            assertEquals(3, displaced.getCount(), "Rejected relocation stays intact as a world item");
+            var transfer = transfers.getFirst();
+            var expected = inventory.getItem(transfer.destination());
+            assertEquals(0, countContents(expected), "Displaced stacks await their own pickups");
+            inventory.setItem(transfer.destination(), box());
+            assertEquals(0, ShulkerStorage.collectRelocated(inventory, transfer.destination(), expected, transfer.stack()));
+            assertEquals(3, transfer.stack().getCount(), "Rejected relocation stays intact as a world item");
         }));
-        assertEquals(15, stacked.getCount());
+        assertEquals(14, inventory.getItem(0).getCount());
         assertEquals(0, countContents(inventory.getItem(9)));
+        SingleTypeStorageTest.assertContents(inventory.getItem(10), Items.COBBLESTONE, 5);
     }
 
     private static StorageConfig pickupEnabled() {

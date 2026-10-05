@@ -6,12 +6,10 @@ Automatic shulker storage for **Minecraft Java 1.21.11 / Fabric / Java 21**.
 
 **Pickup storage is off by default.** Singleplayer hosts can enable it in World settings. Multiplayer administrators can set `pickupStorageEnabled=true` in the server configuration and run `/msb admin reload`, or allow players to enable it individually. Material refilling has its own switch.
 
-When a player picks up a ground item, the normal inventory receives it first. Any overflow is stored in this order:
+With pickup storage enabled, matching single-type boxes come first, then the normal inventory, then empty boxes for overflow. Enable `preferEmptyBoxesOverInventory` to try empty or safely split boxes before the inventory too, even when the inventory has room. Box storage uses this order:
 
 1. A box containing only the same item type.
 2. An empty shulker box.
-3. A mixed box containing two or more item types.
-4. A box containing a different single type, if this optional fallback is enabled.
 
 All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
 
@@ -19,7 +17,7 @@ All eligible boxes in one category are tried before moving to the next. Within a
 
 `/msb show [option]` displays your preferences, `/msb admin show [option]` displays server settings, and `/msb admin player <name|UUID> show` displays another player's preferences. Boolean values, modes, inheritance/defaults and individual permissions have clickable buttons. Hover to preview the complete command, click to place it in chat, then press Enter to apply. Chat buttons need only the server mod.
 
-Client 0.8.0 provides separate key bindings for all 20 personal boolean options under **Options → Controls → Key Binds → Magic Shulker Boxes: personal toggles**. Every binding starts unbound; players choose their own keyboard or mouse buttons. Bindings stay in vanilla client `options.txt` and are never sent to the server. In-game keys flip the effective value through the existing preference save/confirmation protocol. Servers validate permission to edit the setting value and cannot choose or restrict a player's bound key. Locked options explain why; pending saves, recovery and unsupported connections do not overwrite preferences.
+Client 0.8.0 provides separate key bindings for all personal boolean options under **Options → Controls → Key Binds → Magic Shulker Boxes: personal toggles**. Every binding starts unbound; players choose their own keyboard or mouse buttons. Bindings stay in vanilla client `options.txt` and are never sent to the server. In-game keys flip the effective value through the existing preference save/confirmation protocol. Servers validate permission to edit the setting value and cannot choose or restrict a player's bound key. Locked options explain why; pending saves, recovery and unsupported connections do not overwrite preferences.
 
 `craftRefill` defaulted to off in 0.6.0 and returns to on from 0.6.1. New configurations and omitted fields use `true`; existing explicit `false` values remain disabled. Administrators can run `/msb admin set craftRefill true` to enable it on an existing server. Permitted players can switch it with chat buttons or their own key binding.
 
@@ -29,7 +27,7 @@ Storage now covers ground pickup, container-to-inventory transfers and villager 
 
 ### Container and trade storage
 
-With `pickupStorageEnabled`, Shift transfers from containers, including ordinary and ender chests, use the existing box classification, component and splitting rules. `onlyWhenInventoryFull=true` tries the inventory before storing overflow; `false` tries boxes first. Unaccepted container items remain in their source slot.
+With `pickupStorageEnabled`, Shift transfers from containers, including ordinary and ender chests, use the existing box classification, component and splitting rules. Matching boxes always precede the inventory. With `preferEmptyBoxesOverInventory=true`, empty boxes also come first; by default they only receive inventory overflow. Unaccepted container items remain in their source slot.
 
 Ordinary withdrawals and trade results stay on the cursor until deposited into player storage. In boxes-first mode, those deposits collect only the newly added quantity. Drag distribution and container-to-hotbar swaps are supported. Rearranging player inventory and automatic refunds during trade selection do not trigger storage. Crafting menus, item-giving commands and manual dropping are excluded from this path.
 
@@ -39,11 +37,11 @@ Vanilla still charges trades and awards uses and experience. Each trade output m
 
 Enable `enderChestRefill=true` to let schematic, crafting and IPN refills use **your own ender chest** direct items and one level of shulker contents, without placing or opening an ender chest. Each feature still needs its own switch. Source priority is ordinary inventory (vanilla/IPN), carried boxes, direct ender items, then ender boxes. Boxes within each area retain least-filled-first ordering.
 
-The server reads the connected player's actual storage. Clients receive only their own read-only projection, refreshed at most about every half second. Direct ender items need available inventory capacity. Box extraction can relocate displaced items into that source box under the existing rules. Stacked ender boxes split into an empty ender slot; carried boxes split into the backpack. Failure preserves the source. Other players' storage and deeper nesting are excluded; outer ender shulker boxes are not extracted as direct items.
+The server reads the connected player's actual storage. Clients receive only their own read-only projection, refreshed at most about every half second. Direct ender items need available inventory capacity. Box extraction stores displaced items in matching single-type or separate empty boxes. Stacked ender boxes split into an empty ender slot; carried boxes split into the backpack. Failure preserves the source. Other players' storage and deeper nesting are excluded; outer ender shulker boxes are not extracted as direct items.
 
 ### Return replaced tools to their original box slot
 
-When IPN selects a spare tool from a box, the server equips it and returns the surviving old tool to **that source box's original spare-tool slot** in one transaction. Damage, names, enchantments and all components are preserved. Ordinary backpack candidates still take priority. If the old tool has already broken, the source slot stays empty. Changed sources or targets, locked sources, unavailable split space and repeated requests are rejected. No temporary backpack tool slot is needed. Ender source boxes follow the same behavior. Consumables keep IPN's normal hand-swap flow; empty bottles remain in the backpack.
+When IPN selects a spare tool from a box, the server equips it and stores the surviving old tool in a matching or separate empty box, reusing **the original spare-tool slot** when the remaining source is empty or compatible in one transaction. Damage, names, enchantments and all components are preserved. Ordinary backpack candidates still take priority. If the old tool has already broken, the source slot stays empty. Changed sources or targets, locked sources, unavailable split space and repeated requests are rejected. No temporary backpack tool slot is needed. Ender source boxes follow the same behavior. Consumables keep IPN's normal hand-swap flow; empty bottles remain in the backpack.
 
 ## Upgrading to 0.4.0: IPN and crafting refilling
 
@@ -97,7 +95,7 @@ Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the cl
 
 Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 
-When full, space-making moves a backpack stack directly into the source box without dropping items. Hotbar slots are protected by default; `useHotbarForSpace`, `allowPartialStacksForSpace` and `allowMixedItemsWhenMakingSpace` also apply. Shulker boxes are never nested. A stacked source needs a separate free slot for one modified box. With no safe space, nothing changes. Carpet normally stacks only empty boxes, which contain no materials to extract.
+When full, space-making moves backpack items into matching single-type boxes or separate empty boxes without dropping items. The source box may receive displaced items only when empty after extraction or still matching their type. Hotbar slots are protected by default; `useHotbarForSpace` and `allowPartialStacksForSpace` also apply. Shulker boxes are never nested. A stacked source needs a separate free slot for one modified box. With no safe space, nothing changes. Carpet normally stacks only empty boxes, which contain no materials to extract.
 
 Refilling prefers non-full boxes, starting with the least filled to help empty one box before opening another. Full boxes remain fallback sources; unsafe sources are skipped. Client lookup and server extraction enforce the same order, with inventory slot order breaking ties.
 
@@ -108,7 +106,7 @@ The menu has a **Schematic materials** group:
 | `schematicRefill` | `true` | Enable refilling independently; players can override the server default when personal settings are allowed |
 | `refillFullStack` | `true` | Take up to one stack from one box slot; off takes one item |
 | `refillMakeSpace` | `true` | Direct relocation when full, even with pickup storage disabled; independent of pickup drop mode |
-| `refillFailureMessages` | `true` | **Only failed refills** produce an action-bar notice, at most once every two seconds; success is silent |
+| `refillFailureMessages` | `true` | Controls non-space refill failure notices; space failures always show a notice, and success is silent |
 
 Notices distinguish missing matching materials, unsafe inventory space, disabled refilling and unsupported servers. Turning notices off does not affect refilling. Personal overrides still require `allowPlayerSettings`.
 
@@ -124,7 +122,7 @@ IPN first looks for its normal backpack candidates when refilling main-hand or o
 
 Carried sources use IPN's backpack area (indices 9–35), respecting locked slots. Hotbar and offhand boxes are excluded as sources. `enderChestRefill` additionally enables the player's own ender storage. Consumables use IPN's normal swap after extraction; box-sourced tools use the 0.5.0 atomic original-slot return.
 
-Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents` for source-box relocation. Slots excluded by IPN's locked-slot settings are also excluded as extraction and splitting destinations. If IPN permits using locked slots, this integration follows that choice. IPN takes up to one complete candidate stack; the schematic-only `refillFullStack` one-item mode does not affect it. Unsafe extraction changes nothing and leaves IPN's normal failure handling in control. On servers without the new protocol, IPN retains its original backpack behavior.
+Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksForSpace` and `matchItemComponents` for single-type relocation. Slots excluded by IPN's locked-slot settings are also excluded as extraction and splitting destinations. If IPN permits using locked slots, this integration follows that choice. IPN takes up to one complete candidate stack; the schematic-only `refillFullStack` one-item mode does not affect it. Unsafe extraction changes nothing and leaves IPN's normal failure handling in control. On servers without the new protocol, IPN retains its original backpack behavior.
 
 ## Crafting ingredient refilling
 
@@ -135,7 +133,7 @@ The **Crafting** settings group contains `craftRefill`, enabled by default and i
 - **Placing a recipe:** vanilla controls recipe permissions, matching, layout and Shift batch quantities. Missing inventory materials can come from carried boxes and go directly into the grid, without a temporary material slot. Previous grid inputs must fit safely back into the inventory.
 - **Taking an output:** ordinary clicks and Shift crafting refill empty cells with one item of the same type and complete components as the observed input pattern. Remaining grid stacks retain their counts. Ordinary inventory comes first, followed by boxes. An incomplete set of materials or unsafe remainder relocation stops the refill without partial extraction.
 
-Vanilla handles crafting remainders first. When refilling an emptied cell now occupied by a bucket, bottle or other remainder, the refill tries ordinary inventory first. When full, `refillMakeSpace`, `allowPartialStacksForSpace`, `allowMixedItemsWhenMakingSpace` and `matchItemComponents` govern storing that remainder in the single source box just used. Vanilla still places outputs on the cursor or in the inventory.
+Vanilla handles crafting remainders first. When refilling an emptied cell now occupied by a bucket, bottle or other remainder, the refill tries ordinary inventory first. When full, `refillMakeSpace`, `allowPartialStacksForSpace` and `matchItemComponents` govern storing that remainder in a matching or separate empty box; an emptied source box can also be reused. Vanilla still places outputs on the cursor or in the inventory.
 
 Sources are main-inventory and hotbar boxes, plus offhand boxes when `includeOffhand=true`, preferring less filled boxes. Stacked sources follow `splitStackedBoxes` and require a separate empty slot. Own ender sources are available with `enderChestRefill`; deeper nesting, furnaces, brewing stands and stonecutters are excluded; creative and spectator modes do not extract automatically. Recipe-book placement retains vanilla restrictions on named, damaged and enchanted items. Continuous refilling of a manual pattern preserves exact input components.
 
@@ -160,7 +158,7 @@ The mod works with Carpet's `stackableShulkerBoxes` rule. It does not enable tha
 
 Before changing the contents of a stacked box, the mod separates exactly **one** box into its own inventory slot. Existing usable boxes are preferred by default. If no space remains, automatic space-making may free a slot. Armor slots, the cursor, and the offhand are never split destinations. Shulker boxes themselves are never displaced to make space.
 
-With default settings, a free inventory slot normally receives the ground item through vanilla pickup. Set `onlyWhenInventoryFull=false` to try shulker boxes before the inventory; this also allows a stacked box to be split into an existing free slot.
+By default, use an available matching box before the inventory. Without one, use free inventory capacity before creating a box. Set `preferEmptyBoxesOverInventory=true` to prefer empty or safely split boxes even without a matching box and with inventory space available.
 
 All vanilla shulker colors are supported. Names, colors, other box components, and stored item components are preserved. Shulker boxes cannot be nested.
 
@@ -168,13 +166,13 @@ All vanilla shulker colors are supported. Names, colors, other box components, a
 
 `makeSpaceMode` supports:
 
-- `MOVE_TO_BOX` (default): move the selected inventory slot's items directly into the separated box, which replaces that slot. Nothing is dropped.
-- `DROP_AND_PICKUP`: create the displaced items at the player's feet, separate a box, and immediately attempt to collect the displaced items through the game's pickup path into that reserved box. If spawning fails, the inventory is unchanged. If another mod blocks collection, remaining items stay on the ground with a marker preventing another space-making attempt.
+- `MOVE_TO_BOX` (default): move displaced items into matching single-type boxes or separate empty boxes, then separate a box for the pickup. Nothing is dropped.
+- `DROP_AND_PICKUP`: create displaced items at the player's feet and recollect them through the game's pickup path into their reserved single-type boxes. Inventory changes commit only after every entity spawns successfully; a rejected spawn leaves the inventory unchanged. If another mod blocks collection, remaining items stay on the ground with a marker preventing another space-making attempt.
 - `DISABLED`: do not free occupied slots. Skip stacked boxes when no free slot exists and try other boxes.
 
-A stack need not be full: a slot containing three stones can be used. All three must leave that slot to free it. By default, only the main inventory is considered; hotbar use is optional. Items matching the incoming type are preferred, followed by other items that can be stored. The displaced slot must fit completely, leaving room for at least one incoming item, or nothing changes.
+A stack need not be full: a slot containing three stones can be used. All three must leave that slot to free it. By default, only the main inventory is considered; hotbar use is optional. Items matching the incoming type are preferred, followed by other items that can be stored. The entire plan must fit every displaced item and at least one incoming item, or nothing changes. With no free slot, two same-type stacks can be consolidated into one new box, leaving the second slot available for the pickup box.
 
-When mixed items are allowed, three displaced stones plus five incoming cobblestones create a mixed box. Later gravel pickups reuse that box by default instead of splitting another empty one for each type. With `allowMixedItemsWhenMakingSpace=false`, only items matching the incoming type can be displaced. An existing matching single-type box is never mixed with unrelated items during space-making.
+Displaced stone and incoming cobblestone enter separate single-type boxes; later gravel uses its own matching or empty box. Pickup, schematic/IPN extraction, tool replacement and crafting remainders follow this rule. Existing boxes containing multiple types remain usable as extraction sources but are skipped as automatic storage destinations. With `matchItemComponents=false`, type matching uses item IDs while preserving separate component variants; enabling it also requires equal components.
 
 ## Configuration
 
@@ -188,16 +186,13 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | `playerEditableSettings` | All option names | Editable fields when the master switch allows personal settings; `[]` locks all |
 | `allowPlayerSettings` | `false` | Server policy only: allow individual player overrides; otherwise enforce this file for everyone |
 | `pickupStorageEnabled` | `false` | Off by default; enables pickup storage independently of refilling; players can override the server default when personal settings are allowed |
-| `onlyWhenInventoryFull` | `true` | Store only vanilla inventory overflow; `false` tries boxes first |
+| `preferEmptyBoxesOverInventory` | `false` | Matching boxes always come first; enable to prefer empty boxes before the inventory too |
 | `useMatchingBoxes` | `true` | Use matching single-type boxes |
 | `useEmptyBoxes` | `true` | Use empty boxes |
-| `useMixedBoxes` | `true` | Use boxes already containing multiple types |
-| `allowOtherSingleTypeBoxes` | `false` | Allow other single-type boxes as the final fallback |
 | `splitStackedBoxes` | `true` | Allow splitting, including automatic space-making; otherwise skip all stacked boxes |
 | `makeSpaceMode` | `"MOVE_TO_BOX"` | Direct relocation; alternatives are `"DROP_AND_PICKUP"` and `"DISABLED"` |
 | `useHotbarForSpace` | `false` | Allow moving hotbar items to free a slot |
 | `allowPartialStacksForSpace` | `true` | Allow stacks below their item stack limit to be displaced in either mode |
-| `allowMixedItemsWhenMakingSpace` | `true` | Allow unrelated displaced items to create a mixed box |
 | `preferExistingBoxesBeforeMakingSpace` | `true` | Try all currently usable boxes before freeing a slot; `false` makes space as each stacked box is encountered in category order |
 | `includeOffhand` | `false` | Also search the offhand for boxes; split destinations remain main inventory/hotbar slots |
 | `matchItemComponents` | `false` | Classify types by item ID; `true` also compares names, enchantments, and other components |
@@ -289,3 +284,7 @@ Successful `/msb set/reset` changes are also saved back to the installed client'
 ## Development
 
 See [building, testing, and implementation](development.md).
+
+The three retired mixing options and their permissions are removed from valid disk settings after an exact-byte `.pre-single-type.bak` backup. Legacy `onlyWhenInventoryFull` migrates to the inverse `preferEmptyBoxesOverInventory` value, with its permission renamed too. Other choices are retained. Commands and network input reject the retired options; update clients that use personal settings too. Invalid files and conflicting backups are preserved.
+
+Space failures always show an action-bar notice, shared across storage and refill paths and limited to once per player every 40 ticks (two seconds at normal TPS). Missing materials and stale requests are not reported as space failures. `refillFailureMessages=false` suppresses only other refill notices.

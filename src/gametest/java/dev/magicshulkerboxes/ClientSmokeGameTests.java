@@ -30,7 +30,7 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
                             server -> {
                                 var c = MagicShulkerBoxes.config();
                                 c.pickupStorageEnabled = true;
-                                c.onlyWhenInventoryFull = false;
+                                c.preferEmptyBoxesOverInventory = true;
                                 c.allowPlayerSettings = false;
                                 var p = server.getPlayerList().getPlayers().getFirst();
                                 p.setGameMode(net.minecraft.world.level.GameType.SURVIVAL);

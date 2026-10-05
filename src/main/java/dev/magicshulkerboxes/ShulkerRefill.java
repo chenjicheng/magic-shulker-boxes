@@ -13,7 +13,7 @@ public final class ShulkerRefill {
     private ShulkerRefill() {}
     public static int take(Container inventory, int boxSlot, int contentSlot, Item expected, StorageConfig config) {
         if (!config.schematicRefill) return 0;
-        return take(inventory, boxSlot, contentSlot, expected, config, config.refillFullStack, (1L << 36) - 1);
+        return take(inventory, boxSlot, contentSlot, expected, config, config.refillFullStack, BoxRelocation.ALL_SLOTS);
     }
 
     /** IPN uses backpack boxes and optional own ender sources; its mask protects backpack destinations. */
@@ -40,51 +40,31 @@ public final class ShulkerRefill {
         var source = original.get(contentSlot);
         if (source.isEmpty() || (expected != null && !source.is(expected)) || !source.getItem().canFitInsideContainerItems()) return 0;
         int count = Math.min(source.getCount(), fullStack ? source.getMaxStackSize() : 1);
+        var taken = source.copyWithCount(count);
 
-        // Prefer an empty backpack slot. Only try relocation when no free destination works.
-        for (int pass = 0; pass < 2; pass++) {
-            if (pass == 1 && !config.refillMakeSpace) break;
-            for (int offset = 0; offset < size; offset++) {
-                int destination = (offset + 9) % size;
-                if (destination == boxSlot || (eligibleSlots & (1L << destination)) == 0) continue;
-                var displaced = inventory.getItem(destination);
-                if ((pass == 0) != displaced.isEmpty()) continue;
-                if (!displaced.isEmpty() && (ShulkerStorage.isShulker(displaced) || !displaced.getItem().canFitInsideContainerItems()
-                        || (destination < 9 && !config.useHotbarForSpace)
-                        || (!config.allowPartialStacksForSpace && displaced.getCount() < displaced.getMaxStackSize()))) continue;
-                int splitSlot = boxSlot;
-                if (box.getCount() > 1) {
-                    if (ender) {
-                        splitSlot = RefillSources.freeBoxSlot(inventory, boxSlot);
-                        if (splitSlot < 0) continue;
-                    } else {
-                        splitSlot = -1;
-                        for (int slot = 0; slot < size; slot++) {
-                            if (slot != destination && slot != boxSlot && (eligibleSlots & (1L << slot)) != 0
-                                    && inventory.getItem(slot).isEmpty()) { splitSlot = slot; break; }
-                        }
-                        if (splitSlot == -1) continue;
-                    }
-                }
-                var contents = NonNullList.withSize(27, ItemStack.EMPTY);
-                for (int i = 0; i < 27; i++) contents.set(i, original.get(i).copy());
-                contents.get(contentSlot).shrink(count);
-                if (!displaced.isEmpty() && !config.allowMixedItemsWhenMakingSpace && contents.stream().anyMatch(stack ->
-                        !stack.isEmpty() && !(config.matchItemComponents ? ItemStack.isSameItemSameComponents(stack, displaced)
-                                : ItemStack.isSameItem(stack, displaced)))) continue;
-                if (!displaced.isEmpty() && ShulkerStorage.insert(contents, displaced) != displaced.getCount()) continue;
-
-                // Plan against copies first; neither failure nor a stacked source may partially mutate inventory.
-                var changedBox = box.copyWithCount(1);
-                changedBox.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
-                if (box.getCount() > 1) box.shrink(1);
-                inventory.setItem(splitSlot, changedBox);
-                inventory.setItem(destination, source.copyWithCount(count));
-                inventory.setChanged();
-                return count;
-            }
+        var before = CraftingMaterials.copy(inventory);
+        var planned = CraftingMaterials.copy(inventory);
+        int destination = BoxRelocation.freeSlot(planned, eligibleSlots);
+        int splitSlot = boxSlot;
+        if (box.getCount() > 1) {
+            if (ender) splitSlot = RefillSources.freeBoxSlot(planned, boxSlot);
+            else splitSlot = BoxRelocation.freeSlot(planned, destination < 0 ? eligibleSlots
+                    : eligibleSlots & ~(1L << destination));
+            if (splitSlot < 0) return 0;
+            planned.getItem(boxSlot).shrink(1);
         }
-        return 0;
+        original.get(contentSlot).shrink(count);
+        var changedBox = box.copyWithCount(1);
+        changedBox.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(original));
+        CraftingMaterials.write(planned, splitSlot, changedBox);
+        if (destination < 0) {
+            if (!config.refillMakeSpace) return 0;
+            destination = BoxRelocation.makeSpace(planned, config, eligibleSlots, taken, null);
+        }
+        if (destination < 0 || !planned.getItem(destination).isEmpty()) return 0;
+        CraftingMaterials.write(planned, destination, taken);
+        CraftingMaterials.commitChanges(before, planned, inventory);
+        return count;
     }
 
     private static int takeDirect(Container inventory, int sourceSlot, Item expected, boolean fullStack, long eligible) {
@@ -112,7 +92,7 @@ public final class ShulkerRefill {
         return count;
     }
 
-    /** IPN selected a tool: equip and return the old tool to the exact source position in one server transaction. */
+    /** IPN selected a tool: equip it and store the old tool in a compatible box in one transaction. */
     public static int swapToolForRestock(Container inventory, int boxSlot, int inner, int targetSlot,
                                          StorageConfig config, int eligible) {
         if (!config.ipnRefill || eligible <= 0 || eligible >= (1 << 27)
@@ -138,10 +118,21 @@ public final class ShulkerRefill {
         }
         var contents = NonNullList.withSize(27, ItemStack.EMPTY);
         box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).copyInto(contents);
-        contents.set(inner, old.copy());
+        contents.set(inner, ItemStack.EMPTY);
         var changed = box.copyWithCount(1); changed.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
-        if (box.getCount() > 1) box.shrink(1);
-        inventory.setItem(destination, changed); inventory.setItem(targetSlot, replacement.copy()); inventory.setChanged();
+        var before = CraftingMaterials.copy(inventory);
+        var planned = CraftingMaterials.copy(inventory);
+        if (box.getCount() > 1) planned.getItem(boxSlot).shrink(1);
+        if (!old.isEmpty() && BoxRelocation.acceptsType(contents, old, config)) {
+            // Keep the original tool slot when the remaining source is compatible.
+            contents.set(inner, old.copy());
+            changed.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
+        }
+        CraftingMaterials.write(planned, destination, changed);
+        if (!old.isEmpty() && contents.get(inner).isEmpty()
+                && BoxRelocation.store(planned, old, -1, config, (long) eligible << 9) < 0) return 0;
+        CraftingMaterials.write(planned, targetSlot, replacement);
+        CraftingMaterials.commitChanges(before, planned, inventory);
         return 1;
     }
 }

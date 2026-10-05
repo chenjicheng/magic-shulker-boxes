@@ -90,10 +90,9 @@ public class RefillRegressionGameTests {
 
     @GameTest public void measureBlockedRefillFallback(GameTestHelper helper) {
         var config = MagicShulkerBoxes.config();
-        boolean oldFull = config.refillFullStack, oldMixed = config.allowMixedItemsWhenMakingSpace;
+        boolean oldFull = config.refillFullStack;
         try {
             config.refillFullStack = false;
-            config.allowMixedItemsWhenMakingSpace = true;
             var beans = ManagementFactory.getThreadMXBean() instanceof com.sun.management.ThreadMXBean bean
                     && bean.isThreadAllocatedMemorySupported() ? bean : null;
             if (beans != null && !beans.isThreadAllocatedMemoryEnabled()) beans.setThreadAllocatedMemoryEnabled(true);
@@ -117,14 +116,18 @@ public class RefillRegressionGameTests {
             }
             helper.succeed();
         } finally {
-            config.refillFullStack = oldFull; config.allowMixedItemsWhenMakingSpace = oldMixed;
+            config.refillFullStack = oldFull;
         }
     }
 
     @GameTest public void differentSourceCountsRemainFallbackCandidates(GameTestHelper helper) {
         var player = player(helper);
         var inventory = player.getInventory();
-        for (int i = 0; i < 36; i++) inventory.setItem(i, new ItemStack(Items.DIRT, 64));
+        for (int i = 0; i < 36; i++) {
+            var displaced = new ItemStack(Items.STONE, 64);
+            displaced.set(DataComponents.CUSTOM_NAME, Component.literal("Inventory stone"));
+            inventory.setItem(i, displaced);
+        }
         var contents = new ArrayList<ItemStack>();
         for (int i = 0; i < 27; i++) contents.add(new ItemStack(Items.STONE, i == 26 ? 1 : 64));
         inventory.setItem(35, box(contents));
@@ -134,8 +137,9 @@ public class RefillRegressionGameTests {
             helper.assertTrue(RefillNetwork.accept(player, request(helper, 35, 0, "minecraft:stone")) == 1,
                     Component.literal("A different count can free a slot after equivalent full stacks failed"));
             var stored = inventory.getItem(35).get(DataComponents.CONTAINER).stream().toList();
-            helper.assertTrue(stored.get(26).is(Items.DIRT) && stored.get(26).getCount() == 64,
-                    Component.literal("The displaced dirt occupies the one-item source's vacated slot"));
+            helper.assertTrue(stored.get(26).is(Items.STONE) && stored.get(26).getCount() == 64
+                            && stored.get(26).getHoverName().getString().equals("Inventory stone"),
+                    Component.literal("The displaced same-type stack retains components in the vacated slot"));
             helper.succeed();
         } finally { config.refillFullStack = old; }
     }

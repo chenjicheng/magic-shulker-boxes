@@ -53,21 +53,21 @@ class ConfigFileTest {
         var config = ConfigFile.load(path);
         assertFalse(config.pickupStorageEnabled);
         assertFalse(config.allowPlayerSettings);
-        assertTrue(config.onlyWhenInventoryFull);
-        assertFalse(config.allowOtherSingleTypeBoxes);
+        assertFalse(config.preferEmptyBoxesOverInventory);
+        assertTrue(config.useMatchingBoxes);
         assertEquals(StorageConfig.MakeSpaceMode.MOVE_TO_BOX, config.makeSpaceMode);
-        assertTrue(Files.readString(path).contains("allowOtherSingleTypeBoxes"));
+        assertTrue(Files.readString(path).contains("useMatchingBoxes"));
     }
 
     @Test
     void acceptsPartialConfigWithoutOverwritingUsersFile() throws IOException {
         var path = directory.resolve("config.json");
-        var json = "{\"configVersion\":2,\"allowOtherSingleTypeBoxes\":true,\"useEmptyBoxes\":false}";
+        var json = "{\"configVersion\":2,\"useMatchingBoxes\":true,\"useEmptyBoxes\":false}";
         Files.writeString(path, json);
         var config = ConfigFile.load(path);
-        assertTrue(config.allowOtherSingleTypeBoxes);
+        assertTrue(config.useMatchingBoxes);
         assertFalse(config.useEmptyBoxes);
-        assertTrue(config.useMixedBoxes);
+        assertTrue(config.splitStackedBoxes);
         assertEquals(json, Files.readString(path));
     }
 
