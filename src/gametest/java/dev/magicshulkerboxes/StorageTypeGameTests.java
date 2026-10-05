@@ -9,7 +9,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ClickType;
@@ -86,8 +85,13 @@ public class StorageTypeGameTests implements CustomTestMethodInvoker {
         var player = player(helper, true);
         var speed = potion(Potions.SWIFTNESS);
         player.getInventory().setItem(9, box(potion(Potions.STRENGTH))); player.getInventory().setItem(10, box());
-        var chest = new SimpleContainer(27); chest.setItem(0, speed.copy());
+        var chest = TestContainers.chest(helper, player); chest.setItem(0, speed.copy());
         var menu = new ChestMenu(MenuType.GENERIC_9x3, 1, player.getInventory(), chest, 3); player.containerMenu = menu;
+        menu.clicked(0, 0, ClickType.QUICK_MOVE, player);
+        check(helper, ItemStack.matches(chest.getItem(0), speed) && storedCount(player.getInventory().getItem(10)) == 0,
+                "A vanilla-rejected transfer is not synthesized into a box");
+        player.getInventory().setItem(11, ItemStack.EMPTY);
+        MagicShulkerBoxes.config().preferEmptyBoxesOverInventory = true;
         menu.clicked(0, 0, ClickType.QUICK_MOVE, player);
         check(helper, chest.getItem(0).isEmpty(), "Actual chest Shift-click takes one potion");
         check(helper, storedCount(player.getInventory().getItem(9)) == 1, "Container transfer does not use the wrong potion box");

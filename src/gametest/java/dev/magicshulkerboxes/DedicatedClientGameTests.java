@@ -12,7 +12,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.npc.villager.Villager;
@@ -104,7 +103,7 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
                     var p = actual.getPlayerList().getPlayers().getFirst();
                     p.getInventory().clearContent();
                     p.getInventory().setItem(9, box(ItemStack.EMPTY));
-                    var chest = new SimpleContainer(27);
+                    var chest = TestContainers.chest(p);
                     chest.setItem(0, new ItemStack(Items.STONE, 8));
                     p.openMenu(
                             new SimpleMenuProvider(

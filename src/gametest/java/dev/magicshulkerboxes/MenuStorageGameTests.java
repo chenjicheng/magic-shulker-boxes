@@ -7,7 +7,6 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.inventory.ChestMenu;
@@ -38,6 +37,7 @@ public class MenuStorageGameTests {
                                                     new ItemStack(Items.STONE),
                                                     new ItemStack(Items.DIRT))));
                     var villager = new Villager(EntityType.VILLAGER, h.getLevel());
+                    h.getLevel().addFreshEntity(villager);
                     villager.setTradingPlayer(p);
                     var offer =
                             new MerchantOffer(
@@ -66,12 +66,12 @@ public class MenuStorageGameTests {
     }
 
     @GameTest
-    public void shiftTransferStoresBeforeInventoryAndNormalClickWaitsForDeposit(GameTestHelper h) {
+    public void shiftTransferCollectsAfterVanillaAndNormalClickWaitsForDeposit(GameTestHelper h) {
         withConfig(
                 false,
                 () -> {
                     var p = player(h);
-                    var chest = new SimpleContainer(27);
+                    var chest = TestContainers.chest(h, p);
                     chest.setItem(0, new ItemStack(Items.STONE, 12));
                     var menu = new ChestMenu(MenuType.GENERIC_9x3, 1, p.getInventory(), chest, 3);
                     p.containerMenu = menu;
@@ -113,15 +113,15 @@ public class MenuStorageGameTests {
                             .set(
                                     DataComponents.CONTAINER,
                                     ItemContainerContents.fromItems(contents));
-                    var chest = new SimpleContainer(27);
+                    var chest = TestContainers.chest(h, p);
                     chest.setItem(0, new ItemStack(Items.STONE, 5));
                     var menu = new ChestMenu(MenuType.GENERIC_9x3, 1, p.getInventory(), chest, 3);
                     p.containerMenu = menu;
                     menu.clicked(0, 0, ClickType.QUICK_MOVE, p);
                     check(
                             h,
-                            stored(p) == 27 * 64 && chest.getItem(0).getCount() == 4,
-                            "Only available box capacity is consumed");
+                            stored(p) == 27 * 64 - 1 && chest.getItem(0).getCount() == 5,
+                            "A full vanilla inventory leaves unreceived container stock in its real source");
                 });
         h.succeed();
     }
@@ -132,7 +132,7 @@ public class MenuStorageGameTests {
                 true,
                 () -> {
                     var p = player(h);
-                    var chest = new SimpleContainer(27);
+                    var chest = TestContainers.chest(h, p);
                     chest.setItem(0, new ItemStack(Items.STONE, 5));
                     var menu = new ChestMenu(MenuType.GENERIC_9x3, 1, p.getInventory(), chest, 3);
                     p.containerMenu = menu;
@@ -158,7 +158,7 @@ public class MenuStorageGameTests {
                 false,
                 () -> {
                     var p = player(h);
-                    var chest = new SimpleContainer(27);
+                    var chest = TestContainers.chest(h, p);
                     chest.setItem(0, new ItemStack(Items.STONE, 5));
                     var menu = new ChestMenu(MenuType.GENERIC_9x3, 1, p.getInventory(), chest, 3);
                     menu.slots.set(
@@ -187,6 +187,7 @@ public class MenuStorageGameTests {
                                     DataComponents.CONTAINER,
                                     ItemContainerContents.fromItems(contents));
                     var villager = new Villager(EntityType.VILLAGER, h.getLevel());
+                    h.getLevel().addFreshEntity(villager);
                     villager.setTradingPlayer(p);
                     var offer =
                             new MerchantOffer(
@@ -224,6 +225,7 @@ public class MenuStorageGameTests {
                 () -> {
                     var p = player(h);
                     var villager = new Villager(EntityType.VILLAGER, h.getLevel());
+                    h.getLevel().addFreshEntity(villager);
                     villager.setTradingPlayer(p);
                     var offer =
                             new MerchantOffer(

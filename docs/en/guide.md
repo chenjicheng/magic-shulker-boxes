@@ -6,7 +6,7 @@ Automatic shulker storage for **Minecraft Java 1.21.11 / Fabric / Java 21**.
 
 **Pickup storage is off by default.** Singleplayer hosts can enable it in World settings. Multiplayer administrators can set `pickupStorageEnabled=true` in the server configuration and run `/msb admin reload`, or allow players to enable it individually. Material refilling has its own switch.
 
-With pickup storage enabled, matching single-type boxes come first, then the normal inventory, then empty boxes for overflow. Enable `preferEmptyBoxesOverInventory` to try empty or safely split boxes before the inventory too, even when the inventory has room. Box storage uses this order:
+With pickup storage enabled, vanilla first completes inventory insertion, source deductions and callbacks. MSB then organizes quantities actually received, preferring matching single-type boxes and otherwise leaving them in the inventory. Enable `preferEmptyBoxesOverInventory` to also use empty or safely split boxes. A real remainder still on the ground may use empty boxes or space-making after vanilla pickup finishes. Box storage uses this order:
 
 1. A box containing only the same item type.
 2. An empty shulker box.
@@ -27,11 +27,13 @@ Storage now covers ground pickup, container-to-inventory transfers and villager 
 
 ### Container and trade storage
 
-With `pickupStorageEnabled`, Shift transfers from containers, including ordinary and ender chests, use the existing box classification, component and splitting rules. Matching boxes always precede the inventory. With `preferEmptyBoxesOverInventory=true`, empty boxes also come first; by default they only receive inventory overflow. Unaccepted container items remain in their source slot.
+With `pickupStorageEnabled`, Shift transfers from containers, including ordinary and ender chests, first complete vanilla insertion, source deductions, permission checks and callbacks. MSB then organizes quantities actually received using the existing classification, component and splitting rules. Matching boxes are used by default; `preferEmptyBoxesOverInventory=true` also permits empty boxes. Items rejected by a full vanilla inventory remain in their source slot, even if a carried box has room. Earlier snapshots never supply or recreate stock.
+
+This collection requires independently owned storage: a live world block container, a compound of independent containers, the player's own ender chest, or a live merchant entity's trading container. An unverified menu may be editing a carried item. While it is open, transfers retain vanilla behavior and MSB pauses carried-box storage writes, preventing return-to-source loops and conflicting writers. The protection checks ownership rather than mod names.
 
 Ordinary withdrawals and trade results stay on the cursor until deposited into player storage. In boxes-first mode, those deposits collect only the newly added quantity. Drag distribution and container-to-hotbar swaps are supported. Rearranging player inventory and automatic refunds during trade selection do not trigger storage. Crafting menus, item-giving commands and manual dropping are excluded from this path.
 
-Vanilla still charges trades and awards uses and experience. Each trade output must fit completely; otherwise that trade remains unchanged. Menu storage can split into existing free slots or make space with `MOVE_TO_BOX`. It does not drop items to make space with `DROP_AND_PICKUP`; collection after cursor deposits also does not displace existing inventory items.
+Vanilla handles trade outputs, costs, uses and experience before MSB organizes received quantities. Menu post-processing may safely split boxes into existing free slots but never displaces or drops older inventory items. Rearrangement without a net increase is not mistaken for a new receipt.
 
 ### Ender chest sources
 

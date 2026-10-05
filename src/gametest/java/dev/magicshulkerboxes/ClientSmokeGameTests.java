@@ -38,7 +38,7 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
                                 var box = new ItemStack(Items.SHULKER_BOX);
                                 box.set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
                                 p.getInventory().setItem(9, box);
-                                var chest = new net.minecraft.world.SimpleContainer(27);
+                                var chest = TestContainers.chest(p);
                                 chest.setItem(0, new ItemStack(Items.STONE, 8));
                                 chest.setItem(1, new ItemStack(Items.STONE, 3));
                                 p.openMenu(
@@ -99,6 +99,7 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
                                     throw new AssertionError("Server did not confirm stored items");
                                 p.closeContainer();
                             });
+            itemBackedMenuFlow(context, world.getServer());
             potionStorageFlow(context, world.getServer());
             if (FabricLoader.getInstance().isModLoaded("yet_another_config_lib_v3")) {
                 world.getServer()
@@ -236,6 +237,43 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
         }
     }
 
+    private static void itemBackedMenuFlow(ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext world) {
+        world.runOnServer(server -> {
+            var player = server.getPlayerList().getPlayers().getFirst();
+            player.closeContainer();
+            player.getInventory().clearContent();
+            var config = MagicShulkerBoxes.config();
+            config.pickupStorageEnabled = true;
+            config.preferEmptyBoxesOverInventory = true;
+            config.allowPlayerSettings = false;
+            var box = new ItemStack(Items.SHULKER_BOX);
+            box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(java.util.List.of(new ItemStack(Items.STONE, 5))));
+            player.getInventory().setItem(9, box);
+            var source = new ItemBackedMenuGameTests.ItemBackedContainer(box);
+            player.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inventory, owner) ->
+                    net.minecraft.world.inventory.ChestMenu.threeRows(id, inventory, source),
+                    net.minecraft.network.chat.Component.literal("Carried item container")));
+        });
+        context.waitFor(client -> client.player.containerMenu instanceof net.minecraft.world.inventory.ChestMenu
+                && client.player.containerMenu.getSlot(0).getItem().getCount() == 5);
+        context.runOnClient(client -> client.gameMode.handleInventoryMouseClick(
+                client.player.containerMenu.containerId, 0, 0,
+                net.minecraft.world.inventory.ClickType.QUICK_MOVE, client.player));
+        context.waitFor(client -> client.player.containerMenu.getSlot(0).getItem().isEmpty()
+                && stored(client.player.getInventory().getItem(9)) == 0
+                && java.util.stream.IntStream.range(0, 36).mapToObj(client.player.getInventory()::getItem)
+                        .filter(stack -> stack.is(Items.STONE)).mapToInt(ItemStack::getCount).sum() == 5);
+        world.runOnServer(server -> {
+            var player = server.getPlayerList().getPlayers().getFirst();
+            int total = java.util.stream.IntStream.range(0, 36).mapToObj(player.getInventory()::getItem)
+                    .filter(stack -> stack.is(Items.STONE)).mapToInt(ItemStack::getCount).sum();
+            if (total != 5 || stored(player.getInventory().getItem(9)) != 0)
+                throw new AssertionError("Server inventory duplicated or returned the carried-box extraction");
+            player.closeContainer();
+        });
+    }
+
     private static void potionStorageFlow(
             ClientGameTestContext context,
             net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext world) {
@@ -262,7 +300,7 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
                     empty.set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
                     inventory.setItem(10, empty);
                 }
-                var chest = new net.minecraft.world.SimpleContainer(27);
+                var chest = TestContainers.chest(player);
                 chest.setItem(0, speed.copy());
                 player.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, owner) ->
                         net.minecraft.world.inventory.ChestMenu.threeRows(id, inv, chest),
@@ -274,6 +312,22 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
             context.runOnClient(client -> client.gameMode.handleInventoryMouseClick(
                     client.player.containerMenu.containerId, 0, 0,
                     net.minecraft.world.inventory.ClickType.QUICK_MOVE, client.player));
+            if (full) {
+                context.waitTicks(5);
+                world.runOnServer(server -> {
+                    var player = server.getPlayerList().getPlayers().getFirst();
+                    if (!ItemStack.matches(player.containerMenu.getSlot(0).getItem(), speed)
+                            || stored(player.getInventory().getItem(10)) != 0)
+                        throw new AssertionError("Rejected vanilla transfer changed the source or empty box");
+                    player.getInventory().setItem(11, ItemStack.EMPTY);
+                    MagicShulkerBoxes.config().preferEmptyBoxesOverInventory = true;
+                    player.containerMenu.broadcastChanges();
+                });
+                context.waitFor(client -> client.player.getInventory().getItem(11).isEmpty());
+                context.runOnClient(client -> client.gameMode.handleInventoryMouseClick(
+                        client.player.containerMenu.containerId, 0, 0,
+                        net.minecraft.world.inventory.ClickType.QUICK_MOVE, client.player));
+            }
             // Wait for the authoritative chest update before checking results; client prediction is insufficient.
             boolean accepted = false;
             for (int tick = 0; tick < 200; tick++) {
