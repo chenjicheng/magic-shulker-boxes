@@ -198,7 +198,7 @@ npm run docs:preview
 | --- | --- |
 | `/function msb_test:refill` | 满背包、16 个 Carpet 空盒与材料盒；把测试原理图放在 `100,101,100`，轻松放置应取料、腾栏并保留镐和堆叠盒 |
 | `/function msb_test:refill_blocked` | 重置取料场景，禁止腾栏；应提示失败且物品不变，需先允许个人设置 |
-| `/function msb_test:refill_silent` | 在失败场景关闭提示；再次尝试不出现取料提示 |
+| `/function msb_test:refill_silent` | 在失败场景同时关闭通用补货与空间不足提示；再次尝试不出现提示，两字段须获准修改 |
 | `/function msb_test:refill_disabled` | 关闭取料并开启提示；尝试时说明功能已禁用 |
 | `/function msb_test:refill_enabled` | 清除个人覆盖并恢复取料场景 |
 | `/function msb_test:matching` | 同类蓝盒 63 个圆石变成 64＋4，前面的空盒和含无关物品的盒子不变 |
