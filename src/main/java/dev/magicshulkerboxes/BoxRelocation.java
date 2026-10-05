@@ -1,7 +1,9 @@
 package dev.magicshulkerboxes;
 
 import java.util.List;
+import java.util.Objects;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
@@ -13,11 +15,27 @@ final class BoxRelocation {
     static final long ALL_SLOTS = (1L << 41) - 1;
     record Transfer(ItemStack stack, int destination) {}
 
+    // These payloads define the stored item's type; relaxed matching only ignores other metadata.
+    private static final List<DataComponentType<?>> TYPE_COMPONENTS = List.of(
+            DataComponents.POTION_CONTENTS,
+            DataComponents.POTION_DURATION_SCALE,
+            DataComponents.SUSPICIOUS_STEW_EFFECTS,
+            DataComponents.STORED_ENCHANTMENTS,
+            DataComponents.MAP_ID,
+            DataComponents.FIREWORKS,
+            DataComponents.FIREWORK_EXPLOSION,
+            DataComponents.INSTRUMENT,
+            DataComponents.OMINOUS_BOTTLE_AMPLIFIER);
+
     private BoxRelocation() {}
 
     static boolean sameType(ItemStack first, ItemStack second, StorageConfig config) {
-        return config.matchItemComponents ? ItemStack.isSameItemSameComponents(first, second)
-                : ItemStack.isSameItem(first, second);
+        if (config.matchItemComponents) return ItemStack.isSameItemSameComponents(first, second);
+        if (!ItemStack.isSameItem(first, second)) return false;
+        for (var component : TYPE_COMPONENTS) {
+            if (!Objects.equals(first.get(component), second.get(component))) return false;
+        }
+        return true;
     }
 
     static boolean acceptsType(NonNullList<ItemStack> contents, ItemStack incoming, StorageConfig config) {

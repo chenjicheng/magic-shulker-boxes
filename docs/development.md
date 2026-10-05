@@ -268,6 +268,12 @@ YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，�
 
 `BoxRelocation` 在背包副本上规划被移动物品，优先使用同类单盒，再使用空盒。必要时可将多栏同类物品合并到单独拆出的盒子，腾出一个栏位。拾取规划只有确认能接收新物品后才提交，取料和合成则要求整个操作成功。IPN 掩码同时保护被移动栏位和随身目的盒。含无关物品的盒子即使有容量也不作为自动收纳目的地。
 
+`BoxRelocation.sameType` 是收纳和腾栏的类型比较入口。默认比较物品 ID，以及 `POTION_CONTENTS`、`POTION_DURATION_SCALE`、`SUSPICIOUS_STEW_EFFECTS`、`STORED_ENCHANTMENTS`、`MAP_ID`、`FIREWORKS`、`FIREWORK_EXPLOSION`、`INSTRUMENT`、`OMINOUS_BOTTLE_AMPLIFIER` 的完整值；这些内容定义物品类型，不受 `matchItemComponents=false` 放宽。开启该项改用原版全部组件比较，普通装备的 `ENCHANTMENTS`/`DAMAGE`、自定义名称等额外差异仍受此开关控制。规则没有新增配置字段或改变网络载荷。
+
+`PickupRelocation.collectReserved` 和 `ShulkerStorage.collectRelocated` 显式接收本次有效配置，回收前用同一 `acceptsType` 复核预留盒内容，防止其他拾取钩子修改盒内内容后绕过药水类型或严格组件保护。实际堆叠合并始终用 `ItemStack.isSameItemSameComponents`。
+
+`PotionClassificationTest` 覆盖药水/药水箭、基础/延长/增强类型、自定义效果、时长倍率、混合盒拒绝、空盒回退、腾栏原子回滚及预留回收。`StorageTypeGameTests` 使用真实物品实体拾取与箱子 Shift 点击，覆盖全部关键内容类型、附魔书等级、烟花时长/内容，以及普通工具附魔仍受严格开关控制。对应真实客户端路径由 `ClientSmokeGameTests` 验证；无 IPN/YACL 设置页入口仍需按前文复测。
+
 `ConfigFile` 仅在磁盘读取时移除旧混装选项和权限，在验证剩余字段后完整备份到 `.pre-single-type.bak`，保留其他稀疏偏好。命令、GUI、按键和网络输入不再包含这些字段。版本 1 文件在原有 `.pre-0.3.2.bak` 迁移中同时移除旧项；无效文件和备份冲突保持原样。历史发行说明仍对应各自发布时的行为。
 
 `ItemEntityMixin` 与菜单转移先执行 `ShulkerStorage.storeMatching`，默认再走原版背包，最后使用空盒收纳余量；`preferEmptyBoxesOverInventory=true` 将空盒阶段提前到背包前。旧优先设置按反值迁移并重命名权限，不接受同时含新旧字段的冲突文件。`StorageFailure` 对可确认的空间失败统一发送服务端语言回退的快捷栏提示，按玩家限频 40 tick；空间失败由独立的 `spaceFailureMessages` 控制，不受 `refillFailureMessages` 影响。合成规划仅在来源拆盒或余留物安置失败时触发此提示，材料缺失和配方变化保持原有处理。

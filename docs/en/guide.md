@@ -173,7 +173,19 @@ All vanilla shulker colors are supported. Names, colors, other box components, a
 
 A stack need not be full: a slot containing three stones can be used. All three must leave that slot to free it. By default, only the main inventory is considered; hotbar use is optional. Items matching the incoming type are preferred, followed by other items that can be stored. The entire plan must fit every displaced item and at least one incoming item, or nothing changes. With no free slot, two same-type stacks can be consolidated into one new box, leaving the second slot available for the pickup box.
 
-Displaced stone and incoming cobblestone enter separate single-type boxes; later gravel uses its own matching or empty box. Pickup, schematic/IPN extraction, tool replacement and crafting remainders follow this rule. Existing boxes containing multiple types remain usable as extraction sources but are skipped as automatic storage destinations. With `matchItemComponents=false`, type matching uses item IDs while preserving separate component variants; enabling it also requires equal components.
+Displaced stone and incoming cobblestone enter separate single-type boxes; later gravel uses its own matching or empty box. Pickup, container transfers, schematic/IPN space-making, tool replacement, crafting remainders and immediate drop recollection share the same classification. Existing boxes containing multiple types remain usable as extraction sources but are skipped as automatic storage destinations.
+
+Type matching always compares the item ID and these intrinsic payloads, even with `matchItemComponents=false`:
+
+- Potions, splash/lingering potions and tipped arrows: complete potion contents (base type, custom effects, color and other fields) and effect-duration scale. Ordinary, extended and enhanced variants remain separate.
+- Suspicious stew: effects and durations.
+- Enchanted books: stored enchantments and levels.
+- Filled maps: map ID.
+- Firework rockets and stars: flight duration and explosion contents, including shapes, colors and trails.
+- Goat horns: instrument/sound.
+- Ominous bottles: amplifier level.
+
+“Require identical components” defaults to off and additionally controls custom names, ordinary equipment enchantments/damage and other differences. Different potion effects always use separate boxes; otherwise identical potions renamed on an anvil may share a box with this option off, but not with it on. Components outside the intrinsic list still follow this switch. Different component stacks inside one box are always preserved separately.
 
 ## Configuration
 
@@ -196,7 +208,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | `allowPartialStacksForSpace` | `true` | Allow stacks below their item stack limit to be displaced in either mode |
 | `preferExistingBoxesBeforeMakingSpace` | `true` | Try all currently usable boxes before freeing a slot; `false` makes space as each stacked box is encountered in category order |
 | `includeOffhand` | `false` | Also search the offhand for boxes; split destinations remain main inventory/hotbar slots |
-| `matchItemComponents` | `false` | Classify types by item ID; `true` also compares names, enchantments, and other components |
+| `matchItemComponents` | `false` | Always compare item ID and the intrinsic payloads above; `true` additionally requires identical names, ordinary equipment enchantments/damage and all other components |
 | `ipnRefill` | `true` | Allow IPN to refill from backpack boxes using its own matching and triggers |
 | `craftRefill` | `true` | Allow carried-box crafting ingredients |
 

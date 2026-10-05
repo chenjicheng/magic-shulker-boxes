@@ -175,11 +175,11 @@ public final class ShulkerStorage {
     }
 
     /** Only the synchronously reserved single box may receive a relocation pickup. */
-    static int collectRelocated(Container inventory, int slot, ItemStack expectedBox, ItemStack incoming) {
+    static int collectRelocated(Container inventory, int slot, ItemStack expectedBox, ItemStack incoming, StorageConfig config) {
         if (inventory.getItem(slot) != expectedBox || expectedBox.getCount() != 1) return 0;
         var contents = BoxRelocation.contents(expectedBox);
         if (contents == null) return 0;
-        if (contents.stream().anyMatch(stack -> !stack.isEmpty() && !ItemStack.isSameItem(stack, incoming))) return 0;
+        if (!BoxRelocation.acceptsType(contents, incoming, config)) return 0;
         int accepted = insert(contents, incoming);
         if (accepted > 0) {
             expectedBox.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));

@@ -50,10 +50,10 @@ public final class PickupRelocation {
     }
 
     /** -1 means this is an ordinary pickup, including any later retries of a blocked drop. */
-    public static int collectReserved(Inventory inventory, ItemStack incoming) {
+    public static int collectReserved(Inventory inventory, ItemStack incoming, StorageConfig config) {
         var reservation = ACTIVE.get();
         if (reservation == null || reservation.inventory != inventory || reservation.incoming != incoming) return -1;
-        return ShulkerStorage.collectRelocated(inventory, reservation.destination, reservation.box, incoming);
+        return ShulkerStorage.collectRelocated(inventory, reservation.destination, reservation.box, incoming, config);
     }
 
     private record Reservation(Inventory inventory, int destination, ItemStack box, ItemStack incoming) {}

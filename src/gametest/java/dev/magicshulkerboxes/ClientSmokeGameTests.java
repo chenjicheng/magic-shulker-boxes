@@ -99,6 +99,7 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
                                     throw new AssertionError("Server did not confirm stored items");
                                 p.closeContainer();
                             });
+            potionStorageFlow(context, world.getServer());
             if (FabricLoader.getInstance().isModLoaded("yet_another_config_lib_v3")) {
                 world.getServer()
                         .runOnServer(
@@ -232,6 +233,71 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
                 context.takeScreenshot("settings-world-permissions-controls-zh");
                 context.runOnClient(client -> client.setScreen(null));
             }
+        }
+    }
+
+    private static void potionStorageFlow(
+            ClientGameTestContext context,
+            net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext world) {
+        var strength = net.minecraft.world.item.alchemy.PotionContents.createItemStack(
+                Items.POTION, net.minecraft.world.item.alchemy.Potions.STRENGTH);
+        var speed = net.minecraft.world.item.alchemy.PotionContents.createItemStack(
+                Items.POTION, net.minecraft.world.item.alchemy.Potions.SWIFTNESS);
+        for (boolean full : new boolean[] {false, true}) {
+            world.runOnServer(server -> {
+                var config = MagicShulkerBoxes.config();
+                config.preferEmptyBoxesOverInventory = false;
+                config.matchItemComponents = false;
+                config.makeSpaceMode = StorageConfig.MakeSpaceMode.DISABLED;
+                var player = server.getPlayerList().getPlayers().getFirst();
+                player.closeContainer();
+                var inventory = player.getInventory();
+                inventory.clearContent();
+                if (full) for (int slot = 0; slot < 36; slot++) inventory.setItem(slot, new ItemStack(Items.STONE, 64));
+                var source = new ItemStack(Items.SHULKER_BOX);
+                source.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(java.util.List.of(strength.copy())));
+                inventory.setItem(9, source);
+                if (full) {
+                    var empty = new ItemStack(Items.SHULKER_BOX);
+                    empty.set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+                    inventory.setItem(10, empty);
+                }
+                var chest = new net.minecraft.world.SimpleContainer(27);
+                chest.setItem(0, speed.copy());
+                player.openMenu(new net.minecraft.world.SimpleMenuProvider((id, inv, owner) ->
+                        net.minecraft.world.inventory.ChestMenu.threeRows(id, inv, chest),
+                        net.minecraft.network.chat.Component.literal("Potion classification test")));
+                player.inventoryMenu.broadcastChanges();
+            });
+            context.waitFor(client -> client.player.containerMenu instanceof net.minecraft.world.inventory.ChestMenu
+                    && ItemStack.matches(client.player.containerMenu.getSlot(0).getItem(), speed));
+            context.runOnClient(client -> client.gameMode.handleInventoryMouseClick(
+                    client.player.containerMenu.containerId, 0, 0,
+                    net.minecraft.world.inventory.ClickType.QUICK_MOVE, client.player));
+            // Wait for the authoritative chest update before checking results; client prediction is insufficient.
+            boolean accepted = false;
+            for (int tick = 0; tick < 200; tick++) {
+                if (world.computeOnServer(server -> server.getPlayerList().getPlayers().getFirst()
+                        .containerMenu.getSlot(0).getItem().isEmpty())) { accepted = true; break; }
+                context.waitTick();
+            }
+            if (!accepted) throw new AssertionError("Server did not process the potion Shift-click");
+            world.runOnServer(server -> {
+                var inventory = server.getPlayerList().getPlayers().getFirst().getInventory();
+                var existing = inventory.getItem(9).get(DataComponents.CONTAINER).stream().filter(stack -> !stack.isEmpty()).toList();
+                if (existing.size() != 1 || !ItemStack.matches(existing.getFirst(), strength))
+                    throw new AssertionError("Different potion entered the strength box over the real connection");
+                var delivered = full ? inventory.getItem(10).get(DataComponents.CONTAINER).stream()
+                        .filter(stack -> !stack.isEmpty()).findFirst().orElse(ItemStack.EMPTY)
+                        : java.util.stream.IntStream.range(0, 36).mapToObj(inventory::getItem)
+                                .filter(stack -> ItemStack.isSameItemSameComponents(stack, speed)).findFirst().orElse(ItemStack.EMPTY);
+                if (!ItemStack.matches(delivered, speed)) throw new AssertionError("Speed potion was not conserved in its separate destination");
+            });
+            context.waitFor(client -> stored(client.player.getInventory().getItem(9)) == 1
+                    && (full ? stored(client.player.getInventory().getItem(10)) == 1
+                    : java.util.stream.IntStream.range(0, 36).anyMatch(slot -> ItemStack.matches(client.player.getInventory().getItem(slot), speed))));
+            world.runOnServer(server -> server.getPlayerList().getPlayers().getFirst().closeContainer());
+            context.waitFor(client -> client.player.containerMenu == client.player.inventoryMenu);
         }
     }
 

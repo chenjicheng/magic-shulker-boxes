@@ -22,7 +22,7 @@ abstract class ItemEntityMixin {
         var config = inventory.player instanceof ServerPlayer player
                 ? MagicShulkerBoxes.configFor(player) : MagicShulkerBoxes.config();
         if (!config.pickupStorageEnabled) return original.call(inventory, incoming);
-        int relocated = PickupRelocation.collectReserved(inventory, incoming);
+        int relocated = PickupRelocation.collectReserved(inventory, incoming, config);
         if (relocated >= 0) {
             boolean accepted = incoming.isEmpty() || original.call(inventory, incoming);
             if (!incoming.isEmpty() && inventory.player instanceof ServerPlayer player) StorageFailure.noSpace(player);

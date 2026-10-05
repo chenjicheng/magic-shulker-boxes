@@ -442,7 +442,7 @@ class ShulkerStorageTest {
             var expected = inventory.getItem(transfer.destination());
             assertEquals(0, countContents(expected), "Displaced stacks await their own pickups");
             inventory.setItem(transfer.destination(), box());
-            assertEquals(0, ShulkerStorage.collectRelocated(inventory, transfer.destination(), expected, transfer.stack()));
+            assertEquals(0, ShulkerStorage.collectRelocated(inventory, transfer.destination(), expected, transfer.stack(), config));
             assertEquals(3, transfer.stack().getCount(), "Rejected relocation stays intact as a world item");
         }));
         assertEquals(14, inventory.getItem(0).getCount());
