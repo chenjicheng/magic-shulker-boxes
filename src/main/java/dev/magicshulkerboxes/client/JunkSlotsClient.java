@@ -74,7 +74,6 @@ public final class JunkSlotsClient {
             });
             ScreenMouseEvents.allowMouseDrag(screen).register((current, event, dx, dy) -> heldScreen != inventory);
             ScreenEvents.remove(screen).register(current -> { if (heldScreen == inventory) finish(); });
-            ScreenEvents.afterRender(screen).register((current, graphics, x, y, delta) -> render(inventory, graphics, x, y));
         });
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
             var client = Minecraft.getInstance();
@@ -123,7 +122,8 @@ public final class JunkSlotsClient {
     }
     private static long visibleMask() { return heldScreen != null ? GESTURE.mask() : SESSION.desired(); }
 
-    private static void render(AbstractContainerScreen<?> screen, GuiGraphics graphics, int mouseX, int mouseY) {
+    /** Called after screen contents, before vanilla renders deferred tooltips on their own stratum. */
+    public static void renderBeforeTooltip(AbstractContainerScreen<?> screen, GuiGraphics graphics, int mouseX, int mouseY) {
         var access = (JunkSlotScreenAccess) screen;
         if (heldScreen == screen) GESTURE.visit(index(access.msb$hoveredSlot()));
         long mask = visibleMask();

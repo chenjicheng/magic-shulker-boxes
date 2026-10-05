@@ -21,7 +21,7 @@ Bind **Assign junk box slots** under **Options → Controls → Key Binds → Ma
 
 Roles belong to fixed main-inventory and hotbar positions, never to an item. Empty slots and ordinary items retain their markers but do not receive junk. Moving a box away removes its role, while another shulker placed in the slot becomes the junk box. Equipment, offhand and external container slots cannot be assigned. Selections belong to each player and world and recover from the server after reconnecting or restarting.
 
-A small box glyph appears at the top-left: aqua for a usable shulker, gray for no box, and yellow for an unconfirmed change. Pending removal remains indicated until confirmed. Holding the key also outlines the selection; hover for status and the current binding. Counts, durability bars and IPN's lock glyph remain visible.
+A small box glyph appears at the top-left: aqua for a usable shulker, gray for no box, and yellow for an unconfirmed change. Pending removal remains indicated until confirmed. Holding the key also outlines the selection; hover for status and the current binding. Tooltips appear above markers and selection outlines. Counts, durability bars and IPN's lock glyph remain visible.
 
 Box priority is dedicated matching boxes → assigned junk boxes → empty boxes. Assigned boxes retain their role when empty or single-type; unassigned mixed boxes are not automatic junk boxes. Default post-insertion collection uses matching boxes and otherwise leaves receipts in inventory. `preferEmptyBoxesOverInventory` also permits junk and empty boxes. Real ground remainders and relocation can use junk boxes. Stack merging still requires identical components, preserving potion effects, names and enchantments.
 

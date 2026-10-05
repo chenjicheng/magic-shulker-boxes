@@ -3,7 +3,10 @@ package dev.magicshulkerboxes;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.magicshulkerboxes.client.JunkSlotsClient;
 import dev.magicshulkerboxes.mixin.JunkSlotScreenAccess;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
+import javax.imageio.ImageIO;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
@@ -40,7 +43,7 @@ public class JunkSlotsClientGameTests implements FabricClientGameTest {
             context.waitForScreen(InventoryScreen.class);
             move(context, 9); context.getInput().holdKey(GLFW.GLFW_KEY_F9);
             move(context, 10); move(context, 35); move(context, 9);
-            context.takeScreenshot("junk-slots-pending-preview");
+            verifyTooltipCoversMarker(context, "junk-slots-pending-preview", 0xFFF3CF69);
             context.getInput().releaseKey(GLFW.GLFW_KEY_F9);
             long wanted = (1L << 9) | (1L << 10) | (1L << 35);
             context.waitFor(client -> JunkSlotsClient.confirmedMask() == wanted);
@@ -51,7 +54,8 @@ public class JunkSlotsClientGameTests implements FabricClientGameTest {
                     throw new AssertionError("Native key gesture did not persist slots without changing inventory");
             });
             move(context, 35); context.takeScreenshot("junk-slots-selected-empty-tooltip");
-            move(context, 9); context.takeScreenshot("junk-slots-selected-box-tooltip");
+            verifyTooltipCoversMarker(context, "junk-slots-selected-box-tooltip", 0xFF65D9CB);
+            verifyEmptyTooltip(context, server, "junk-slots-selected-empty-overlap");
             context.runOnClient(client -> {
                 client.getLanguageManager().setSelected("zh_cn"); client.options.languageCode = "zh_cn";
                 client.reloadResourcePacks();
@@ -60,7 +64,8 @@ public class JunkSlotsClientGameTests implements FabricClientGameTest {
             context.waitTicks(2);
             context.getInput().resizeWindow(1024, 600);
             move(context, 35); context.takeScreenshot("junk-slots-chinese-empty-tooltip");
-            move(context, 9); context.takeScreenshot("junk-slots-chinese-box-tooltip");
+            verifyTooltipCoversMarker(context, "junk-slots-chinese-box-tooltip", 0xFF65D9CB);
+            verifyEmptyTooltip(context, server, "junk-slots-chinese-empty-overlap");
             if (FabricLoader.getInstance().isModLoaded("inventoryprofilesnext")) verifySorting(context, server);
             move(context, 9); context.getInput().holdKey(GLFW.GLFW_KEY_F9); move(context, 10); move(context, 35);
             context.getInput().releaseKey(GLFW.GLFW_KEY_F9);
@@ -84,6 +89,49 @@ public class JunkSlotsClientGameTests implements FabricClientGameTest {
                 } catch (java.io.IOException exception) { throw new AssertionError(exception); }
             });
         }
+    }
+
+    private static void verifyEmptyTooltip(ClientGameTestContext context, TestServerContext server, String name) {
+        server.runOnServer(actual -> {
+            var player = actual.getPlayerList().getPlayers().getFirst();
+            player.getInventory().setItem(9, ItemStack.EMPTY); player.containerMenu.broadcastChanges();
+        });
+        context.waitFor(client -> client.player.getInventory().getItem(9).isEmpty());
+        verifyTooltipCoversMarker(context, name, 0xFF65D9CB);
+        server.runOnServer(actual -> {
+            var player = actual.getPlayerList().getPlayers().getFirst();
+            player.getInventory().setItem(9, box(new ItemStack(Items.STONE, 64), new ItemStack(Items.DIRT, 3)));
+            player.containerMenu.broadcastChanges();
+        });
+        context.waitFor(client -> client.player.getInventory().getItem(9).is(Items.SHULKER_BOX));
+    }
+
+    private static void verifyTooltipCoversMarker(ClientGameTestContext context, String name, int markerColor) {
+        int[] sample = context.computeOnClient(client -> {
+            var screen = (AbstractContainerScreen<?>) client.screen;
+            var access = (JunkSlotScreenAccess) screen;
+            var slot = screen.getMenu().slots.stream().filter(s -> s.container == client.player.getInventory()
+                    && s.getContainerSlot() == 10).findFirst().orElseThrow();
+            // Hovering slot 9 places its tooltip over the right end of slot 10's top-left marker.
+            return new int[] {
+                (int) ((access.msb$leftPos() + slot.x + 3.5) * client.getWindow().getScreenWidth()
+                        / client.getWindow().getGuiScaledWidth()),
+                (int) ((access.msb$topPos() + slot.y + 0.5) * client.getWindow().getScreenHeight()
+                        / client.getWindow().getGuiScaledHeight())
+            };
+        });
+        context.getInput().setCursorPos(0, 0); context.waitTicks(2);
+        int uncovered = screenshotPixel(context.takeScreenshot(name + "-uncovered"), sample);
+        if (uncovered != markerColor) throw new AssertionError("The junk marker is not visible outside the tooltip");
+        move(context, 9);
+        int covered = screenshotPixel(context.takeScreenshot(name), sample);
+        if (covered == uncovered) throw new AssertionError("A junk marker is drawn over the native tooltip");
+    }
+
+    private static int screenshotPixel(Path path, int[] position) {
+        try {
+            return ImageIO.read(path.toFile()).getRGB(position[0], position[1]);
+        } catch (IOException exception) { throw new AssertionError("Cannot read the rendered tooltip screenshot", exception); }
     }
 
     private static void verifySorting(ClientGameTestContext context, TestServerContext server) {
