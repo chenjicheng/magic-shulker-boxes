@@ -6,16 +6,17 @@ Automatic shulker storage for **Minecraft Java 1.21.11 / Fabric / Java 21**.
 
 **Pickup storage is off by default.** Singleplayer hosts can enable it in World settings. Multiplayer administrators can set `pickupStorageEnabled=true` in the server configuration and run `/msb admin reload`, or allow players to enable it individually. Material refilling has its own switch.
 
-With pickup storage enabled, vanilla first completes inventory insertion, source deductions and callbacks. MSB then organizes quantities actually received, preferring matching single-type boxes and otherwise leaving them in the inventory. Enable `preferEmptyBoxesOverInventory` to also use empty or safely split boxes. A real remainder still on the ground may use empty boxes or space-making after vanilla pickup finishes. Box storage uses this order:
+With pickup storage enabled, vanilla first completes inventory insertion, source deductions and callbacks. MSB then organizes quantities actually received, preferring matching single-type boxes and otherwise leaving them in the inventory. Enable `preferEmptyBoxesOverInventory` to also use assigned junk, empty or safely split boxes. A real remainder still on the ground may use junk boxes, empty boxes or space-making after vanilla pickup finishes. Box storage uses this order:
 
 1. A box containing only the same item type.
-2. An empty shulker box.
+2. A shulker box in a manually assigned junk slot.
+3. An empty shulker box.
 
 All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
 
-## Development branch: manually assigned junk box slots
+## 0.10.0: manually assigned junk box slots
 
-This feature is not released yet and requires this branch on both client and server. The public 0.9.2 release does not include slot selection.
+Slot selection and markers require version 0.10.0 or newer on both client and server.
 
 Bind **Assign junk box slots** under **Options → Controls → Key Binds → Magic Shulker Boxes: slot selection**. It starts unbound and accepts keyboard or mouse buttons. In an inventory or container screen, hold the key and move across your own inventory slots. The first valid slot chooses assign or erase mode for the whole gesture; revisiting a slot does not toggle it again. Release the key to save with server confirmation.
 

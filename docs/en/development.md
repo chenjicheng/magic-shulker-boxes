@@ -104,7 +104,7 @@ npm run docs:preview
 
 `MenuStorageGameTests` cover actual container/trade operations, cursor deposits, full inventory, partial capacity, denied slots and complete trade costs/uses/XP. `EnderSourcesGameTests` cover ownership, repeated/stale requests, priority, disabled/full storage, real recipe placement and continuous crafting. `SettingPermissionsGameTests` cover commands, malicious network/GUI requests, existing files and live revocation. Client smoke tests send actual container clicks; IPN tests cover direct ender potions and exact-slot tool returns; crafting client tests cover ender recipe statistics and real placement. Add `-PwithConfigGui -PclientSmoke` for the partial-permission screen.
 
-### Junk slot state and protocol (unreleased development branch)
+### Junk slot state and protocol (0.10.0)
 
 `JunkSlots` uses bits for native inventory/hotbar indices 0–35, independent of menu slot IDs. `JunkSlotStore` persists `{schemaVersion:1, slots:[...]}` under `world/data/magic_shulker_boxes/junk-slots/<UUID>.json`. Runtime revisions support compare-and-set. Writes recheck disk content; future versions, invalid/duplicate indices and malformed files stay untouched. Confirmation follows successful atomic replacement. The transient `StorageConfig.junkBoxSlots` is injected only into a player-specific copy and never enters existing schema2 preferences, permissions or v7 payloads.
 

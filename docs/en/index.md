@@ -13,11 +13,11 @@ hero:
       link: https://github.com/chenjicheng/magic-shulker-boxes/releases
 features:
   - title: Ordered storage
-    details: Fill matching single-type boxes, then empty boxes; keep displaced items separate.
+    details: Fill matching boxes, assigned junk boxes, then empty boxes; hold a key to select junk slots.
   - title: Carpet stacking support
     details: Separate one box before changing its contents; optionally free a slot automatically.
   - title: Server rules, personal preferences
     details: Servers can allow player settings, with a bilingual Mod Menu + YACL client screen.
 ---
 
-The current version is **0.5.0**. Read the [release notes](../releases/0.5.0.md) or the [development, testing and release guide](development.md).
+The current version is **0.10.0**. Read the [release notes](../releases/0.10.0.md) or the [development, testing and release guide](development.md).

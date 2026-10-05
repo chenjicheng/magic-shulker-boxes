@@ -104,7 +104,7 @@ npm run docs:preview
 
 `MenuStorageGameTests` 覆盖真实容器与交易、光标、满背包、部分容量、拒绝取物、整份交易的扣款/次数/经验。`EnderSourcesGameTests` 覆盖本人隔离、请求重复/过期、来源优先级、禁用与无空间、真实配方书和连续补货。`SettingPermissionsGameTests` 检查命令、恶意网络/GUI、既存文件和运行时撤权。客户端的 `clientSmoke` 覆盖真实容器点击，`withIpn` 覆盖末影箱直接药水与原格工具回存；`craftClient` 检查末影箱配方统计和实际请求。加 `-PwithConfigGui -PclientSmoke` 检查逐项锁定页面。
 
-### 杂物槽位状态与协议（开发分支，未发布）
+### 杂物槽位状态与协议（0.10.0）
 
 `JunkSlots` 用 36 位掩码描述实际背包/快捷栏索引0–35，不使用菜单slot ID，不允许装备、副手或末影箱格。`JunkSlotStore` 在 `world/data/magic_shulker_boxes/junk-slots/<UUID>.json` 写入独立的 `{schemaVersion:1, slots:[...]}` 文档。当前运行修订用于CAS；写入前重新核对磁盘内容，未知版本、重复/非法索引及损坏文件保留原样。原子替换成功后才确认选择。运行时 `StorageConfig.junkBoxSlots` 是transient，仅由当前玩家的服务端数据注入副本，不进入设置schema2、选项/许可或v7载荷，不改变其他玩家与共享默认值。
 
