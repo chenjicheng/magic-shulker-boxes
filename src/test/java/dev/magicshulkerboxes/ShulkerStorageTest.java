@@ -278,15 +278,17 @@ class ShulkerStorageTest {
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
 
         assertEquals(5, ShulkerStorage.store(inventory, incoming, pickupEnabled()));
-        assertEquals(14, stacked.getCount());
+        assertEquals(15, stacked.getCount());
         assertEquals(0, countContents(stacked));
         assertEquals(1, inventory.getItem(9).getCount());
         var contents = inventory.getItem(9).get(DataComponents.CONTAINER).stream().toList();
-        assertEquals(128, countContents(inventory.getItem(9)));
+        assertEquals(133, countContents(inventory.getItem(9)));
         assertEquals(64, contents.get(0).getCount());
         assertEquals("Keep this name", contents.get(0).getHoverName().getString());
         assertEquals(64, contents.get(1).getCount());
-        SingleTypeStorageTest.assertContents(inventory.getItem(10), Items.COBBLESTONE, 5);
+        assertEquals(5, ManagedJunkStorageTest.count(inventory.getItem(9), Items.COBBLESTONE));
+        assertTrue(ManagedJunkBoxes.marked(inventory.getItem(9)));
+        assertTrue(inventory.getItem(10).isEmpty());
         assertEquals(64, inventory.getItem(1).getCount(), "Hotbar was not moved");
     }
 
@@ -318,9 +320,12 @@ class ShulkerStorageTest {
         assertEquals(16, stacked.getCount());
         config.useHotbarForSpace = true;
         assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
-        SingleTypeStorageTest.assertContents(inventory.getItem(0), Items.STONE, 128);
-        SingleTypeStorageTest.assertContents(inventory.getItem(1), Items.COBBLESTONE, 5);
-        assertEquals(14, stacked.getCount());
+        assertEquals(128, ManagedJunkStorageTest.count(inventory.getItem(0), Items.STONE));
+        assertEquals(5, ManagedJunkStorageTest.count(inventory.getItem(0), Items.COBBLESTONE));
+        assertTrue(ManagedJunkBoxes.marked(inventory.getItem(0)));
+        assertTrue(inventory.getItem(1).isEmpty());
+        assertEquals(15, stacked.getCount());
+        for (int slot = 10; slot < 36; slot++) SingleTypeStorageTest.assertContents(inventory.getItem(slot), Items.STONE, 1728);
     }
 
     @Test
@@ -371,7 +376,7 @@ class ShulkerStorageTest {
     }
 
     @Test
-    void partialStacksAreOptionalAndEachIncomingTypeGetsItsOwnBox() {
+    void partialStacksRemainOptionalAndSparseTypesShareOneManagedBox() {
         var inventory = fullInventory();
         inventory.setItem(0, box()); inventory.getItem(0).setCount(16);
         for (int i = 1; i < 36; i++) inventory.setItem(i, box(new ItemStack(Items.DIRT)));
@@ -379,18 +384,16 @@ class ShulkerStorageTest {
         var incoming = new ItemStack(Items.COBBLESTONE, 5);
         var config = pickupEnabled(); config.allowPartialStacksForSpace = false;
         assertEquals(0, ShulkerStorage.store(inventory, incoming, config));
-        config.allowPartialStacksForSpace = true;
-        assertEquals(0, ShulkerStorage.store(inventory, incoming, config), "One occupied slot cannot hold two boxes");
         assertEquals(16, inventory.getItem(0).getCount());
-        inventory.setItem(10, new ItemStack(Items.STONE, 64));
-        inventory.setItem(11, new ItemStack(Items.STONE, 64));
+        config.allowPartialStacksForSpace = true;
         assertEquals(5, ShulkerStorage.store(inventory, incoming, config));
-        SingleTypeStorageTest.assertContents(inventory.getItem(9), Items.STONE, 67);
-        SingleTypeStorageTest.assertContents(inventory.getItem(10), Items.COBBLESTONE, 5);
+        assertEquals(3, ManagedJunkStorageTest.count(inventory.getItem(9), Items.STONE));
+        assertEquals(5, ManagedJunkStorageTest.count(inventory.getItem(9), Items.COBBLESTONE));
+        assertTrue(ManagedJunkBoxes.marked(inventory.getItem(9)));
         assertEquals(7, ShulkerStorage.store(inventory, new ItemStack(Items.GRAVEL, 7), config));
-        SingleTypeStorageTest.assertContents(inventory.getItem(9), Items.STONE, 131);
-        SingleTypeStorageTest.assertContents(inventory.getItem(11), Items.GRAVEL, 7);
-        assertEquals(13, inventory.getItem(0).getCount());
+        assertEquals(7, ManagedJunkStorageTest.count(inventory.getItem(9), Items.GRAVEL));
+        assertEquals(15, inventory.getItem(0).getCount());
+        for (int slot = 1; slot < 36; slot++) if (slot != 9) SingleTypeStorageTest.assertContents(inventory.getItem(slot), Items.DIRT, 1);
     }
 
     @Test
@@ -440,14 +443,17 @@ class ShulkerStorageTest {
             commit.run();
             var transfer = transfers.getFirst();
             var expected = inventory.getItem(transfer.destination());
-            assertEquals(0, countContents(expected), "Displaced stacks await their own pickups");
-            inventory.setItem(transfer.destination(), box());
+            assertEquals(5, countContents(expected), "Only actual incoming items precede the reserved pickups");
+            var replacement = expected.copy();
+            ManagedJunkBoxes.clear(replacement);
+            inventory.setItem(transfer.destination(), replacement);
             assertEquals(0, ShulkerStorage.collectRelocated(inventory, transfer.destination(), expected, transfer.stack(), config));
             assertEquals(3, transfer.stack().getCount(), "Rejected relocation stays intact as a world item");
         }));
-        assertEquals(14, inventory.getItem(0).getCount());
-        assertEquals(0, countContents(inventory.getItem(9)));
-        SingleTypeStorageTest.assertContents(inventory.getItem(10), Items.COBBLESTONE, 5);
+        assertEquals(15, inventory.getItem(0).getCount());
+        assertEquals(5, countContents(inventory.getItem(9)));
+        SingleTypeStorageTest.assertContents(inventory.getItem(9), Items.COBBLESTONE, 5);
+        assertTrue(inventory.getItem(10).isEmpty());
     }
 
     private static StorageConfig pickupEnabled() {

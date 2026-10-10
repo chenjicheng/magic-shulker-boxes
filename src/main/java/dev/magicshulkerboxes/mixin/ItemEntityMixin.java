@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.magicshulkerboxes.MagicShulkerBoxes;
+import dev.magicshulkerboxes.ManagedJunkBoxes;
 import dev.magicshulkerboxes.MenuStorage;
 import dev.magicshulkerboxes.PickupStorage;
 import net.minecraft.server.level.ServerPlayer;
@@ -15,9 +16,12 @@ import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(ItemEntity.class)
 abstract class ItemEntityMixin {
+    @ModifyVariable(method = "setItem", at = @At("HEAD"), argsOnly = true)
+    private ItemStack msb$clearGroundRole(ItemStack stack) { return ManagedJunkBoxes.outsideCopy(stack); }
     @Unique private Capture msb$pickup;
     private record Capture(ServerPlayer player, Container before, ItemStack stack, int remaining, boolean accepted) {}
 

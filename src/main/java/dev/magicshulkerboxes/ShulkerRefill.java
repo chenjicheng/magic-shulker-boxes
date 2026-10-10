@@ -25,6 +25,7 @@ public final class ShulkerRefill {
 
     private static int take(Container inventory, int boxSlot, int contentSlot, Item expected, StorageConfig config,
                             boolean fullStack, long eligibleSlots) {
+        eligibleSlots = HotbarProtection.unprotectedSlots(eligibleSlots, config);
         int size = Math.min(36, inventory.getContainerSize());
         boolean offhand = config.includeOffhand && boxSlot == Inventory.SLOT_OFFHAND && boxSlot < inventory.getContainerSize();
         boolean ender = config.enderChestRefill && RefillSources.isEnder(inventory, boxSlot);
@@ -44,12 +45,12 @@ public final class ShulkerRefill {
 
         var before = CraftingMaterials.copy(inventory);
         var planned = CraftingMaterials.copy(inventory);
-        int destination = BoxRelocation.freeSlot(planned, eligibleSlots & ~config.junkBoxSlots);
+        int destination = BoxRelocation.freeSlot(planned, eligibleSlots);
         int splitSlot = boxSlot;
         if (box.getCount() > 1) {
             if (ender) splitSlot = RefillSources.freeBoxSlot(planned, boxSlot, config);
             else splitSlot = BoxRelocation.freeSlot(planned,
-                    (destination < 0 ? eligibleSlots : eligibleSlots & ~(1L << destination)) & ~config.junkBoxSlots);
+                    (destination < 0 ? eligibleSlots : eligibleSlots & ~(1L << destination)));
             if (splitSlot < 0) return 0;
             planned.getItem(boxSlot).shrink(1);
         }
@@ -63,6 +64,8 @@ public final class ShulkerRefill {
         }
         if (destination < 0 || !planned.getItem(destination).isEmpty()) return 0;
         CraftingMaterials.write(planned, destination, taken);
+        ManagedJunkBoxes.consolidate(planned, taken, config, eligibleSlots, 0);
+        ManagedJunkBoxes.consolidateStored(planned, config, eligibleSlots, taken);
         CraftingMaterials.commitChanges(before, planned, inventory);
         return count;
     }
@@ -112,7 +115,7 @@ public final class ShulkerRefill {
             destination = -1;
             if (ender) destination = RefillSources.freeBoxSlot(inventory, boxSlot, config);
             else for (int slot = 9; slot < 36; slot++) {
-                if ((eligible & (1 << (slot - 9))) != 0 && !JunkSlots.selected(config.junkBoxSlots, slot)
+                if ((eligible & (1 << (slot - 9))) != 0
                         && inventory.getItem(slot).isEmpty()) { destination = slot; break; }
             }
             if (destination < 0) return 0;

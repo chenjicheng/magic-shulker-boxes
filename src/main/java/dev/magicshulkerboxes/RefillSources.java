@@ -30,7 +30,7 @@ public final class RefillSources {
     }
 
     public static int freeBoxSlot(Container inventory, int source, StorageConfig config) {
-        if (!isEnder(inventory, source)) return BoxRelocation.freeSlot(inventory, BoxRelocation.ALL_SLOTS & ~config.junkBoxSlots);
+        if (!isEnder(inventory, source)) return BoxRelocation.freeSlot(inventory, HotbarProtection.unprotectedSlots(BoxRelocation.ALL_SLOTS, config));
         return freeBoxSlot(inventory, source);
     }
 

@@ -10,7 +10,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 
-/** Single-type relocation on transaction snapshots. Callers discard the snapshot when planning fails. */
+/** Complete relocation into dedicated or managed boxes on transaction snapshots. Failed plans are discarded. */
 final class BoxRelocation {
     static final long ALL_SLOTS = (1L << 41) - 1;
     record Transfer(ItemStack stack, int destination) {}
@@ -61,16 +61,17 @@ final class BoxRelocation {
     }
 
     static boolean canDisplace(ItemStack stack, int slot, StorageConfig config) {
-        return !JunkSlots.selected(config.junkBoxSlots, slot)
-                && !stack.isEmpty() && !ShulkerStorage.isShulker(stack) && stack.getItem().canFitInsideContainerItems()
+        return !stack.isEmpty() && !ShulkerStorage.isShulker(stack) && stack.getItem().canFitInsideContainerItems()
                 && (slot >= 9 || config.useHotbarForSpace)
+                && !HotbarProtection.protectedSlot(slot, config)
                 && (config.allowPartialStacksForSpace || stack.getCount() >= stack.getMaxStackSize());
     }
 
-    /** May consolidate several same-type inventory stacks into one new box to obtain a free slot. */
+    /** May consolidate several eligible stacks into one managed box to obtain a real free slot. */
     static int makeSpace(Container inventory, StorageConfig config, long eligible, ItemStack preferred,
                          List<Transfer> transfers) {
-        int free = freeSlot(inventory, eligible & ~config.junkBoxSlots);
+        eligible = HotbarProtection.unprotectedSlots(eligible, config);
+        int free = freeSlot(inventory, eligible);
         if (free >= 0) return free;
         int size = Math.min(Inventory.INVENTORY_SIZE, inventory.getContainerSize());
         var rejected = new java.util.ArrayList<ItemStack>();
@@ -92,8 +93,9 @@ final class BoxRelocation {
         return -1;
     }
 
-    /** Move the entire stack into a same-type box, an explicit junk slot, then an empty box. */
+    /** Move the entire stack into a dedicated box, a managed box, then newly allocated empty stock. */
     static int store(Container inventory, ItemStack displaced, int vacatedSlot, StorageConfig config, long eligible) {
+        eligible = HotbarProtection.unprotectedSlots(eligible, config);
         if (displaced.isEmpty() || ShulkerStorage.isShulker(displaced)
                 || !displaced.getItem().canFitInsideContainerItems()) return -1;
         var ordered = BoxOrder.fullestFirst(inventory, config);
@@ -103,7 +105,7 @@ final class BoxRelocation {
                 var box = inventory.getItem(slot);
                 var stored = box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
                 if (stored.stream().count() > 27) continue;
-                boolean junk = JunkSlots.selected(config.junkBoxSlots, slot);
+                boolean junk = ManagedJunkBoxes.carriedSlot(slot) && ManagedJunkBoxes.marked(box);
                 boolean empty = stored.stream().allMatch(ItemStack::isEmpty);
                 boolean accepts = switch (kind) {
                     case SAME_TYPE -> !junk && !empty && stored.stream().allMatch(stack -> stack.isEmpty() || sameType(stack, displaced, config));
@@ -115,13 +117,14 @@ final class BoxRelocation {
                 if (ShulkerStorage.insert(contents, displaced) != displaced.getCount()) continue;
                 var filled = box.copyWithCount(1);
                 filled.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(contents));
+                if (kind == DestinationKind.EMPTY && ManagedJunkBoxes.carriedSlot(slot)) ManagedJunkBoxes.mark(filled);
                 if (box.getCount() == 1) {
                     if (vacatedSlot >= 0 && slot != vacatedSlot) inventory.setItem(vacatedSlot, ItemStack.EMPTY);
                     CraftingMaterials.write(inventory, slot, filled);
                     return slot;
                 }
-                int spare = freeSlot(inventory, eligible & ~config.junkBoxSlots);
-                if (spare < 0 && vacatedSlot >= 0 && !JunkSlots.selected(config.junkBoxSlots, vacatedSlot)
+                int spare = freeSlot(inventory, eligible);
+                if (spare < 0 && vacatedSlot >= 0
                         && (eligible & (1L << vacatedSlot)) != 0) spare = vacatedSlot;
                 if (spare < 0) continue;
                 if (vacatedSlot >= 0 && spare != vacatedSlot) inventory.setItem(vacatedSlot, ItemStack.EMPTY);
@@ -131,6 +134,7 @@ final class BoxRelocation {
                     CraftingMaterials.write(inventory, spare, rest);
                     return slot;
                 }
+                if (kind == DestinationKind.EMPTY && ManagedJunkBoxes.carriedSlot(spare)) ManagedJunkBoxes.mark(filled);
                 box.shrink(1);
                 CraftingMaterials.write(inventory, spare, filled);
                 return spare;
@@ -141,7 +145,7 @@ final class BoxRelocation {
 
     private enum DestinationKind { SAME_TYPE, JUNK, EMPTY }
 
-    private static boolean allowedBox(Container inventory, int slot, long eligible, StorageConfig config) {
+    static boolean allowedBox(Container inventory, int slot, long eligible, StorageConfig config) {
         return (slot < Inventory.INVENTORY_SIZE && (eligible & (1L << slot)) != 0)
                 || (slot == Inventory.SLOT_OFFHAND && config.includeOffhand && (eligible & (1L << slot)) != 0)
                 || (config.enderChestRefill && RefillSources.isEnder(inventory, slot));

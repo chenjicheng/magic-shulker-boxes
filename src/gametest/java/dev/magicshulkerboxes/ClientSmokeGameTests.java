@@ -140,6 +140,7 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
                                                         .OFF);
                                 var save = client.screen.getClass().getMethod("finishOrSave");
                                 save.setAccessible(true);
+                                save.setAccessible(true);
                                 save.invoke(client.screen);
                             } catch (ReflectiveOperationException e) {
                                 throw new AssertionError(

@@ -4,11 +4,9 @@
 
 Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.10.1**.
 
-After enabling pickup storage, vanilla completes inventory insertion, source deductions and callbacks before MSB organizes actual receipts. Matching boxes take priority, assigned junk and empty boxes follow preferences, and real ground remainders may be stored afterward. Pickup storage is off by default. Supports Carpet shulker stacking, safe splitting, automatic space-making and partial stacks. Relocation stores displaced items in matching, assigned junk or separate empty boxes.
+After enabling pickup storage, vanilla completes inventory insertion, source deductions and callbacks before MSB organizes actual receipts. Matching boxes take priority, managed junk and empty boxes follow preferences, and real ground remainders may be stored afterward. Pickup storage is off by default. Supports Carpet shulker stacking, safe splitting, automatic space-making and partial stacks. Relocation stores displaced items in matching, managed junk or separate empty boxes.
 
-0.10.1 makes F9 the default junk-slot key, preserving saved custom bindings. See the [0.10.1 release notes](docs/releases/0.10.1.md).
-
-0.10.0 adds manually assigned junk box slots: bind a key and hold it while moving across inventory slots. Roles belong to positions, with corner status markers below tooltips. IPN sorting preserves assigned slots. See the [0.10.0 release notes](docs/releases/0.10.0.md).
+0.11.0 automatically manages sparse storage, gathers three-stack types into dedicated boxes, clears roles on leaving the backpack and adds individual hotbar protection. See [0.11.0 changes](docs/releases/0.11.0.md).
 
 0.9.2 fixes carried-box menu return-to-source loops and duplicate persistence, retaining vanilla behavior while an unverified container is open. See the [0.9.2 release notes](docs/releases/0.9.2.md).
 
@@ -21,7 +19,7 @@ After enabling pickup storage, vanilla completes inventory insertion, source ded
 - 0.5.0 adds container/trade storage, optional own ender sources, IPN original-slot tool returns and per-option server permissions. Update both sides for GUI/refill/IPN.
 - Optional Mod Menu + YACL settings in English and Simplified Chinese.
 - IPN consumable and tool refilling can use backpack shulker boxes, retaining IPN's triggers, matching and sorting, independently controlled by `ipnRefill`.
-- 0.8.0 removes MSB fake-player refilling. Use GCA for Carpet bots; ordinary-player refilling remains available. Update both sides for settings/GUI protocol v7.
+- 0.8.0 removes MSB fake-player refilling. Use GCA for Carpet bots; ordinary-player refilling remains available. Update both sides for settings/GUI protocol v8.
 - Inventory/crafting-table ingredients can refill from carried boxes for recipe placement, output clicks and Shift crafting, independently controlled by `craftRefill` without IPN.
 - 0.2.0-alpha adds Litematica Easy Place refilling from inventory shulker boxes, with optional space-making and failure notices. Both client and server need the new version for this feature.
 
@@ -29,7 +27,7 @@ After enabling pickup storage, vanilla completes inventory insertion, source ded
 
 ## Install
 
-Install `magic-shulker-boxes-fabric-0.10.1+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading. Update both sides to 0.10.0 for junk-slot selection and markers.
+Install `magic-shulker-boxes-fabric-0.11.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading. Update both sides to 0.10.0 for junk-slot selection and markers.
 
 0.4.0 retains 0.3.2 settings and choices; new `ipnRefill` and `craftRefill` switches default to enabled. See the [0.4.0 release notes](docs/releases/0.4.0.md) for features and installation requirements.
 

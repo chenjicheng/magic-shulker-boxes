@@ -6,29 +6,36 @@ Automatic shulker storage for **Minecraft Java 1.21.11 / Fabric / Java 21**.
 
 **Pickup storage is off by default.** Singleplayer hosts can enable it in World settings. Multiplayer administrators can set `pickupStorageEnabled=true` in the server configuration and run `/msb admin reload`, or allow players to enable it individually. Material refilling has its own switch.
 
-With pickup storage enabled, vanilla first completes inventory insertion, source deductions and callbacks. MSB then organizes quantities actually received, preferring matching single-type boxes and otherwise leaving them in the inventory. Enable `preferEmptyBoxesOverInventory` to also use assigned junk, empty or safely split boxes. A real remainder still on the ground may use junk boxes, empty boxes or space-making after vanilla pickup finishes. Box storage uses this order:
+With pickup storage enabled, vanilla first completes insertion, source deductions and callbacks. Matching dedicated boxes take priority. When this operation's actual receipts plus matching stock in managed junk boxes reach three stacks, MSB attempts complete dedicated storage. Smaller unmatched receipts remain in the inventory by default; `preferEmptyBoxesOverInventory` also permits managed junk boxes and allocation from empty stock. Real ground remainders and relocation may use managed junk boxes.
 
-1. A box containing only the same item type.
-2. A shulker box in a manually assigned junk slot.
-3. An empty shulker box.
+Box priority is matching dedicated boxes, managed junk boxes, then usable empty stock. Fuller boxes come first within a class. Actual stack merging requires identical components and preserves names, enchantments and potion payloads.
 
-All eligible boxes in one category are tried before moving to the next. Within a category, fuller boxes are filled first; boxes unable to accept the item are skipped. Fullness sums each slot's count relative to its stack limit, supporting 64-stack, 16-stack and unstackable items. Ties use inventory slot order. Storage can accept part of a pickup; the remainder stays on the ground.
+## 0.11.0: automatically managed junk boxes and three-stack separation
 
-## 0.10.0: manually assigned junk box slots
+Existing filled boxes never become junk boxes based on their contents. MSB allocates and marks one real empty box when sparse storage is needed, safely splitting stacked empty stock first. Remaining empty stock has no role. There is no F9 or manual assignment; roles belong to items rather than positions. A managed box retains its role when it contains one type or becomes empty.
 
-Slot selection and markers require version 0.10.0 or newer on both client and server.
+The threshold follows the item's actual stack limit:
 
-Find **Assign junk box slots** under **Options → Controls → Key Binds → Magic Shulker Boxes: slot selection**. Version 0.10.1 defaults to **F9** and accepts another keyboard key or mouse button. Existing custom bindings are retained; an unbound choice saved by an older version can use the row's **Reset** button to restore F9, or be rebound manually. In an inventory or container screen, hold the key and move across your own inventory slots. The first valid slot chooses assign or erase mode for the whole gesture; revisiting a slot does not toggle it again. Release the key to save with server confirmation.
+| Stack limit | Quantity for dedicated storage |
+| --- | --- |
+| 64 | 192 items |
+| 16 | 48 items |
+| Unstackable | 3 items |
 
-Roles belong to fixed main-inventory and hotbar positions, never to an item. Empty slots and ordinary items retain their markers but do not receive junk. Moving a box away removes its role, while another shulker placed in the slot becomes the junk box. Equipment, offhand and external container slots cannot be assigned. Selections belong to each player and world and recover from the server after reconnecting or restarting.
+Count the quantities being stored and matching stock in managed boxes, without moving unrelated original-box contents. At the threshold, gather the matching contents from managed boxes into dedicated storage. A pure managed box can be promoted in place; other contents in mixed sources remain unchanged. Existing matching dedicated boxes also collect managed fragments. If the entire consolidation cannot fit, keep contents and roles intact; ordinary managed storage may still proceed.
 
-A small box glyph appears at the top-left: aqua for a usable shulker, gray for no box, and yellow for an unconfirmed change. Pending removal remains indicated until confirmed. Holding the key also outlines the selection; hover for status and the current binding. Tooltips appear above markers and selection outlines. Counts, durability bars and IPN's lock glyph remain visible.
+Roles are valid only in the player's 36 backpack/hotbar positions. Direct internal swaps and temporary cursor arrangement in the own inventory preserve them. Moving to an external-menu cursor, chests, ender storage, offhand/equipment, an inventory-removal result, the ground, death drops or a placed block removes the role. A returned box remains ordinary; a later allocation from genuinely empty stock can create a new role. Cleanup removes only MSB's marker and preserves names, colors, other custom data and all contents.
 
-Box priority is dedicated matching boxes → assigned junk boxes → empty boxes. Assigned boxes retain their role when empty or single-type; unassigned mixed boxes are not automatic junk boxes. Default post-insertion collection uses matching boxes and otherwise leaves receipts in inventory. `preferEmptyBoxesOverInventory` also permits junk and empty boxes. Real ground remainders and relocation can use junk boxes. Stack merging still requires identical components, preserving potion effects, names and enchantments.
+Hotbar relocation remains disabled by default. After enabling `useHotbarForSpace`, use the **Hotbar relocation protection** group to set `protectHotbarSlot1` through `protectHotbarSlot9`. Protected positions are never displaced or used as automatic split destinations. Protection can be configured beforehand and does not enable hotbar relocation. Each position uses the existing inherit/on/off values, individual server permissions and optional setting key binds.
 
-MSB never evicts an assigned slot or uses it as an automatic empty destination for splitting or extraction. Splitting a stack in an assigned slot keeps the filled single box there and safely moves the remaining boxes elsewhere. Failed plans remain unchanged. Vanilla-first processing and unverified-menu ownership protection still apply. Matching items inside junk boxes remain valid extraction sources.
+```text
+/msb set useHotbarForSpace true
+/msb set protectHotbarSlot1 true
+/msb set protectHotbarSlot9 true
+```
 
-With IPN 2.2.6, sorting projects these positions as temporary locks without changing stored IPN locks or refill filtering. Other sorting mods should use their own fixed-slot facilities; MSB roles always follow positions, never items.
+These commands require server permission. Old `world/data/magic_shulker_boxes/junk-slots/` files remain untouched but unused; existing filled boxes are not converted. The F9 slot-assignment feature is removed. Preferences and GUI use protocol v8; both sides need 0.11.0 for these interfaces.
+
 
 ## 0.6.0: clickable command previews and key bindings
 
@@ -170,7 +177,7 @@ Starting with 0.8.0, MSB no longer replenishes Carpet fake-player hands or repla
 
 The second rule enables shulker-box sources; the first alone only enables ordinary-inventory replenishment. GCA controls source ordering, hand replenishment, splitting and failure behavior. MSB's `refillFullStack`, `includeOffhand` and space-making options do not control GCA. GCA tool replacement has its own rule. MSB retains Carpet stacked-box compatibility and ordinary-player IPN, schematic and crafting refilling.
 
-Existing version-2 server, client and UUID preference files containing `carpetRefill` or its `playerEditableSettings` entry are backed up byte-for-byte to `.pre-0.8.0.bak` when this is the only retirement, or `.pre-single-type.bak` when single-type storage settings also migrate, then only those retired entries are removed. Other choices and field permissions are preserved. Invalid files or conflicting backups stay unchanged. Disk configuration remains version 2; settings/GUI channels use v7 and require matching client/server versions.
+Existing version-2 server, client and UUID preference files containing `carpetRefill` or its `playerEditableSettings` entry are backed up byte-for-byte to `.pre-0.8.0.bak` when this is the only retirement, or `.pre-single-type.bak` when single-type storage settings also migrate, then only those retired entries are removed. Other choices and field permissions are preserved. Invalid files or conflicting backups stay unchanged. Disk configuration remains version 2; settings/GUI channels use v8 and require matching client/server versions.
 
 ## Carpet stacking
 
@@ -192,7 +199,7 @@ All vanilla shulker colors are supported. Names, colors, other box components, a
 
 A stack need not be full: a slot containing three stones can be used. All three must leave that slot to free it. By default, only the main inventory is considered; hotbar use is optional. Items matching the incoming type are preferred, followed by other items that can be stored. The entire plan must fit every displaced item and at least one incoming item, or nothing changes. With no free slot, two same-type stacks can be consolidated into one new box, leaving the second slot available for the pickup box.
 
-Displaced stone and incoming cobblestone enter separate single-type boxes; later gravel uses its own matching or empty box. Pickup, container transfers, schematic/IPN space-making, tool replacement, crafting remainders and immediate drop recollection share the same classification. Existing boxes containing multiple types remain usable as extraction sources but are skipped as automatic storage destinations.
+Sparse displaced stone, incoming cobblestone and later gravel may share an automatically allocated managed box. Three-stack types are completely gathered into dedicated storage. Pickup, container transfers, schematic/IPN relocation, tool replacement, crafting remainders and immediate recollection preserve the same roles and actual quantities. Original mixed boxes remain extraction sources and never become automatic junk destinations.
 
 Type matching always compares the item ID and these intrinsic payloads, even with `matchItemComponents=false`:
 
@@ -204,7 +211,7 @@ Type matching always compares the item ID and these intrinsic payloads, even wit
 - Goat horns: instrument/sound.
 - Ominous bottles: amplifier level.
 
-“Require identical components” defaults to off and additionally controls custom names, ordinary equipment enchantments/damage and other differences. Different potion effects always use separate boxes; otherwise identical potions renamed on an anvil may share a box with this option off, but not with it on. Components outside the intrinsic list still follow this switch. Different component stacks inside one box are always preserved separately.
+“Require identical components” defaults to off and additionally controls custom names, ordinary equipment enchantments/damage and other differences. Dedicated matching and separation count each potion payload independently. Managed junk boxes may temporarily contain multiple effects without merging them; otherwise identical potions renamed on an anvil may share a box with this option off, but not with it on. Components outside the intrinsic list still follow this switch. Different component stacks inside one box are always preserved separately.
 
 ## Configuration
 
@@ -224,6 +231,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | `splitStackedBoxes` | `true` | Allow splitting, including automatic space-making; otherwise skip all stacked boxes |
 | `makeSpaceMode` | `"MOVE_TO_BOX"` | Direct relocation; alternatives are `"DROP_AND_PICKUP"` and `"DISABLED"` |
 | `useHotbarForSpace` | `false` | Allow moving hotbar items to free a slot |
+| `protectHotbarSlot1` to `protectHotbarSlot9` | `false` | Protect individual hotbar positions from relocation and automatic split placement; does not enable hotbar relocation |
 | `allowPartialStacksForSpace` | `true` | Allow stacks below their item stack limit to be displaced in either mode |
 | `preferExistingBoxesBeforeMakingSpace` | `true` | Try all currently usable boxes before freeing a slot; `false` makes space as each stacked box is encountered in category order |
 | `includeOffhand` | `false` | Also search the offhand for boxes; split destinations remain main inventory/hotbar slots |

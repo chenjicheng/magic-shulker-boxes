@@ -75,21 +75,24 @@ class PotionClassificationTest {
         assertTrue(ItemStack.isSameItemSameComponents(speed, stored(inventory.getItem(1)).getFirst()));
     }
 
-    @Test void pickupSpaceMakingDoesNotMixDisplacedPotionsWithIncomingPotions() {
+    @Test void automaticJunkStorageKeepsDistinctPotionPayloadsIntact() {
         var inventory = fullInventory(); inventory.setItem(0, box()); inventory.getItem(0).setCount(16);
         var strength = potion(Items.POTION, Potions.STRENGTH);
         var speed = potion(Items.POTION, Potions.SWIFTNESS);
         inventory.setItem(9, strength.copy());
         var config = config(); config.makeSpaceMode = StorageConfig.MakeSpaceMode.MOVE_TO_BOX;
         assertEquals(1, ShulkerStorage.store(inventory, speed.copy(), config));
+        int strengthCount = 0, speedCount = 0;
         for (int slot = 0; slot < 36; slot++) {
             var stack = inventory.getItem(slot);
             if (!ShulkerStorage.isShulker(stack)) continue;
-            var items = stored(stack);
-            if (items.isEmpty()) continue;
-            assertTrue(items.stream().allMatch(item -> ItemStack.isSameItemSameComponents(item, items.getFirst())),
-                    "Space-making must preserve each distinct potion in its own box");
+            for (var item : stored(stack)) {
+                if (ItemStack.isSameItemSameComponents(item, strength)) strengthCount += item.getCount();
+                if (ItemStack.isSameItemSameComponents(item, speed)) speedCount += item.getCount();
+            }
         }
+        assertEquals(1, strengthCount);
+        assertEquals(1, speedCount);
     }
 
     @Test void refillSpaceMakingCannotPutStrengthIntoARemainingSpeedSource() {
@@ -116,7 +119,7 @@ class PotionClassificationTest {
         assertEquals(1, countContents(original));
     }
 
-    @Test void reservedPickupAlsoHonorsStrictMatchingIfAnotherModChangesBoxContents() {
+    @Test void reservedPickupHonorsStrictMatchingAfterTheJunkRoleIsRemoved() {
         var inventory = fullInventory(); inventory.setItem(0, box()); inventory.getItem(0).setCount(16);
         var named = new ItemStack(Items.STONE, 3); named.set(DataComponents.CUSTOM_NAME, Component.literal("Reserved"));
         inventory.setItem(9, named.copy());
@@ -125,7 +128,8 @@ class PotionClassificationTest {
             commit.run();
             var transfer = transfers.getFirst(); var expected = inventory.getItem(transfer.destination());
             var different = new ItemStack(Items.STONE); different.set(DataComponents.CUSTOM_NAME, Component.literal("Other"));
-            // Keep the reserved box identity while simulating another pickup hook editing its contents.
+            // Losing the managed role restores dedicated matching, even if the item object remains the same.
+            ManagedJunkBoxes.clear(expected);
             expected.set(DataComponents.CONTAINER, net.minecraft.world.item.component.ItemContainerContents.fromItems(List.of(different)));
             assertEquals(0, ShulkerStorage.collectRelocated(inventory, transfer.destination(), expected, transfer.stack(), config));
             assertEquals(3, transfer.stack().getCount());

@@ -13,7 +13,7 @@ hero:
       link: https://github.com/chenjicheng/magic-shulker-boxes/releases
 features:
   - title: Ordered storage
-    details: Fill matching boxes, assigned junk boxes, then empty boxes; hold a key to select junk slots.
+    details: Protect original boxes, manage sparse items, and separate three-stack types; roles expire on leaving the backpack.
   - title: Carpet stacking support
     details: Separate one box before changing its contents; optionally free a slot automatically.
   - title: Server rules, personal preferences

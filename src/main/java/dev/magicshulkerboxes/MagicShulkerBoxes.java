@@ -20,9 +20,7 @@ public final class MagicShulkerBoxes implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("magic_shulker_boxes");
     private static volatile ServerConfig config = new ServerConfig();
     private static final Map<MinecraftServer, PlayerSettingsStore> PLAYERS = new WeakHashMap<>();
-    private static final Map<MinecraftServer, JunkSlotStore> JUNK_SLOTS = new WeakHashMap<>();
     private static final Set<UUID> WARNED = new HashSet<>();
-    private static final Set<UUID> JUNK_WARNED = new HashSet<>();
 
     public static ServerConfig config() {
         return config;
@@ -41,22 +39,7 @@ public final class MagicShulkerBoxes implements ModInitializer {
             if (WARNED.add(player.getUUID())) LOGGER.error("Cannot load player settings / 无法加载玩家设置: {}", player.getUUID(), exception);
             effective = config;
         }
-        try {
-            long mask = junkSlots(player.level().getServer()).read(player.getUUID()).mask();
-            if (mask == 0) return effective;
-            // resolve() may return the shared defaults; player slot roles must never mutate that object.
-            var personal = ConfigFile.apply(effective, new com.google.gson.JsonObject());
-            personal.junkBoxSlots = mask;
-            return personal;
-        } catch (IOException exception) {
-            if (JUNK_WARNED.add(player.getUUID())) LOGGER.error("Cannot load junk slots / 无法加载杂物槽位: {}", player.getUUID(), exception);
-            return effective;
-        }
-    }
-
-    public static JunkSlotStore junkSlots(MinecraftServer server) {
-        return JUNK_SLOTS.computeIfAbsent(server, key -> new JunkSlotStore(
-                key.getWorldPath(LevelResource.ROOT).resolve("data/magic_shulker_boxes/junk-slots")));
+        return effective;
     }
 
     private static Path configPath() {
@@ -67,9 +50,7 @@ public final class MagicShulkerBoxes implements ModInitializer {
         var replacement = ConfigFile.load(configPath());
         config = replacement;
         PLAYERS.values().forEach(PlayerSettingsStore::clearCache);
-        JUNK_SLOTS.values().forEach(JunkSlotStore::clearCache);
         WARNED.clear();
-        JUNK_WARNED.clear();
     }
 
     public static void allowPlayerSettings(boolean allow) throws IOException {
@@ -104,7 +85,7 @@ public final class MagicShulkerBoxes implements ModInitializer {
             catch (IOException exception) { LOGGER.error("Cannot scan player settings / 无法扫描玩家设置", exception); }
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-            PLAYERS.remove(server); JUNK_SLOTS.remove(server); WARNED.clear(); JUNK_WARNED.clear();
+            PLAYERS.remove(server); WARNED.clear();
         });
         SettingsCommands.register();
         EditorNetwork.register();
@@ -112,6 +93,5 @@ public final class MagicShulkerBoxes implements ModInitializer {
         RefillNetwork.register();
         RestockNetwork.register();
         EnderSourcesNetwork.register();
-        JunkSlotsNetwork.register();
     }
 }

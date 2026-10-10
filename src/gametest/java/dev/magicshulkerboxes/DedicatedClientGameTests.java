@@ -425,6 +425,11 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
     }
 
     private static void keybindings(ClientGameTestContext context, TestServerContext server) {
+        var languageReload = context.computeOnClient(client -> {
+            client.getLanguageManager().setSelected("en_us"); client.options.languageCode = "en_us";
+            return client.reloadResourcePacks();
+        });
+        context.waitFor(client -> languageReload.isDone());
         context.runOnClient(client -> {
             for (var entry : ConfigFile.options(new StorageConfig()).entrySet()) {
                 if (!entry.getValue().isJsonPrimitive() || !entry.getValue().getAsJsonPrimitive().isBoolean()) continue;
@@ -434,7 +439,7 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
                 check(binding.orElseThrow().getDefaultKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN,
                         "Toggle keys have no default game-key conflicts");
                 check(net.minecraft.network.chat.Component.translatable(name).getString().startsWith("Toggle:"),
-                        "Every key binding has a readable localized name");
+                        "Every key binding has a readable localized name: " + name);
                 check(binding.orElseThrow().getCategory().label().getString().contains("Magic Shulker Boxes"),
                         "Key bindings have a localized controls-menu category");
             }

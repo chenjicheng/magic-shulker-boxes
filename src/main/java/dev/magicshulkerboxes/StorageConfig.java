@@ -1,8 +1,6 @@
 package dev.magicshulkerboxes;
 
 public class StorageConfig {
-    /** Player-owned slot roles are supplied at runtime, never included in shared settings or item data. */
-    public transient long junkBoxSlots;
     // Pickup storage and schematic refilling are independent personal choices.
     public boolean pickupStorageEnabled = false;
     public boolean preferEmptyBoxesOverInventory = false;
@@ -11,6 +9,15 @@ public class StorageConfig {
     public boolean splitStackedBoxes = true;
     public MakeSpaceMode makeSpaceMode = MakeSpaceMode.MOVE_TO_BOX;
     public boolean useHotbarForSpace = false;
+    public boolean protectHotbarSlot1 = false;
+    public boolean protectHotbarSlot2 = false;
+    public boolean protectHotbarSlot3 = false;
+    public boolean protectHotbarSlot4 = false;
+    public boolean protectHotbarSlot5 = false;
+    public boolean protectHotbarSlot6 = false;
+    public boolean protectHotbarSlot7 = false;
+    public boolean protectHotbarSlot8 = false;
+    public boolean protectHotbarSlot9 = false;
     public boolean allowPartialStacksForSpace = true;
     public boolean preferExistingBoxesBeforeMakingSpace = true;
     public boolean includeOffhand = false;

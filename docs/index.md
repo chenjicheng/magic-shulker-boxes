@@ -13,7 +13,7 @@ hero:
       link: https://github.com/chenjicheng/magic-shulker-boxes/releases
 features:
   - title: 按顺序收纳
-    details: 同类专用盒、手动指定杂物盒与空盒；按住快捷键可多选杂物格。
+    details: 保护原有盒，自动受管零散物品；三组归集为专用盒，离包取消标记。
   - title: 支持 Carpet 堆叠
     details: 修改内容前拆出一个盒子；没有空栏时可以自动收纳腾空间。
   - title: 服务端决定，玩家可选

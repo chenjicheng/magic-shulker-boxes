@@ -100,28 +100,28 @@ npm run docs:preview
 
 `restock_v2` 增加整个来源盒指纹，仍校验数量、目标、掩码及请求 ID。工具候选使用 `swapToolForRestock`，把来源内原格和主手/副手一起交换；来源盒变化或无法安全拆分时拒绝。客户端观察实际装备同步后结束等待，不再执行第二次 IPN 换手。消耗品保留原有取到背包再换手的流程。
 
-`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v7` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.9.0。磁盘格式仍为版本 2，新字段是可选新增。
+`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v8` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.9.0。磁盘格式仍为版本 2，新字段是可选新增。
 
 `MenuStorageGameTests` 覆盖真实容器与交易、光标、满背包、部分容量、拒绝取物、整份交易的扣款/次数/经验。`EnderSourcesGameTests` 覆盖本人隔离、请求重复/过期、来源优先级、禁用与无空间、真实配方书和连续补货。`SettingPermissionsGameTests` 检查命令、恶意网络/GUI、既存文件和运行时撤权。客户端的 `clientSmoke` 覆盖真实容器点击，`withIpn` 覆盖末影箱直接药水与原格工具回存；`craftClient` 检查末影箱配方统计和实际请求。加 `-PwithConfigGui -PclientSmoke` 检查逐项锁定页面。
 
-### 杂物槽位状态与协议（0.10.0）
+### 自动受管杂物盒与离包边界（0.11.0）
 
-`JunkSlots` 用 36 位掩码描述实际背包/快捷栏索引0–35，不使用菜单slot ID，不允许装备、副手或末影箱格。`JunkSlotStore` 在 `world/data/magic_shulker_boxes/junk-slots/<UUID>.json` 写入独立的 `{schemaVersion:1, slots:[...]}` 文档。当前运行修订用于CAS；写入前重新核对磁盘内容，未知版本、重复/非法索引及损坏文件保留原样。原子替换成功后才确认选择。运行时 `StorageConfig.junkBoxSlots` 是transient，仅由当前玩家的服务端数据注入副本，不进入设置schema2、选项/许可或v7载荷，不改变其他玩家与共享默认值。
+`ManagedJunkBoxes` 只给从真实空盒分配的单盒写入 `CUSTOM_DATA` 的 `magic_shulker_boxes:managed_junk=true`；不注册新组件、不按混合内容推断原有盒用途。三组固定门槛按数量/实际堆叠上限折算，`BoxRelocation.sameType` 继续定义同类，实际合并仍要求完整组件相同。`consolidate` 在独立副本中收集受管存量，完整填入同类目的盒或新专用盒后才提交；纯源盒可以原地提升。失败不留下部分内容或角色变化。
 
-`junk_slots_save_v1` 携带正request ID、预期revision和mask，`junk_slots_query_v1` 查询状态；`junk_slots_state_v1` 回传request、状态、revision与mask。身份只取认证连接。SAVED/SNAPSHOT确认服务器数据，STALE拒绝覆盖已变化选择，INVALID拒绝越界，BUSY保留客户端待发选择并合并重试，FAILED保留原选择；revision=-1表示数据不可读取。客户端断开即清空会话，不跨服务器上传旧位置。`JunkSlotSession` 仅保留一项在途保存及更新后的待发选择，过期回复不能发布角色，超时先查询，不盲目回放旧快照。
+`MenuStorage` 在原版整次动作后为每种完整组件建立一个全背包净增预算，把正槽位增量分配给它一次，再按现有同类规则分组。三组实际收据可先完整规划专用盒，小量保留原有背包偏好。不能将每个增加格重复视为同一份净增预算；实体被原版删除后恢复的旧 count 仍不是来源。未知/随身物品菜单继续保持原版行为。
 
-`JunkSlotsClient` 使用Fabric屏幕键盘/鼠标事件，0.10.1起默认键为F9，绑定保存/加载与重置由原版 `options.txt` 管理，不覆盖旧的自定义或显式未绑定值。`JunkSlotGesture` 在一轮中固定添加/移除模式并去重，屏幕移除时结束手势。保存只改变角色文件，不能改变物品。`JunkSlotTooltipMixin` 在 `Screen.renderWithTooltipAndSubtitles` 调用 `GuiGraphics.renderDeferredElements` 前绘制左上角标并安排空格提示；随后原版在新stratum绘制tooltip，提示始终盖住角标与选区边框。不能使用Fabric的afterRender绘制角标，该事件在原版tooltip之后触发。物品提示沿用原版tooltip追加状态；角色有待确认/生效/无盒三种状态，取消确认前也显示待确认标记。
+`ManagedJunkInventoryMixin` 清理真正的 Inventory 移除结果与非主背包格；`ManagedJunkCursorMixin` 只在原生点击事务中保留内部移除，并区分自己的背包临时光标与外部容器光标；`ManagedJunkSlotMixin` 清理外部格写入；`ItemEntityMixin` 清理地面物品；`ManagedJunkBlockMixin` 在实际方块组件回写中去掉角色。内部直接换位保留，离包后不会恢复，清理保留所有其他组件。没有逐 tick 全背包/世界扫描、玩家槽位文件或角色网络通道。旧角色文件保留但不读取。
 
-`ShulkerStorage` 和 `BoxRelocation` 将指定格独立分类为JUNK，排在匹配盒与空盒之间。堆叠盒拆分保持指定格的单盒位置，其他盒与全部组件/数量保留。被保护的格不被腾栏或自动拆盒/取料占用。丢出回收先执行原版拾取；新收到的实际数量再路由到同步预留盒，仍不使用删除实体恢复的旧count。`IpnJunkSlots` 仅在IPN自己的整理计算作用域扩展只读锁定集合，退出即清理，不修改配置或普通补货候选。
+`HotbarProtection` 统一九个原生布尔设置 `protectHotbarSlot1`–`protectHotbarSlot9`（用户位置1–9、内部索引0–8）。保护用于候选腾栏与拆盒目的地；`useHotbarForSpace=false` 仍是默认。每格继承既有保存、许可、命令与按键绑定机制。设置网络和GUI改为v8，磁盘配置版本仍为2，新字段可省略；不重置旧选择。旧格子协议/F9客户端和IPN额外锁投影移除，IPN原有锁定仍有效。客户端仅追加原版物品提示中的受管角色说明。
 
-新增回归包括 `JunkStorageTest/JunkSlotStoreTest/JunkSlotGestureTest/JunkSlotSessionTest`、`JunkSlotsGameTests` 和真实 `JunkSlotsClientGameTests`；客户端截图采样验证有物品/空格提示覆盖相邻角标，同时验证未遮挡的角标仍显示，覆盖待确认状态、英中语言与窗口大小变化：
+回归包括 `ManagedJunkStorageTest`、`HotbarProtectionTest`、`ManagedJunkGameTests` 与真实 `ManagedJunkClientGameTests`，验证原有盒保护、真实资源拆盒、三组完整归集、净空位、原版多格收据预算、全部离包路径、组件守恒和设置权限保存：
 
 ```powershell
-.\gradlew.bat runClientGameTest -PjunkClient
-.\gradlew.bat runClientGameTest -PjunkClient -PwithIpn
+.\gradlew.bat build
+.\gradlew.bat runClientGameTest -PmanagedClient -PwithConfigGui
+.\gradlew.bat runClientGameTest -PmanagedClient -PwithConfigGui -PwithIpn
 ```
 
-真实客户端检查键盘/鼠标按住多选、重复经过、清除、服务器保存、空格与单盒角标、中英文、窗口尺寸变化和IPN整理；服务端检查原版优先、两种腾栏模式、组件/数量守恒、未知菜单保护与玩家隔离。该功能使用独立通道，客户端未安装或服务端不支持时不发送槽位编辑。
 
 ## 测试命令
 
@@ -154,7 +154,7 @@ npm run docs:preview
 
 0.8.0 删除假人 tick/drop Mixin，以及玩法、字段许可、命令、GUI 和快捷键中的 `carpetRefill`。Carpet 仍为堆叠盒兼容的可选共存模组，MSB 不再实现假人手持补货。`CarpetCompatibilityGameTests` 使用发行版真实 Carpet 假人及连续 USE，验证关闭 GCA 时手持耗空、来源盒不变；开启 GCA 后，从内栏 25 有剩余物品的未满盒和第二盒连续放置恰好 7 个铁砧，补货完全由 GCA 负责。
 
-`ConfigFile.migrateRemovedSettings` 仅在版本 2 磁盘文件兼容旧字段，验证布尔类型、所有剩余设置和许可后，仅涉及旧 Carpet 项时保存原字节 `.pre-0.8.0.bak`；同时迁移旧收纳设置时使用 `.pre-single-type.bak`，再原子移除字段及同名许可。服务端、客户端和 UUID 文件共用此入口；命令与网络输入拒绝旧字段。相同备份允许恢复中断，冲突/不可读备份和无效值保留原文件。磁盘版本保持 2，策略/偏好和 GUI 改为 v7，取料协议保持各自格式。
+`ConfigFile.migrateRemovedSettings` 仅在版本 2 磁盘文件兼容旧字段，验证布尔类型、所有剩余设置和许可后，仅涉及旧 Carpet 项时保存原字节 `.pre-0.8.0.bak`；同时迁移旧收纳设置时使用 `.pre-single-type.bak`，再原子移除字段及同名许可。服务端、客户端和 UUID 文件共用此入口；命令与网络输入拒绝旧字段。相同备份允许恢复中断，冲突/不可读备份和无效值保留原文件。磁盘版本保持 2，策略/偏好和 GUI 改为 v8，取料协议保持各自格式。
 
 ```powershell
 .\gradlew.bat build '-PcarpetJar=C:/path/to/fabric-carpet-1.21.11-1.4.194+v251223.jar' '-PgcaJar=C:/path/to/gugle-carpet-addition-mc1.21.11-v2.12.8+build.97.jar'
@@ -258,7 +258,7 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 腾栏事务先为被移动栏位的全部物品预留容量，再计算可接收的掉落物数量。丢出模式只有世界接纳了全部掉落实体才提交背包变更；同步回收只允许写入刚预留的那个单盒，目标被替换就保留掉落物。临时预留在 `finally` 清理；未收回的实体带有禁止再次腾栏的持久标记。真实 GameTest 覆盖两种模式、非满组、连续不同物品的独立收纳及重复触碰不循环腾栏。
 
-正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v7` 和 `preferences_v7` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
+正常拾取仍通过原版背包同步机制更新客户端。可选的个人设置使用 `policy_v8` 和 `preferences_v8` 通道；发送前检查对端是否支持。Fabric 对象消息处理器在游戏主线程执行。消息只含最多 4096 字符的配置 JSON，不包含目标 UUID；身份由实际连接确定。服务端检查策略、字段白名单、类型、枚举和大小，每名玩家最多每 20 tick 接受一次网络更新。纯服务端玩家不需要这些通道。
 
 有效配置先由 `allowPlayerSettings` 决定是否读取个人覆盖项。允许时，先按 `playerEditableSettings` 过滤，再由 `ConfigFile.apply` 将获授权的显式字段覆盖到服务端默认值；`pickupStorageEnabled` 与 `schematicRefill` 相互独立，玩家可开启服务端默认关闭的任一项。关闭策略时直接使用统一配置。个人文件在存档中按 UUID 隔离并缓存，写入使用临时文件与原子替换；非法个人文件不被静默覆盖，读取失败时回退服务端配置并记录日志。重载时先验证新配置，成功后替换并清缓存。
 
@@ -272,7 +272,7 @@ Mixin 注入点位于原版服务端、拾取延迟及所有者检查之后。�
 
 YACL 绑定只操作 `SettingsDraft` 的副本；个人布尔字段是三态，继承会删除键。`SettingsSession` 用连接与策略修订号隔离打开的编辑器和待确认保存；超时保留请求号并发起恢复查询，重复或旧连接回复不能写入。`PreferenceSync` 在发送保存前写入服务器地址/存档路径与玩家 UUID 对应的哈希文件名恢复标记，位于 `config/magic_shulker_boxes-recovery/`；标记不包含设置值或明文地址。收到确认后先更新内存快照，再写个人文件并清除标记。失败时内存仍跟随服务端，重连/进程重启遇到标记时先查询，不自动上传旧文件。`ClientSettings` 协调通知、超时和本地服务端提交。
 
-`EditorNetwork` 使用 `editor_state_v7`（策略和默认值）、`editor_save_v7`（请求号和覆盖项）、`editor_query_v7`（只读恢复查询请求号）及 `editor_result_v7`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧设置同步与 GUI v1/v2/v3/v4/v5/v6 通道不再注册，避免旧客户端上传旧键；新版 GUI 保存要求对端支持 v7 查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
+`EditorNetwork` 使用 `editor_state_v8`（策略和默认值）、`editor_save_v8`（请求号和覆盖项）、`editor_query_v8`（只读恢复查询请求号）及 `editor_result_v8`（对应确认、快照或拒绝）。JSON 上限 4096 字符，身份只取连接玩家；服务端复核保存策略，对每位玩家的保存和查询分别按 20 tick 限流。查询只能读取本人偏好，即使策略已锁定也不修改数据。旧设置同步与 GUI v1/v2/v3/v4/v5/v6 通道不再注册，避免旧客户端上传旧键；新版 GUI 保存要求对端支持 v8 查询。GUI 无管理员网络写入通道；本机房主的统一配置写入在集成服务端线程执行，先比较草稿基线以避免覆盖外部修改。
 
 `RefillRegressionGameTests` 覆盖请求途中改名、未变化的改名材料、保存超时后查询、玩家隔离及限流，以及满背包只取一个时的重复失败规划。测试在支持线程分配计数的 JVM 上限制该夹具每请求分配低于 4 MiB，同时记录耗时；不使用机器相关的耗时阈值。`PreferenceSyncTest` 注入本地文件替换失败并验证内存状态、恢复标记和重启行为。
 

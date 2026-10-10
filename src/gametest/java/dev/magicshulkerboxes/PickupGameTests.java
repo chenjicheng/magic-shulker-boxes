@@ -193,23 +193,24 @@ public class PickupGameTests implements CustomTestMethodInvoker {
     }
 
     @GameTest
-    public void repeatedPickupsKeepEachTypeInItsOwnBox(GameTestHelper helper) {
+    public void repeatedSparsePickupsPreserveTheDefaultInventoryPreference(GameTestHelper helper) {
         var player = fullPlayer(helper);
         var stacked = new ItemStack(Items.BLUE_SHULKER_BOX, 16);
         stacked.set(DataComponents.CUSTOM_NAME, Component.literal("Auto space"));
         player.getInventory().setItem(0, stacked);
         player.getInventory().setItem(9, new ItemStack(Items.STONE, 3));
         var first = drop(helper, 5); first.playerTouch(player);
-        check(helper, stacked.getCount() == 14 && countContents(stacked) == 0, "Two dedicated boxes split");
-        checkContents(helper, player.getInventory().getItem(9), Items.STONE, 67);
-        checkContents(helper, player.getInventory().getItem(10), Items.COBBLESTONE, 5);
+        check(helper, stacked.getCount() == 15 && countContents(stacked) == 0, "One managed box is split");
+        check(helper, countContents(player.getInventory().getItem(9)) == 72 && ManagedJunkBoxes.marked(player.getInventory().getItem(9)), "Both sparse types are stored in the managed box");
+        check(helper, player.getInventory().getItem(10).isEmpty(), "The second displaced position is truly free");
         check(helper, first.isRemoved(), "First pickup collected");
         check(helper, player.getInventory().getItem(9).getHoverName().getString().equals("Auto space"), "Box name preserved");
         var second = new ItemEntity(helper.getLevel(), 0, 4, 0, new ItemStack(Items.GRAVEL, 7));
         second.setNoPickUpDelay(); second.playerTouch(player);
-        check(helper, stacked.getCount() == 13 && second.isRemoved(), "One additional box for the next type");
-        checkContents(helper, player.getInventory().getItem(9), Items.STONE, 131);
-        checkContents(helper, player.getInventory().getItem(11), Items.GRAVEL, 7);
+        check(helper, stacked.getCount() == 15 && second.isRemoved(), "The next sparse type reuses the same box");
+        var stored = player.getInventory().getItem(9).get(DataComponents.CONTAINER);
+        check(helper, stored.stream().filter(s -> s.is(Items.STONE)).mapToInt(ItemStack::getCount).sum() == 67, "Old stones are not unnecessarily relocated");
+        check(helper, player.getInventory().getItem(10).is(Items.GRAVEL) && player.getInventory().getItem(10).getCount() == 7 && countContents(player.getInventory().getItem(9)) == 72, "Default reception keeps the seven new gravel items in the real free inventory position");
         helper.succeed();
     }
 
@@ -229,10 +230,10 @@ public class PickupGameTests implements CustomTestMethodInvoker {
             var incoming = drop(helper, 5);
             incoming.playerTouch(player);
             var filled = player.getInventory().getItem(9);
-            check(helper, stacked.getCount() == 14 && countContents(filled) == 67, "Drop and repick preserves every displaced item");
+            check(helper, stacked.getCount() == 15 && countContents(filled) == 72, "Drop and repick preserves every displaced item");
             check(helper, filled.get(DataComponents.CONTAINER).stream().anyMatch(s -> s.getHoverName().getString().equals("Three stones") && s.getCount() == 3), "Displaced components preserved");
-            checkContents(helper, filled, Items.STONE, 67);
-            checkContents(helper, player.getInventory().getItem(10), Items.COBBLESTONE, 5);
+            check(helper, filled.get(DataComponents.CONTAINER).stream().filter(s -> s.is(Items.STONE)).mapToInt(ItemStack::getCount).sum() == 67, "All displaced stones return");
+            check(helper, filled.get(DataComponents.CONTAINER).stream().filter(s -> s.is(Items.COBBLESTONE)).mapToInt(ItemStack::getCount).sum() == 5 && ManagedJunkBoxes.marked(filled), "The five received items share only the new managed box");
             check(helper, incoming.isRemoved(), "Original pickup collected");
             check(helper, helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(3)).stream().noneMatch(e -> e.getTags().contains("magic_shulker_boxes:relocated")), "Recollected entity removed from world");
             helper.succeed();

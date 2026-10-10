@@ -24,6 +24,7 @@ public final class SettingsGui {
         return new ConfirmScreen(ignored -> Minecraft.getInstance().setScreen(parent), text("title"), text("gui.invalid_file"));
     }
     private static String group(String key) {
+        if (key.startsWith("protectHotbarSlot")) return "hotbar";
         return switch (key) {
             case "schematicRefill", "enderChestRefill", "refillFullStack", "refillMakeSpace", "refillFailureMessages" -> "refill";
             case "ipnRefill" -> "ipn";
@@ -64,7 +65,7 @@ public final class SettingsGui {
             if (defaults != null && defaults.has("schematicRefill") && !defaults.get("schematicRefill").getAsBoolean()) {
                 category.option(LabelOption.create(text("gui.refill_off")));
             }
-            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft")) {
+            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft", "hotbar")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
                 boolean hasOptions = false;
                 for (String key : ConfigFile.optionNames()) {
@@ -109,7 +110,7 @@ public final class SettingsGui {
             var category = ConfigCategory.createBuilder().name(text("gui.local"))
                     .option(LabelOption.create(text("gui.local_hint")));
             var editable = new ArrayList<Option<?>>();
-            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft")) {
+            for (String section : List.of("pickup", "boxes", "space", "refill", "ipn", "craft", "hotbar")) {
                 var group = OptionGroup.createBuilder().name(text("gui.group." + section));
                 boolean hasOptions = false;
                 for (String key : values.keySet()) {

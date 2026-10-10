@@ -62,7 +62,7 @@ public final class PickupRelocation {
         var reservation = ACTIVE.get();
         if (reservation == null || reservation.inventory != inventory || reservation.incoming != originalStack) return false;
         if (inventory.getItem(reservation.destination) != reservation.box) return true;
-        for (int slot = 0; slot < JunkSlots.SLOT_COUNT; slot++) {
+        for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
             var current = inventory.getItem(slot);
             if (!ItemStack.isSameItemSameComponents(current, originalStack)) continue;
             int added = MenuStorage.receivedQuantity(inventory, before, slot);

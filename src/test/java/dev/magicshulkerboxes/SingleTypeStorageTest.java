@@ -27,15 +27,17 @@ class SingleTypeStorageTest {
         assertTrue(ItemStack.matches(original, inventory.getItem(0)));
     }
 
-    @Test void pickupMakesSeparateBoxesForDisplacedAndIncomingTypes() {
+    @Test void pickupCreatesOneManagedBoxWithoutChangingOriginalBoxes() {
         var inventory = fullInventory();
         inventory.setItem(0, box());
         inventory.getItem(0).setCount(16);
         inventory.setItem(9, new ItemStack(Items.STONE, 3));
         assertEquals(5, ShulkerStorage.store(inventory, new ItemStack(Items.COBBLESTONE, 5), pickup()));
-        assertEquals(14, inventory.getItem(0).getCount());
-        assertContents(inventory.getItem(9), Items.STONE, 67);
-        assertContents(inventory.getItem(10), Items.COBBLESTONE, 5);
+        assertEquals(15, inventory.getItem(0).getCount());
+        assertEquals(67, ManagedJunkStorageTest.count(inventory.getItem(9), Items.STONE));
+        assertEquals(5, ManagedJunkStorageTest.count(inventory.getItem(9), Items.COBBLESTONE));
+        assertTrue(ManagedJunkBoxes.marked(inventory.getItem(9)));
+        assertTrue(inventory.getItem(10).isEmpty());
     }
 
     @Test void schematicRelocationKeepsRemainingSourceMaterialsSeparate() {
