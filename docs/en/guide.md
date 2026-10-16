@@ -4,11 +4,19 @@
 
 Automatic shulker storage for **Minecraft Java 1.21.11 / Fabric / Java 21**.
 
-**Pickup storage is off by default.** Singleplayer hosts can enable it in World settings. Multiplayer administrators can set `pickupStorageEnabled=true` in the server configuration and run `/msb admin reload`, or allow players to enable it individually. Material refilling has its own switch.
+**Pickup storage is off by default.** Singleplayer hosts can enable it in Current world settings. Multiplayer administrators can set `pickupStorageEnabled=true` in the server configuration and run `/msb admin reload`, or allow players to enable it individually. Material refilling has its own switch.
 
 With pickup storage enabled, vanilla first completes insertion, source deductions and callbacks. Matching dedicated boxes take priority. When this operation's actual receipts plus matching stock in managed junk boxes reach three stacks, MSB attempts complete dedicated storage. Smaller unmatched receipts remain in the inventory by default; `preferEmptyBoxesOverInventory` also permits managed junk boxes and allocation from empty stock. Real ground remainders and relocation may use managed junk boxes.
 
 Box priority is matching dedicated boxes, managed junk boxes, then usable empty stock. Fuller boxes come first within a class. Actual stack merging requires identical components and preserves names, enchantments and potion payloads.
+
+## Items per refill
+
+Open Mod Menu → Magic Shulker Boxes → Personal settings and adjust “Items per refill”, or run `/msb set refillAmount 23`. Choose a whole number from 1 to 64. The personal slider’s leftmost “Use server value” choice removes the override, as does `/msb reset refillAmount`. Hosts change the world default in world settings; administrators use `/msb admin set refillAmount 23`. Server permissions still control personal changes.
+
+At 32, a refill takes up to 32 stone, 16 ender pearls or 1 tool. If only 7 items remain, it takes 7. Component-defined stack limits also apply. Each refill uses one source slot, without combining slots. Crafting follows the recipe; GCA’s independent replenishment is unchanged.
+
+Upgrading from 0.11.0 converts the old full-stack switch to 64 when on or 1 when off, and migrates its per-option permission. Original files are backed up beside them with `.pre-0.12.0.bak`; other valid settings are preserved. Update both client and server to 0.12.0; retired settings channels are no longer accepted.
 
 ## 0.11.0: automatically managed junk boxes and three-stack separation
 
@@ -107,9 +115,9 @@ Open **Mods → Magic Shulker Boxes → Configure**. Labels and descriptions fol
 - **Personal**: boolean options offer Inherit / On / Off; the space-making mode also offers Inherit. Resetting to Inherit removes that override. Cancel or leaving without saving does not write the file.
 - **Title screen**: edit local preferences, which upload when joining a server that allows them.
 - **In game**: the server must support the GUI and recovery-query protocols and allow personal settings. A save waits for server acknowledgement before updating the local file. Rejections, rate limits and timeouts display feedback. Enforced server policy locks personal editing.
-- **World settings / Local defaults**: available only at the title screen or to the singleplayer / LAN host. Edit this instance's shared defaults, including independent pickup and refill switches and permission to use personal settings. Saves apply immediately. Remote multiplayer clients cannot access this page.
+- **Current world settings / World defaults**: available only at the title screen or to the singleplayer / LAN host. Edit this instance's shared defaults, including independent pickup and refill switches and permission to use personal settings. Saves apply immediately. Remote multiplayer clients cannot access this page.
 
-The two pages save independently. Switching with unsaved edits prompts to discard or return to editing. Reopen the personal editor after a connection or server-policy change; stale drafts cannot be submitted. Option names are fixed labels, with a separate value button on the right. Click to cycle values, right-click to cycle backward, and use the adjacent reset button to restore the option default. Personal preferences include inheritance; world settings select explicit values. Inherited options show the received value directly, such as “Inherit server (On)”. Offline or unavailable defaults are marked “unknown”; values refresh when the server synchronizes its settings, while stale drafts still require reopening. Descriptions also show received server defaults. An off server default for either feature is indicated separately. With Mod Menu but without YACL, the configuration entry displays a missing-dependency message.
+The two pages save independently. Switching with unsaved edits prompts to discard or return to editing. Reopen the personal editor after a connection or server-policy change; stale drafts cannot be submitted. Option names are fixed labels, with a separate value button on the right. Click to cycle toggles and modes, or right-click to cycle backward. Adjust quantities with the slider or arrow keys. The adjacent reset button restores the option default. Personal preferences include inheritance; world settings select explicit values. Inherited options show the received value directly, such as “Use server value (On)”. Offline or unavailable defaults are marked “not yet synced”; values refresh when the server synchronizes its settings, while stale drafts still require reopening. Descriptions also show received server defaults. An off server default for either feature is indicated separately. With Mod Menu but without YACL, the configuration entry displays a missing-dependency message.
 
 **Store picked-up items in boxes** (`pickupStorageEnabled`) and **Refill materials for Litematica** (`schematicRefill`) are independent: use either feature, both, or neither. `pickupStorageEnabled=false` disables pickup storage only. To disable both features for everyone, disallow personal settings and also set `schematicRefill=false`.
 
@@ -328,11 +336,3 @@ See [building, testing, and implementation](development.md).
 The three retired mixing options and their permissions are removed from valid disk settings after an exact-byte `.pre-single-type.bak` backup. Legacy `onlyWhenInventoryFull` migrates to the inverse `preferEmptyBoxesOverInventory` value, with its permission renamed too. Other choices are retained. Commands and network input reject the retired options; update clients that use personal settings too. Invalid files and conflicting backups are preserved.
 
 Space failures show an action-bar notice by default, controlled independently by `spaceFailureMessages`, shared across storage and refill paths and limited to once per player every 40 ticks (two seconds at normal TPS). Missing materials and stale requests are not reported as space failures. `refillFailureMessages=false` suppresses only other refill notices.
-
-## Items per refill
-
-Open Mod Menu → Magic Shulker Boxes → Personal settings and adjust “Items per refill”, or run `/msb set refillAmount 23`. Choose a whole number from 1 to 64. The personal slider’s leftmost “Use server value” choice removes the override, as does `/msb reset refillAmount`. Hosts change the world default in world settings; administrators use `/msb admin set refillAmount 23`. Server permissions still control personal changes.
-
-At 32, a refill takes up to 32 stone, 16 ender pearls or 1 tool. If only 7 items remain, it takes 7. Component-defined stack limits also apply. Each refill uses one source slot, without combining slots. Crafting follows the recipe; GCA’s independent replenishment is unchanged.
-
-Upgrading from 0.11.0 converts the old full-stack switch to 64 when on or 1 when off, and migrates its per-option permission. Original files are backed up beside them with `.pre-0.12.0.bak`; other valid settings are preserved. Update both client and server to 0.12.0; retired settings channels are no longer accepted.
