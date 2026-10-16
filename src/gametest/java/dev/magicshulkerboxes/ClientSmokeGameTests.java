@@ -234,6 +234,7 @@ public class ClientSmokeGameTests implements FabricClientGameTest {
                 context.waitTicks(3);
                 context.takeScreenshot("settings-world-permissions-controls-zh");
                 context.runOnClient(client -> client.setScreen(null));
+                dev.magicshulkerboxes.client.RefillAmountClientFlow.run(context, world.getServer());
             }
         }
     }

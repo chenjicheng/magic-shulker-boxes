@@ -129,7 +129,7 @@ public class CommandChatGameTests {
     }
 
     private static List<String> values(String key) {
-        return key.equals("makeSpaceMode") ? List.of("DISABLED", "MOVE_TO_BOX", "DROP_AND_PICKUP") : List.of("true", "false");
+        return key.equals("refillAmount") ? List.of("1", "16", "32", "64") : key.equals("makeSpaceMode") ? List.of("DISABLED", "MOVE_TO_BOX", "DROP_AND_PICKUP") : List.of("true", "false");
     }
     private static Stream<Component> flatten(Component component) {
         return Stream.concat(Stream.of(component), component.getSiblings().stream().flatMap(CommandChatGameTests::flatten));

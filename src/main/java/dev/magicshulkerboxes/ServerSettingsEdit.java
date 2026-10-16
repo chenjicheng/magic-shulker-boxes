@@ -18,7 +18,7 @@ public final class ServerSettingsEdit {
         if (!replacement.has(key)) throw new IOException("Unknown server option: " + key);
         try {
             if (value == null) replacement.add(key, options(new ServerConfig()).get(key));
-            else if (key.equals("makeSpaceMode")) replacement.addProperty(key, value);
+            else if (key.equals("makeSpaceMode") || key.equals("refillAmount")) replacement.add(key, ConfigFile.optionValue(key, value));
             else if (key.equals("playerEditableSettings")) replacement.add(key, JsonParser.parseString(value));
             else if (value.equals("true") || value.equals("false")) replacement.addProperty(key, Boolean.parseBoolean(value));
             else throw new IOException("Invalid boolean: " + value);

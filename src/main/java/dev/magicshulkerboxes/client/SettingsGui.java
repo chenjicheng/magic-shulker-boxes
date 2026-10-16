@@ -26,7 +26,7 @@ public final class SettingsGui {
     private static String group(String key) {
         if (key.startsWith("protectHotbarSlot")) return "hotbar";
         return switch (key) {
-            case "schematicRefill", "enderChestRefill", "refillFullStack", "refillMakeSpace", "refillFailureMessages" -> "refill";
+            case "schematicRefill", "enderChestRefill", "refillAmount", "refillMakeSpace", "refillFailureMessages" -> "refill";
             case "ipnRefill" -> "ipn";
             case "craftRefill" -> "craft";
             case "useMatchingBoxes", "useEmptyBoxes", "includeOffhand" -> "boxes";
@@ -37,7 +37,8 @@ public final class SettingsGui {
     private static OptionDescription description(String key, JsonObject defaults) {
         var description = text("description." + key).copy();
         if (defaults != null && defaults.has(key)) {
-            Component value = key.equals("makeSpaceMode") ? text("gui.space." + defaults.get(key).getAsString())
+            Component value = key.equals("refillAmount") ? Component.literal(defaults.get(key).getAsString())
+                    : key.equals("makeSpaceMode") ? text("gui.space." + defaults.get(key).getAsString())
                     : text(defaults.get(key).getAsBoolean() ? "gui.toggle.ON" : "gui.toggle.OFF");
             description.append("\n\n").append(text("gui.inherit_hint", value));
             if (!ClientSettings.canEdit(key)) description.append("\n\n").append(text("gui.field_locked", text("option." + key)));
@@ -71,7 +72,15 @@ public final class SettingsGui {
                 for (String key : ConfigFile.optionNames()) {
                     if (!group(key).equals(section)) continue;
                     Option<?> option;
-                    if (key.equals("makeSpaceMode")) {
+                    if (key.equals("refillAmount")) {
+                        option = Option.<Integer>createBuilder().name(text("option." + key))
+                                .description(description(key, defaults))
+                                .binding(0, draft::amount, draft::amount)
+                                .controller(o -> dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder.create(o)
+                                        .range(0, 64).step(1).formatValue(v -> SettingsLabels.personal(key,
+                                                v == 0 ? "INHERIT" : v.toString(), ClientSettings.defaults())))
+                                .available(ClientSettings.session.editable(revision) && ClientSettings.canEdit(key)).build();
+                    } else if (key.equals("makeSpaceMode")) {
                         option = Option.<SettingsDraft.Space>createBuilder().name(text("option." + key))
                                 .description(description(key, defaults))
                                 .binding(SettingsDraft.Space.INHERIT, draft::space, draft::space)
@@ -117,7 +126,13 @@ public final class SettingsGui {
                     if (key.equals("playerEditableSettings")) continue;
                     if (!group(key).equals(section)) continue;
                     Option<?> option;
-                    if (key.equals("makeSpaceMode")) {
+                    if (key.equals("refillAmount")) {
+                        option = Option.<Integer>createBuilder().name(text("option." + key))
+                                .description(description(key, null))
+                                .binding(64, () -> values.get(key).getAsInt(), v -> values.addProperty(key, v))
+                                .controller(o -> dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder.create(o)
+                                        .range(1, 64).step(1)).build();
+                    } else if (key.equals("makeSpaceMode")) {
                         option = Option.<StorageConfig.MakeSpaceMode>createBuilder().name(text("option." + key))
                                 .description(description(key, null))
                                 .binding(StorageConfig.MakeSpaceMode.MOVE_TO_BOX,

@@ -45,7 +45,7 @@ class SingleTypeStorageTest {
         inventory.setItem(35, box(new ItemStack(Items.COBBLESTONE, 12)));
         inventory.setItem(34, box(new ItemStack(Items.STONE, 60)));
         var config = new StorageConfig();
-        config.refillFullStack = false;
+        config.refillAmount = 1;
         assertEquals(1, ShulkerRefill.take(inventory, 35, 0, Items.COBBLESTONE, config));
         assertContents(inventory.getItem(35), Items.COBBLESTONE, 11);
         assertContents(inventory.getItem(34), Items.STONE, 124);

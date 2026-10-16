@@ -39,12 +39,35 @@ public class IpnClientGameTests implements FabricClientGameTest {
         lockedSources(context, world);
         backpackPriority(context, world);
         anvilAcrossBoxes(context, world);
+        configuredQuantity(context, world);
         potionFlow(context, world);
         offhandFlow(context, world);
         toolFlow(context, world);
         disabledSlot(context, world);
         enderFlows(context, world);
         context.takeScreenshot("ipn-restock-verified");
+    }
+
+    private static void configuredQuantity(ClientGameTestContext context, TestServerContext world) {
+        prepare(context, world, new ItemStack(Items.STONE), box(new ItemStack(Items.STONE, 32)), ItemStack.EMPTY);
+        int previous = world.computeOnServer(server -> MagicShulkerBoxes.config().refillAmount);
+        world.runOnServer(server -> MagicShulkerBoxes.config().refillAmount = 5);
+        initializeMonitor(context);
+        try {
+            world.runOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().getFirst();
+                player.getInventory().setItem(0, ItemStack.EMPTY);
+                player.inventoryMenu.broadcastChanges();
+            });
+            context.waitFor(client -> client.player.getMainHandItem().isEmpty());
+            drive(context, client -> client.player.getMainHandItem().is(Items.STONE));
+            world.runOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().getFirst();
+                check(player.getMainHandItem().getCount() == 5, "Released IPN equips the configured five items");
+                check(player.getInventory().getItem(9).get(DataComponents.CONTAINER).stream()
+                        .mapToInt(ItemStack::getCount).sum() == 27, "IPN leaves exactly 27 items in the source box");
+            });
+        } finally { world.runOnServer(server -> MagicShulkerBoxes.config().refillAmount = previous); }
     }
 
     private static void anvilAcrossBoxes(ClientGameTestContext context, TestServerContext world) {

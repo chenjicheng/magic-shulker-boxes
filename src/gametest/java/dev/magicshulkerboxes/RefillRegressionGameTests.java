@@ -90,9 +90,9 @@ public class RefillRegressionGameTests {
 
     @GameTest public void measureBlockedRefillFallback(GameTestHelper helper) {
         var config = MagicShulkerBoxes.config();
-        boolean oldFull = config.refillFullStack;
+        int oldFull = config.refillAmount;
         try {
-            config.refillFullStack = false;
+            config.refillAmount = 1;
             var beans = ManagementFactory.getThreadMXBean() instanceof com.sun.management.ThreadMXBean bean
                     && bean.isThreadAllocatedMemorySupported() ? bean : null;
             if (beans != null && !beans.isThreadAllocatedMemoryEnabled()) beans.setThreadAllocatedMemoryEnabled(true);
@@ -116,7 +116,7 @@ public class RefillRegressionGameTests {
             }
             helper.succeed();
         } finally {
-            config.refillFullStack = oldFull;
+            config.refillAmount = oldFull;
         }
     }
 
@@ -131,9 +131,9 @@ public class RefillRegressionGameTests {
         var contents = new ArrayList<ItemStack>();
         for (int i = 0; i < 27; i++) contents.add(new ItemStack(Items.STONE, i == 26 ? 1 : 64));
         inventory.setItem(35, box(contents));
-        var config = MagicShulkerBoxes.config(); boolean old = config.refillFullStack;
+        var config = MagicShulkerBoxes.config(); int old = config.refillAmount;
         try {
-            config.refillFullStack = false;
+            config.refillAmount = 1;
             helper.assertTrue(RefillNetwork.accept(player, request(helper, 35, 0, "minecraft:stone")) == 1,
                     Component.literal("A different count can free a slot after equivalent full stacks failed"));
             var stored = inventory.getItem(35).get(DataComponents.CONTAINER).stream().toList();
@@ -141,7 +141,7 @@ public class RefillRegressionGameTests {
                             && stored.get(26).getHoverName().getString().equals("Inventory stone"),
                     Component.literal("The displaced same-type stack retains components in the vacated slot"));
             helper.succeed();
-        } finally { config.refillFullStack = old; }
+        } finally { config.refillAmount = old; }
     }
 
     private static ItemStack box(List<ItemStack> contents) {

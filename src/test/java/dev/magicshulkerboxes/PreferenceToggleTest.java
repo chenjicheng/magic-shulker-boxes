@@ -22,7 +22,7 @@ class PreferenceToggleTest {
     @Test void offlineUsesCurrentDefaultsAndRejectsNonBooleanOrPolicyFields() throws IOException {
         assertFalse(PreferenceToggle.toggle("craftRefill", ConfigFile.parsePreferences("{}"), null).get("craftRefill").getAsBoolean(),
                 "Offline inherited on toggles to off");
-        for (var key : new String[]{"makeSpaceMode", "allowPlayerSettings", "playerEditableSettings", "unknown"})
+        for (var key : new String[]{"refillAmount", "makeSpaceMode", "allowPlayerSettings", "playerEditableSettings", "unknown"})
             assertThrows(IOException.class, () -> PreferenceToggle.toggle(key, ConfigFile.parsePreferences("{}"), null));
     }
 }

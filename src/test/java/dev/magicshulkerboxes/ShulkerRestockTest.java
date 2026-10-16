@@ -46,16 +46,16 @@ class ShulkerRestockTest {
         assertTrue(inventory.getItem(0).is(Items.IRON_PICKAXE));
     }
 
-    @Test void externalRestockIsIndependentOfPickupSchematicAndOneItemMode() {
+    @Test void externalRestockUsesAmountIndependentlyOfPickupAndSchematic() {
         var inventory = new SimpleContainer(41);
         inventory.setItem(9, box(new ItemStack(Items.GOLDEN_CARROT, 32)));
         var config = new StorageConfig();
         config.pickupStorageEnabled = false;
         config.schematicRefill = false;
-        config.refillFullStack = false;
-        assertEquals(32, ShulkerRefill.takeForRestock(inventory, 9, 0, config, mask(10)));
-        assertEquals(32, inventory.getItem(10).getCount());
-        assertTrue(contents(inventory.getItem(9)).isEmpty());
+        config.refillAmount = 1;
+        assertEquals(1, ShulkerRefill.takeForRestock(inventory, 9, 0, config, mask(10)));
+        assertEquals(1, inventory.getItem(10).getCount());
+        assertEquals(31, contents(inventory.getItem(9)).getFirst().getCount());
     }
 
     @Test void selectedToolRetainsDamageNameAndAllComponents() {

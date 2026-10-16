@@ -13,23 +13,23 @@ public final class ShulkerRefill {
     private ShulkerRefill() {}
     public static int take(Container inventory, int boxSlot, int contentSlot, Item expected, StorageConfig config) {
         if (!config.schematicRefill) return 0;
-        return take(inventory, boxSlot, contentSlot, expected, config, config.refillFullStack, BoxRelocation.ALL_SLOTS);
+        return take(inventory, boxSlot, contentSlot, expected, config, config.refillAmount, BoxRelocation.ALL_SLOTS);
     }
 
     /** IPN uses backpack boxes and optional own ender sources; its mask protects backpack destinations. */
     public static int takeForRestock(Container inventory, int boxSlot, int contentSlot, StorageConfig config, int eligibleSlots) {
         if (!config.ipnRefill || (!(boxSlot >= 9 && boxSlot < 36) && !(config.enderChestRefill && RefillSources.isEnder(inventory, boxSlot)))
                 || eligibleSlots <= 0 || eligibleSlots >= (1 << 27)) return 0;
-        return take(inventory, boxSlot, contentSlot, null, config, true, (long) eligibleSlots << 9);
+        return take(inventory, boxSlot, contentSlot, null, config, config.refillAmount, (long) eligibleSlots << 9);
     }
 
     private static int take(Container inventory, int boxSlot, int contentSlot, Item expected, StorageConfig config,
-                            boolean fullStack, long eligibleSlots) {
+                            int amount, long eligibleSlots) {
         eligibleSlots = HotbarProtection.unprotectedSlots(eligibleSlots, config);
         int size = Math.min(36, inventory.getContainerSize());
         boolean offhand = config.includeOffhand && boxSlot == Inventory.SLOT_OFFHAND && boxSlot < inventory.getContainerSize();
         boolean ender = config.enderChestRefill && RefillSources.isEnder(inventory, boxSlot);
-        if (ender && contentSlot == -1) return takeDirect(inventory, boxSlot, expected, fullStack, eligibleSlots);
+        if (ender && contentSlot == -1) return takeDirect(inventory, boxSlot, expected, amount, eligibleSlots);
         if (boxSlot < 0 || (boxSlot >= size && !offhand && !ender)
                 || contentSlot < 0 || contentSlot >= 27) return 0;
         var box = inventory.getItem(boxSlot);
@@ -40,7 +40,7 @@ public final class ShulkerRefill {
         container.copyInto(original);
         var source = original.get(contentSlot);
         if (source.isEmpty() || (expected != null && !source.is(expected)) || !source.getItem().canFitInsideContainerItems()) return 0;
-        int count = Math.min(source.getCount(), fullStack ? source.getMaxStackSize() : 1);
+        int count = Math.min(source.getCount(), Math.min(amount, source.getMaxStackSize()));
         var taken = source.copyWithCount(count);
 
         var before = CraftingMaterials.copy(inventory);
@@ -70,10 +70,10 @@ public final class ShulkerRefill {
         return count;
     }
 
-    private static int takeDirect(Container inventory, int sourceSlot, Item expected, boolean fullStack, long eligible) {
+    private static int takeDirect(Container inventory, int sourceSlot, Item expected, int amount, long eligible) {
         var source = inventory.getItem(sourceSlot);
         if (source.isEmpty() || ShulkerStorage.isShulker(source) || (expected != null && !source.is(expected))) return 0;
-        int count = Math.min(source.getCount(), fullStack ? source.getMaxStackSize() : 1);
+        int count = Math.min(source.getCount(), Math.min(amount, source.getMaxStackSize()));
         var original = CraftingMaterials.copy(inventory); var planned = CraftingMaterials.copy(inventory);
         var remaining = source.copyWithCount(count);
         for (int pass = 0; pass < 2 && !remaining.isEmpty(); pass++) {

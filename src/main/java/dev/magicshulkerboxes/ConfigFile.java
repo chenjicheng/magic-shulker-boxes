@@ -46,6 +46,16 @@ public final class ConfigFile {
         return GSON.fromJson(merged, StorageConfig.class);
     }
 
+    /** Parse a command value through the same validation as network preferences. */
+    public static JsonElement optionValue(String key, String value) throws IOException {
+        var option = new JsonObject();
+        try {
+            option.add(key, key.equals("makeSpaceMode") ? new com.google.gson.JsonPrimitive(value)
+                    : GSON.fromJson(value, JsonElement.class));
+        } catch (JsonParseException exception) { throw new IOException("Invalid setting value", exception); }
+        return parsePreferences(option.toString()).get(key);
+    }
+
     public static Set<String> optionNames() {
         return GSON.toJsonTree(new StorageConfig()).getAsJsonObject().keySet();
     }
@@ -128,15 +138,39 @@ public final class ConfigFile {
         boolean storageChanged = hasRetiredMixedSetting(migrated) || migrated.has("onlyWhenInventoryFull")
                 || (permissions != null && permissions.isJsonArray()
                     && permissions.getAsJsonArray().contains(new com.google.gson.JsonPrimitive("onlyWhenInventoryFull")));
+        boolean amountChanged = migrateRefillAmount(migrated);
         boolean changed = removeRetiredSettings(migrated);
+        changed |= amountChanged;
         changed |= migrateInventoryPriority(migrated);
         if (!changed) return document;
         // Validate every remaining choice before touching the file or creating its exact-byte backup.
         validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
-        var backup = backupOriginal(path, storageChanged ? ".pre-single-type.bak" : ".pre-0.8.0.bak");
+        var backup = backupOriginal(path, amountChanged ? ".pre-0.12.0.bak" : storageChanged ? ".pre-single-type.bak" : ".pre-0.8.0.bak");
         writeDocument(path, migrated);
         MagicShulkerBoxes.LOGGER.info("Removed retired settings; backup: {} / 已移除旧设置，备份：{}", backup, backup);
         return migrated;
+    }
+
+    private static boolean migrateRefillAmount(JsonObject document) throws IOException {
+        var previous = document.remove("refillFullStack");
+        boolean changed = previous != null;
+        if (previous != null) {
+            if (!previous.isJsonPrimitive() || !previous.getAsJsonPrimitive().isBoolean()
+                    || document.has("refillAmount")) throw new IOException("Invalid or conflicting refill quantity settings");
+            document.addProperty("refillAmount", previous.getAsBoolean() ? 64 : 1);
+        }
+        var permissions = document.get("playerEditableSettings");
+        if (permissions != null && permissions.isJsonArray()) {
+            for (int i = 0; i < permissions.getAsJsonArray().size(); i++) {
+                var key = permissions.getAsJsonArray().get(i);
+                if (key.isJsonPrimitive() && key.getAsJsonPrimitive().isString()
+                        && key.getAsString().equals("refillFullStack")) {
+                    permissions.getAsJsonArray().set(i, new com.google.gson.JsonPrimitive("refillAmount"));
+                    changed = true;
+                }
+            }
+        }
+        return changed;
     }
 
     private static boolean hasRetiredMixedSetting(JsonObject document) {
@@ -207,6 +241,7 @@ public final class ConfigFile {
         var migrated = old.deepCopy();
         var pickup = migrated.remove("enabled");
         if (pickup != null) migrated.add("pickupStorageEnabled", pickup);
+        migrateRefillAmount(migrated);
         removeRetiredSettings(migrated);
         migrateInventoryPriority(migrated);
         validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
@@ -254,6 +289,14 @@ public final class ConfigFile {
                         if (!name.isJsonPrimitive() || !name.getAsJsonPrimitive().isString() || !optionNames().contains(name.getAsString())
                                 || !names.add(name.getAsString())) throw new IOException("Invalid or duplicate editable option: " + name);
                     }
+                    continue;
+                }
+                if (entry.getKey().equals("refillAmount")) {
+                    var value = entry.getValue();
+                    if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()
+                            || !value.getAsString().matches("[1-9][0-9]?"))
+                        throw new IOException("refillAmount must be a whole number from 1 to 64");
+                    if (value.getAsInt() > 64) throw new IOException("refillAmount must be from 1 to 64");
                     continue;
                 }
                 if (entry.getKey().equals("makeSpaceMode")) {

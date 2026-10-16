@@ -106,8 +106,8 @@ public final class ClientSettings {
                         notice(payload.status() == EditorNetwork.SAVED ? "gui.saved" : "gui.recovered");
                     }
                 }
-                case EditorNetwork.LOCKED -> { notice("locked"); }
-                case EditorNetwork.INVALID -> notice("invalid");
+                case EditorNetwork.LOCKED -> { notice("gui.locked"); }
+                case EditorNetwork.INVALID -> notice("gui.invalid");
                 case EditorNetwork.BUSY, EditorNetwork.QUERY_BUSY -> notice("gui.busy");
                 default -> notice("gui.failed");
             }
@@ -142,7 +142,7 @@ public final class ClientSettings {
 
     static void toggle(String key) {
         if (session.mode() == SettingsSession.Mode.UNSUPPORTED) { notice("gui.status.UNSUPPORTED"); return; }
-        if (session.mode() == SettingsSession.Mode.LOCKED || !canEdit(key)) { notice("locked"); return; }
+        if (session.mode() == SettingsSession.Mode.LOCKED || !canEdit(key)) { notice("gui.locked"); return; }
         if (session.pending()) { notice("gui.pending"); return; }
         try { savePersonal(session.revision(), PreferenceToggle.toggle(key, preferences(), defaults)); }
         catch (IOException exception) { failure(exception); }

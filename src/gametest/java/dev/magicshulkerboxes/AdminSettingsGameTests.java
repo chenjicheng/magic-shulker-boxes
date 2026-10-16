@@ -36,9 +36,9 @@ public class AdminSettingsGameTests {
 
             check(h, execute(admin, "msb admin player MSBAdminTarget show") == 1, "Offline name is resolved");
             check(h, output.lines.stream().anyMatch(line -> line.contains("ipnRefill")
-                    && line.contains("false") && line.contains("true") && line.contains("locked")),
+                    && line.contains("false") && line.contains("true") && line.contains("Managed by server")),
                     "Show distinguishes a dormant saved choice from the locked effective value");
-            check(h, output.lines.stream().anyMatch(line -> line.contains("useMatchingBoxes") && line.contains("inherit")),
+            check(h, output.lines.stream().anyMatch(line -> line.contains("useMatchingBoxes") && line.contains("Use server value")),
                     "Show identifies inherited options");
             check(h, execute(admin, "msb admin player " + target + " set pickupStorageEnabled true") == 1,
                     "Console edits an offline UUID");

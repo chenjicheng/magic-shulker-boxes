@@ -26,7 +26,7 @@ public class StorageConfig {
     public boolean ipnRefill = true;
     public boolean craftRefill = true;
     public boolean enderChestRefill = false;
-    public boolean refillFullStack = true;
+    public int refillAmount = 64;
     public boolean refillMakeSpace = true;
     public boolean refillFailureMessages = true;
     public boolean spaceFailureMessages = true;

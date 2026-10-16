@@ -19,12 +19,19 @@ public final class SettingsDraft {
         else overrides.addProperty(key, value == Toggle.ON);
     }
     private static void checkToggle(String key) {
-        if (!ConfigFile.optionNames().contains(key) || key.equals("makeSpaceMode")) throw new IllegalArgumentException(key);
+        if (!ConfigFile.optionNames().contains(key) || key.equals("makeSpaceMode") || key.equals("refillAmount")) throw new IllegalArgumentException(key);
     }
     public Space space() { return overrides.has("makeSpaceMode") ? Space.valueOf(overrides.get("makeSpaceMode").getAsString()) : Space.INHERIT; }
     public void space(Space value) {
         if (value == Space.INHERIT) overrides.remove("makeSpaceMode");
         else overrides.addProperty("makeSpaceMode", value.name());
+    }
+    /** Zero is a screen-only inheritance choice and is never saved as a quantity. */
+    public int amount() { return overrides.has("refillAmount") ? overrides.get("refillAmount").getAsInt() : 0; }
+    public void amount(int value) {
+        if (value < 0 || value > 64) throw new IllegalArgumentException("refillAmount");
+        if (value == 0) overrides.remove("refillAmount");
+        else overrides.addProperty("refillAmount", value);
     }
     public JsonObject values() { return overrides.deepCopy(); }
 }

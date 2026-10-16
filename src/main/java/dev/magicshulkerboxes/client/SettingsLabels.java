@@ -7,6 +7,11 @@ import net.minecraft.network.chat.Component;
 public final class SettingsLabels {
     private SettingsLabels() {}
     public static Component personal(String key, String selection, JsonObject defaults) {
+        if (key.equals("refillAmount")) {
+            if (!selection.equals("INHERIT")) return Component.literal(selection);
+            return defaults == null || !defaults.has(key) ? text("gui.inherit_unknown")
+                    : text("gui.inherit_value", defaults.get(key).getAsInt());
+        }
         String kind = key.equals("makeSpaceMode") ? "space." : "toggle.";
         if (!selection.equals("INHERIT")) return text("gui." + kind + selection);
         if (defaults == null || !defaults.has(key)) return text("gui.inherit_unknown");

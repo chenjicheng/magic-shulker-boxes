@@ -66,17 +66,17 @@ class PlayerSettingsStoreTest {
         var server = new ServerConfig();
         server.pickupStorageEnabled = false;
         server.allowPlayerSettings = true;
-        store.save(player, ConfigFile.parsePreferences("{\"schematicRefill\":false,\"refillFullStack\":false}"));
+        store.save(player, ConfigFile.parsePreferences("{\"schematicRefill\":false,\"refillAmount\":1}"));
         var effective = store.resolve(player, server);
         assertFalse(effective.pickupStorageEnabled);
         assertFalse(effective.schematicRefill, "Personal refill off still applies when pickup is off");
-        assertFalse(effective.refillFullStack, "Pickup does not gate unrelated personal settings");
+        assertEquals(1, effective.refillAmount, "Pickup does not gate unrelated personal settings");
         store.save(player, ConfigFile.parsePreferences("{\"pickupStorageEnabled\":true,\"schematicRefill\":true}"));
         effective = store.resolve(player, server);
         assertTrue(effective.pickupStorageEnabled, "Allowed personal pickup on overrides the server default");
         assertTrue(effective.schematicRefill, "Server pickup off does not disable refill");
         server.allowPlayerSettings = false;
-        assertTrue(store.resolve(player, server).refillFullStack, "Policy revocation restores server defaults");
+        assertEquals(64, store.resolve(player, server).refillAmount, "Policy revocation restores server defaults");
     }
 
     @Test

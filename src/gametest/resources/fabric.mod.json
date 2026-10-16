@@ -10,6 +10,7 @@
       "dev.magicshulkerboxes.StorageTypeGameTests",
       "dev.magicshulkerboxes.StorageFeedbackGameTests",
       "dev.magicshulkerboxes.RefillGameTests",
+      "dev.magicshulkerboxes.RefillAmountGameTests",
       "dev.magicshulkerboxes.RefillRegressionGameTests",
       "dev.magicshulkerboxes.ConfigMigrationGameTests",
       "dev.magicshulkerboxes.RestockGameTests",

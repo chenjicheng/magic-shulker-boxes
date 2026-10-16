@@ -2,7 +2,6 @@ package dev.magicshulkerboxes;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -53,7 +52,8 @@ public final class SettingsCommands {
                                 .suggests((context, builder) -> SharedSuggestionProvider.suggest(
                                         StringArgumentType.getString(context, "option").equals("makeSpaceMode")
                                                 ? List.of("DISABLED", "MOVE_TO_BOX", "DROP_AND_PICKUP")
-                                                : StringArgumentType.getString(context, "option").equals("playerEditableSettings") ? List.of("[]") : List.of("true", "false"), builder))
+                                                : StringArgumentType.getString(context, "option").equals("playerEditableSettings") ? List.of("[]")
+                                                : SettingsChat.suggestedValues(StringArgumentType.getString(context, "option")), builder))
                                 .executes(context -> editServer(context.getSource(), StringArgumentType.getString(context, "option"), StringArgumentType.getString(context, "value"))))))
                 .then(Commands.literal("reset").then(serverOptionArgument().executes(context -> editServer(context.getSource(), StringArgumentType.getString(context, "option"), null))))
                 .then(Commands.literal("permission").then(optionArgument().then(Commands.argument("allowed", BoolArgumentType.bool())
@@ -147,7 +147,7 @@ public final class SettingsCommands {
         return optionArgument().then(Commands.argument("value", StringArgumentType.word())
                 .suggests((context, builder) -> SharedSuggestionProvider.suggest(
                         StringArgumentType.getString(context, "option").equals("makeSpaceMode")
-                                ? List.of("DISABLED", "MOVE_TO_BOX", "DROP_AND_PICKUP") : List.of("true", "false"), builder))
+                                ? List.of("DISABLED", "MOVE_TO_BOX", "DROP_AND_PICKUP") : SettingsChat.suggestedValues(StringArgumentType.getString(context, "option")), builder))
                 .executes(action));
     }
 
@@ -197,12 +197,8 @@ public final class SettingsCommands {
         if (key != null && !ConfigFile.optionNames().contains(key)) return failure(source, "invalid");
         JsonElement change = null;
         if (value != null) {
-            if (key.equals("makeSpaceMode")) {
-                try { StorageConfig.MakeSpaceMode.valueOf(value); }
-                catch (IllegalArgumentException exception) { return failure(source, "invalid"); }
-                change = new JsonPrimitive(value);
-            } else if (value.equals("true") || value.equals("false")) change = new JsonPrimitive(Boolean.parseBoolean(value));
-            else return failure(source, "invalid");
+            try { change = ConfigFile.optionValue(key, value); }
+            catch (IOException exception) { return failure(source, "invalid"); }
         }
         try {
             var store = MagicShulkerBoxes.players(source.getServer());
@@ -267,12 +263,13 @@ public final class SettingsCommands {
         var player = source.getPlayerOrException();
         if (!ConfigFile.optionNames().contains(key)) return failure(source, "invalid");
         if (!MagicShulkerBoxes.config().canEdit(key)) return failure(source, "locked");
+        final JsonElement parsedValue;
+        try { parsedValue = ConfigFile.optionValue(key, value); }
+        catch (IOException exception) { return failure(source, "invalid"); }
         try {
             var store = MagicShulkerBoxes.players(source.getServer());
             var overrides = ConfigFile.editable(store.read(player.getUUID()), MagicShulkerBoxes.config().playerEditableSettings);
-            if (key.equals("makeSpaceMode")) overrides.addProperty(key, value);
-            else if (value.equals("true") || value.equals("false")) overrides.addProperty(key, Boolean.parseBoolean(value));
-            else return failure(source, "invalid");
+            overrides.add(key, parsedValue);
             ConfigFile.parsePreferences(overrides.toString());
             store.saveAllowed(player.getUUID(), overrides, MagicShulkerBoxes.config());
             SettingsNetwork.acknowledge(player);

@@ -88,6 +88,8 @@ public class DedicatedClientGameTests implements FabricClientGameTest {
             adminSettings(context, server);
             keybindings(context, server);
             clickableCommands(context, server);
+            if (FabricLoader.getInstance().isModLoaded("yet_another_config_lib_v3"))
+                dev.magicshulkerboxes.client.RefillAmountClientFlow.run(context, server);
             context.takeScreenshot("dedicated-tcp-acceptance");
         }
     }

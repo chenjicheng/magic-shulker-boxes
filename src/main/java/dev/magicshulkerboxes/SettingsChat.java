@@ -17,9 +17,17 @@ public final class SettingsChat {
                 .withHoverEvent(new HoverEvent.ShowText(Messages.text(language, "command.preview", command))));
     }
 
+    public static List<String> suggestedValues(String option) {
+        return switch (option) {
+            case "makeSpaceMode" -> List.of("DISABLED", "MOVE_TO_BOX", "DROP_AND_PICKUP");
+            case "refillAmount" -> List.of("1", "16", "32", "64");
+            default -> List.of("true", "false");
+        };
+    }
+
     public static Component choices(String language, String option, String setPrefix, String resetPrefix, String resetLabel) {
         var result = Component.empty();
-        var values = option.equals("makeSpaceMode") ? List.of("DISABLED", "MOVE_TO_BOX", "DROP_AND_PICKUP") : List.of("true", "false");
+        var values = suggestedValues(option);
         for (var value : values) result.append(" ").append(preview(language, Component.literal("[" + value + "]"), setPrefix + " " + option + " " + value));
         return result.append(" ").append(preview(language, Messages.text(language, resetLabel), resetPrefix + " " + option));
     }

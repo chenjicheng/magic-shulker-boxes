@@ -30,7 +30,7 @@ class ShulkerRefillTest {
     @Test void oneItemModeLeavesRemainderInBox() {
         var inv = new SimpleContainer(41);
         inv.setItem(9, box(new ItemStack(Items.STONE, 37)));
-        var config = new StorageConfig(); config.refillFullStack = false;
+        var config = new StorageConfig(); config.refillAmount = 1;
         assertEquals(1, ShulkerRefill.take(inv, 9, 0, Items.STONE, config));
         assertEquals(36, contents(inv.getItem(9)).stream().findFirst().orElse(ItemStack.EMPTY).getCount());
     }
@@ -57,7 +57,7 @@ class ShulkerRefillTest {
         var inv = full(); var stacks = new ItemStack[27];
         java.util.Arrays.setAll(stacks, i -> new ItemStack(Items.STONE, 64));
         inv.setItem(35, box(stacks));
-        var config = new StorageConfig(); config.refillFullStack = false;
+        var config = new StorageConfig(); config.refillAmount = 1;
         assertEquals(0, ShulkerRefill.take(inv, 35, 0, Items.STONE, config));
         assertEquals(1728, contents(inv.getItem(35)).stream().mapToInt(ItemStack::getCount).sum());
     }

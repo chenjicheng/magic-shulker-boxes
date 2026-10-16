@@ -34,7 +34,7 @@ Hotbar relocation remains disabled by default. After enabling `useHotbarForSpace
 /msb set protectHotbarSlot9 true
 ```
 
-These commands require server permission. Old `world/data/magic_shulker_boxes/junk-slots/` files remain untouched but unused; existing filled boxes are not converted. The F9 slot-assignment feature is removed. Preferences and GUI use protocol v8; both sides need 0.11.0 for these interfaces.
+These commands require server permission. Old `world/data/magic_shulker_boxes/junk-slots/` files remain untouched but unused; existing filled boxes are not converted. The F9 slot-assignment feature is removed. Preferences and GUI use protocol v9; both sides need 0.11.0 for these interfaces.
 
 
 ## 0.6.0: clickable command previews and key bindings
@@ -117,7 +117,7 @@ After a ten-second confirmation timeout, further saves pause while the client qu
 
 ## Schematic material refilling
 
-Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.10.1** on both sides, keeping the versions matched. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.12.0** on both sides, keeping the versions matched. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
 
 Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 
@@ -130,7 +130,7 @@ The menu has a **Schematic materials** group:
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `schematicRefill` | `true` | Enable refilling independently; players can override the server default when personal settings are allowed |
-| `refillFullStack` | `true` | Take up to one stack from one box slot; off takes one item |
+| `refillAmount` | `64` | Take 1–64 items per schematic or IPN refill, capped by source count and the item’s stack limit |
 | `refillMakeSpace` | `true` | Direct relocation when full, even with pickup storage disabled; independent of pickup drop mode |
 | `refillFailureMessages` | `true` | Controls non-space refill failure notices; space failures use their independent setting, and success is silent |
 | `spaceFailureMessages` | `true` | Independently show space failures for storage, extraction, tool swaps and crafting; shared 40-tick cooldown, with no effect on items |
@@ -149,7 +149,7 @@ IPN first looks for its normal backpack candidates when refilling main-hand or o
 
 Carried sources use IPN's backpack area (indices 9–35), respecting locked slots. Hotbar and offhand boxes are excluded as sources. `enderChestRefill` additionally enables the player's own ender storage. Consumables use IPN's normal swap after extraction; box-sourced tools use the 0.5.0 atomic original-slot return.
 
-Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksForSpace` and `matchItemComponents` for single-type relocation. Slots excluded by IPN's locked-slot settings are also excluded as extraction and splitting destinations. If IPN permits using locked slots, this integration follows that choice. IPN takes up to one complete candidate stack; the schematic-only `refillFullStack` one-item mode does not affect it. Unsafe extraction changes nothing and leaves IPN's normal failure handling in control. On servers without the new protocol, IPN retains its original backpack behavior.
+Extraction follows `refillMakeSpace`, `splitStackedBoxes`, `allowPartialStacksForSpace` and `matchItemComponents` for single-type relocation. Slots excluded by IPN's locked-slot settings are also excluded as extraction and splitting destinations. If IPN permits using locked slots, this integration follows that choice. IPN uses `refillAmount` per candidate stack: unstackable items yield at most 1, and items capped at 16 yield at most 16. Tool swaps always take 1. Unsafe extraction changes nothing and leaves IPN's normal failure handling in control. On servers without the new protocol, IPN retains its original backpack behavior.
 
 ## Crafting ingredient refilling
 
@@ -175,9 +175,9 @@ Starting with 0.8.0, MSB no longer replenishes Carpet fake-player hands or repla
 /carpet setDefault fakePlayerAutoReplenishmentFormShulkerBox true
 ```
 
-The second rule enables shulker-box sources; the first alone only enables ordinary-inventory replenishment. GCA controls source ordering, hand replenishment, splitting and failure behavior. MSB's `refillFullStack`, `includeOffhand` and space-making options do not control GCA. GCA tool replacement has its own rule. MSB retains Carpet stacked-box compatibility and ordinary-player IPN, schematic and crafting refilling.
+The second rule enables shulker-box sources; the first alone only enables ordinary-inventory replenishment. GCA controls source ordering, hand replenishment, splitting and failure behavior. MSB's `refillAmount`, `includeOffhand` and space-making options do not control GCA. GCA tool replacement has its own rule. MSB retains Carpet stacked-box compatibility and ordinary-player IPN, schematic and crafting refilling.
 
-Existing version-2 server, client and UUID preference files containing `carpetRefill` or its `playerEditableSettings` entry are backed up byte-for-byte to `.pre-0.8.0.bak` when this is the only retirement, or `.pre-single-type.bak` when single-type storage settings also migrate, then only those retired entries are removed. Other choices and field permissions are preserved. Invalid files or conflicting backups stay unchanged. Disk configuration remains version 2; settings/GUI channels use v8 and require matching client/server versions.
+Existing version-2 server, client and UUID preference files containing `carpetRefill` or its `playerEditableSettings` entry are backed up byte-for-byte to `.pre-0.8.0.bak` when this is the only retirement, or `.pre-single-type.bak` when single-type storage settings also migrate, then only those retired entries are removed. Other choices and field permissions are preserved. Invalid files or conflicting backups stay unchanged. Disk configuration remains version 2; settings/GUI channels use v9 and require matching client/server versions.
 
 ## Carpet stacking
 
@@ -328,3 +328,11 @@ See [building, testing, and implementation](development.md).
 The three retired mixing options and their permissions are removed from valid disk settings after an exact-byte `.pre-single-type.bak` backup. Legacy `onlyWhenInventoryFull` migrates to the inverse `preferEmptyBoxesOverInventory` value, with its permission renamed too. Other choices are retained. Commands and network input reject the retired options; update clients that use personal settings too. Invalid files and conflicting backups are preserved.
 
 Space failures show an action-bar notice by default, controlled independently by `spaceFailureMessages`, shared across storage and refill paths and limited to once per player every 40 ticks (two seconds at normal TPS). Missing materials and stale requests are not reported as space failures. `refillFailureMessages=false` suppresses only other refill notices.
+
+## Items per refill
+
+Open Mod Menu → Magic Shulker Boxes → Personal settings and adjust “Items per refill”, or run `/msb set refillAmount 23`. Choose a whole number from 1 to 64. The personal slider’s leftmost “Use server value” choice removes the override, as does `/msb reset refillAmount`. Hosts change the world default in world settings; administrators use `/msb admin set refillAmount 23`. Server permissions still control personal changes.
+
+At 32, a refill takes up to 32 stone, 16 ender pearls or 1 tool. If only 7 items remain, it takes 7. Component-defined stack limits also apply. Each refill uses one source slot, without combining slots. Crafting follows the recipe; GCA’s independent replenishment is unchanged.
+
+Upgrading from 0.11.0 converts the old full-stack switch to 64 when on or 1 when off, and migrates its per-option permission. Original files are backed up beside them with `.pre-0.12.0.bak`; other valid settings are preserved. Update both client and server to 0.12.0; retired settings channels are no longer accepted.
