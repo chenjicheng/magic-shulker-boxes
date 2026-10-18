@@ -146,7 +146,7 @@ class PotionClassificationTest {
     }
     private static StorageConfig config() {
         var config = new StorageConfig(); config.pickupStorageEnabled = true;
-        config.makeSpaceMode = StorageConfig.MakeSpaceMode.DISABLED; return config;
+        config.makeSpaceMode = StorageConfig.MakeSpaceMode.DISABLED; return allowHotbar(config);
     }
     static ItemStack potion(Item item, Holder<Potion> type) { return PotionContents.createItemStack(item, type); }
     private static List<ItemStack> stored(ItemStack box) {

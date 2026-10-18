@@ -102,7 +102,7 @@ class SingleTypeStorageTest {
     }
 
     private static StorageConfig pickup() {
-        var config = new StorageConfig(); config.pickupStorageEnabled = true; return config;
+        var config = new StorageConfig(); config.pickupStorageEnabled = true; return allowHotbar(config);
     }
 
     static void assertContents(ItemStack box, net.minecraft.world.item.Item item, int count) {

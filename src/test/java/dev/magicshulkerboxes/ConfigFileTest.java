@@ -24,7 +24,11 @@ class ConfigFileTest {
         var original = "{\"configVersion\":2,\"refillFailureMessages\":false}";
         Files.writeString(path, original);
         assertTrue(ConfigFile.load(path).spaceFailureMessages);
-        assertEquals(original, Files.readString(path), "The additive setting does not rewrite old files");
+        var migrated = Files.readString(path);
+        assertTrue(migrated.contains("\"configVersion\": 3"));
+        assertTrue(migrated.contains("\"refillFailureMessages\": false"), "Explicit choice survives migration");
+        assertTrue(migrated.contains("\"protectHotbarSlot1\": true"));
+        assertEquals(original, Files.readString(directory.resolve("old.json.pre-0.13.0.bak")));
     }
 
     @Test
@@ -36,7 +40,10 @@ class ConfigFileTest {
         var existing = "{\"configVersion\":2,\"craftRefill\":false}";
         Files.writeString(path, existing);
         assertFalse(ConfigFile.load(path).craftRefill);
-        assertEquals(existing, Files.readString(path), "Explicit existing choice is preserved");
+        var migrated = Files.readString(path);
+        assertTrue(migrated.contains("\"configVersion\": 3"));
+        assertTrue(migrated.contains("\"craftRefill\": false"), "Explicit existing choice is preserved");
+        assertEquals(existing, Files.readString(directory.resolve("existing.json.pre-0.13.0.bak")));
         assertFalse(ConfigFile.apply(new ServerConfig(), ConfigFile.parsePreferences("{\"craftRefill\":false}")).craftRefill);
     }
 
@@ -72,11 +79,13 @@ class ConfigFileTest {
         assertFalse(config.preferEmptyBoxesOverInventory);
         assertTrue(config.useMatchingBoxes);
         assertEquals(StorageConfig.MakeSpaceMode.MOVE_TO_BOX, config.makeSpaceMode);
+        assertTrue(HotbarProtection.protectedSlot(0, config) && HotbarProtection.protectedSlot(8, config),
+                "Fresh server configs protect the whole hotbar by default");
         assertTrue(Files.readString(path).contains("useMatchingBoxes"));
     }
 
     @Test
-    void acceptsPartialConfigWithoutOverwritingUsersFile() throws IOException {
+    void acceptsPartialConfigAndMigratesVersionMarker() throws IOException {
         var path = directory.resolve("config.json");
         var json = "{\"configVersion\":2,\"useMatchingBoxes\":true,\"useEmptyBoxes\":false}";
         Files.writeString(path, json);
@@ -84,18 +93,23 @@ class ConfigFileTest {
         assertTrue(config.useMatchingBoxes);
         assertFalse(config.useEmptyBoxes);
         assertTrue(config.splitStackedBoxes);
-        assertEquals(json, Files.readString(path));
+        var migrated = Files.readString(path);
+        assertTrue(migrated.contains("\"configVersion\": 3"));
+        assertTrue(migrated.contains("\"useMatchingBoxes\": true"));
+        assertTrue(migrated.contains("\"useEmptyBoxes\": false"));
+        assertEquals(json, Files.readString(directory.resolve("config.json.pre-0.13.0.bak")));
     }
 
     @Test
     void acceptsAllSpaceModesAndRejectsUnknownOrMistypedValues() throws IOException {
-        var path = directory.resolve("config.json");
         for (var mode : StorageConfig.MakeSpaceMode.values()) {
+            var path = directory.resolve("config-" + mode + ".json");
             Files.writeString(path, "{\"configVersion\":2,\"makeSpaceMode\":\"" + mode + "\",\"useHotbarForSpace\":true}");
             var config = ConfigFile.load(path);
             assertEquals(mode, config.makeSpaceMode);
             assertTrue(config.useHotbarForSpace);
         }
+        var path = directory.resolve("config-invalid.json");
         for (var value : new String[] {"\"unknown\"", "true", "null", "1"}) {
             Files.writeString(path, "{\"configVersion\":2,\"makeSpaceMode\":" + value + "}");
             assertThrows(IOException.class, () -> ConfigFile.load(path));

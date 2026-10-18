@@ -20,4 +20,4 @@ features:
     details: Servers can allow player settings, with a bilingual Mod Menu + YACL client screen.
 ---
 
-The current version is **0.12.0**. Read the [release notes](../releases/0.10.1.md) or the [development, testing and release guide](development.md).
+The current version is **0.13.0**. Read the [release notes](../releases/0.13.0.md) or the [development, testing and release guide](development.md).

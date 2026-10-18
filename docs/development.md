@@ -34,7 +34,7 @@ Gradle Wrapper 固定为 9.2.1，带有发行包 SHA256 校验。Minecraft、Fab
 
 ## 配置版本与迁移
 
-磁盘 JSON 当前使用 `configVersion: 2`；版本元数据不进入 `StorageConfig`、选项列表、GUI 草稿或网络 JSON。无标记的旧文件沿用 0.3.1 规则：先完整备份到 `.pre-0.3.1.bak`，再重置为默认配置或空个人覆盖项。版本 1 文件则先完整备份到 `.pre-0.3.2.bak`，验证字段后将 `enabled` 改为 `pickupStorageEnabled`，保留所有其他有效值并原子写入版本 2。相同备份可恢复中断的迁移；冲突备份、无效字段、未知版本和无法读取的文件均不覆盖。
+磁盘 JSON 当前使用 `configVersion: 3`；版本元数据不进入 `StorageConfig`、选项列表、GUI 草稿或网络 JSON。无标记的旧文件沿用 0.3.1 规则：先完整备份到 `.pre-0.3.1.bak`，再重置为默认配置或空个人覆盖项。版本 1 文件先完整备份到 `.pre-0.3.2.bak`，验证字段后将 `enabled` 改为 `pickupStorageEnabled`，保留所有其他有效值并原子写入版本 3。版本 2 文件先把九项 `protectHotbarSlot1`–`protectHotbarSlot9` 迁移为 `true`：服务端配置补齐九项，个人稀疏覆盖只翻转显式 `false`，缺失键继续继承；同时处理既有的已退役字段迁移。无更早迁移备份时使用 `.pre-0.13.0.bak`，存在旧迁移来源时沿用对应后缀。迁移只执行一次，版本 3 文件不再修改。相同备份可恢复中断的迁移；冲突备份、无效字段、未知版本和无法读取的文件均不覆盖。
 
 统一配置、客户端偏好、服务端玩家偏好的写入分别通过带版本的 `writeServer/writePreferences`；普通 `write` 仅用于恢复标记等非设置文件。写入前也检查旧文件，避免首次读取前的保存跳过备份。客户端启动读取偏好；服务端 `SERVER_STARTED` 扫描现有 UUID 玩家文件，一个文件失败不阻止其他玩家迁移。新版修改保留稀疏继承，后续加载不重置。`pickupStorageEnabled` 默认 `false`，行为测试需要显式开启收纳；手动拾取测试前也需开启世界/服务端配置或个人设置。
 
@@ -100,7 +100,7 @@ npm run docs:preview
 
 `restock_v2` 增加整个来源盒指纹，仍校验数量、目标、掩码及请求 ID。工具候选使用 `swapToolForRestock`，把来源内原格和主手/副手一起交换；来源盒变化或无法安全拆分时拒绝。客户端观察实际装备同步后结束等待，不再执行第二次 IPN 换手。消耗品保留原有取到背包再换手的流程。
 
-`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v9` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.9.0。磁盘格式仍为版本 2，新字段是可选新增。
+`playerEditableSettings` 只在 `ServerConfig` 存在。`PlayerSettingsStore.resolve` 每次按当前字段权限过滤既存覆盖，`saveAllowed` 拒绝未授权字段，只替换可编辑部分。命令、Preferences 与 Editor 保存共享该规则。`editor_state_v9` 除默认值外带字段许可数组；GUI 显示锁定字段的服务器值，策略修订使旧草稿失效。旧 v3 设置/取料和 v1 IPN 接收器不注册；两端需使用 0.9.0。该版本磁盘格式为版本 2，新字段是可选新增；当前磁盘版本为 3。
 
 `MenuStorageGameTests` 覆盖真实容器与交易、光标、满背包、部分容量、拒绝取物、整份交易的扣款/次数/经验。`EnderSourcesGameTests` 覆盖本人隔离、请求重复/过期、来源优先级、禁用与无空间、真实配方书和连续补货。`SettingPermissionsGameTests` 检查命令、恶意网络/GUI、既存文件和运行时撤权。客户端的 `clientSmoke` 覆盖真实容器点击，`withIpn` 覆盖末影箱直接药水与原格工具回存；`craftClient` 检查末影箱配方统计和实际请求。加 `-PwithConfigGui -PclientSmoke` 检查逐项锁定页面。
 
@@ -112,7 +112,7 @@ npm run docs:preview
 
 `ManagedJunkInventoryMixin` 清理真正的 Inventory 移除结果与非主背包格；`ManagedJunkCursorMixin` 只在原生点击事务中保留内部移除，并区分自己的背包临时光标与外部容器光标；`ManagedJunkSlotMixin` 清理外部格写入；`ItemEntityMixin` 清理地面物品；`ManagedJunkBlockMixin` 在实际方块组件回写中去掉角色。内部直接换位保留，离包后不会恢复，清理保留所有其他组件。没有逐 tick 全背包/世界扫描、玩家槽位文件或角色网络通道。旧角色文件保留但不读取。
 
-`HotbarProtection` 统一九个原生布尔设置 `protectHotbarSlot1`–`protectHotbarSlot9`（用户位置1–9、内部索引0–8）。保护用于候选腾栏与拆盒目的地；`useHotbarForSpace=false` 仍是默认。每格继承既有保存、许可、命令与按键绑定机制。设置网络和GUI改为v8，磁盘配置版本仍为2，新字段可省略；不重置旧选择。旧格子协议/F9客户端和IPN额外锁投影移除，IPN原有锁定仍有效。客户端仅追加原版物品提示中的受管角色说明。
+`HotbarProtection` 统一九个原生布尔设置 `protectHotbarSlot1`–`protectHotbarSlot9`（用户位置1–9、内部索引0–8）。保护用于候选腾栏与拆盒目的地；九个保护默认 `true`，`useHotbarForSpace=false` 仍是默认，二者独立。每格继承既有保存、许可、命令与按键绑定机制。设置网络和GUI使用v9，磁盘配置版本为3；版本 2 文件在加载时一次性迁移为全部保护，之后仍可逐格关闭。旧格子协议/F9客户端和IPN额外锁投影移除，IPN原有锁定仍有效。客户端仅追加原版物品提示中的受管角色说明。
 
 回归包括 `ManagedJunkStorageTest`、`HotbarProtectionTest`、`ManagedJunkGameTests` 与真实 `ManagedJunkClientGameTests`，验证原有盒保护、真实资源拆盒、三组完整归集、净空位、原版多格收据预算、全部离包路径、组件守恒和设置权限保存：
 
@@ -154,7 +154,7 @@ npm run docs:preview
 
 0.8.0 删除假人 tick/drop Mixin，以及玩法、字段许可、命令、GUI 和快捷键中的 `carpetRefill`。Carpet 仍为堆叠盒兼容的可选共存模组，MSB 不再实现假人手持补货。`CarpetCompatibilityGameTests` 使用发行版真实 Carpet 假人及连续 USE，验证关闭 GCA 时手持耗空、来源盒不变；开启 GCA 后，从内栏 25 有剩余物品的未满盒和第二盒连续放置恰好 7 个铁砧，补货完全由 GCA 负责。
 
-`ConfigFile.migrateRemovedSettings` 仅在版本 2 磁盘文件兼容旧字段，验证布尔类型、所有剩余设置和许可后，仅涉及旧 Carpet 项时保存原字节 `.pre-0.8.0.bak`；同时迁移旧收纳设置时使用 `.pre-single-type.bak`，再原子移除字段及同名许可。服务端、客户端和 UUID 文件共用此入口；命令与网络输入拒绝旧字段。相同备份允许恢复中断，冲突/不可读备份和无效值保留原文件。磁盘版本保持 2，策略/偏好和 GUI 改为 v8，取料协议保持各自格式。
+`ConfigFile.migrateRemovedSettings` 在磁盘文件加载时兼容旧字段；版本 2→3 迁移也会先处理这些旧字段。验证布尔类型、所有剩余设置和许可后，仅涉及旧 Carpet 项时保存原字节 `.pre-0.8.0.bak`；同时迁移旧收纳设置时使用 `.pre-single-type.bak`，再原子移除字段及同名许可。服务端、客户端和 UUID 文件共用此入口；命令与网络输入拒绝旧字段。相同备份允许恢复中断，冲突/不可读备份和无效值保留原文件。磁盘版本当前为 3，策略/偏好和 GUI 使用 v9，取料协议保持各自格式。
 
 ```powershell
 .\gradlew.bat build '-PcarpetJar=C:/path/to/fabric-carpet-1.21.11-1.4.194+v251223.jar' '-PgcaJar=C:/path/to/gugle-carpet-addition-mc1.21.11-v2.12.8+build.97.jar'

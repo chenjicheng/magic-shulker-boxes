@@ -20,7 +20,7 @@ public final class ConfigFile {
     private ConfigFile() {}
 
     public static final int MAX_PREFERENCES_LENGTH = 4096;
-    private static final int CONFIG_VERSION = 2;
+    private static final int CONFIG_VERSION = 3;
     private static final String VERSION_KEY = "configVersion";
     private static final String REMOVED_CARPET_SETTING = "carpetRefill";
     private static final Set<String> REMOVED_MIXED_SETTINGS = Set.of(
@@ -118,6 +118,7 @@ public final class ConfigFile {
                 throw new IOException("Unsupported configVersion; file kept unchanged: " + path);
             }
             if (version.getAsString().equals("1")) return migrateVersionOne(path, document, defaults);
+            if (version.getAsString().equals("2")) return migrateVersionTwo(path, document, defaults);
             if (!version.getAsString().equals(Integer.toString(CONFIG_VERSION))) {
                 throw new IOException("Unsupported configVersion; file kept unchanged: " + path);
             }
@@ -134,6 +135,19 @@ public final class ConfigFile {
     /** Disk-only compatibility; retired choices are rejected in commands and network input. */
     private static JsonObject migrateRemovedSettings(Path path, JsonObject document, JsonObject defaults) throws IOException {
         var migrated = document.deepCopy();
+        var retired = migrateRetiredSettings(migrated);
+        if (!retired.changed()) return document;
+        // Validate every remaining choice before touching the file or creating its exact-byte backup.
+        validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
+        var backup = backupOriginal(path, retiredBackupSuffix(retired));
+        writeDocument(path, migrated);
+        MagicShulkerBoxes.LOGGER.info("Removed retired settings; backup: {} / 已移除旧设置，备份：{}", backup, backup);
+        return migrated;
+    }
+
+    private record RetiredSettings(boolean changed, boolean amountChanged, boolean storageChanged) {}
+
+    private static RetiredSettings migrateRetiredSettings(JsonObject migrated) throws IOException {
         var permissions = migrated.get("playerEditableSettings");
         boolean storageChanged = hasRetiredMixedSetting(migrated) || migrated.has("onlyWhenInventoryFull")
                 || (permissions != null && permissions.isJsonArray()
@@ -142,13 +156,46 @@ public final class ConfigFile {
         boolean changed = removeRetiredSettings(migrated);
         changed |= amountChanged;
         changed |= migrateInventoryPriority(migrated);
-        if (!changed) return document;
-        // Validate every remaining choice before touching the file or creating its exact-byte backup.
+        return new RetiredSettings(changed, amountChanged, storageChanged);
+    }
+
+    private static String retiredBackupSuffix(RetiredSettings migrated) {
+        return migrated.amountChanged() ? ".pre-0.12.0.bak"
+                : migrated.storageChanged() ? ".pre-single-type.bak" : ".pre-0.8.0.bak";
+    }
+
+    /** Version 2 introduced the nine hotbar protections with off defaults; this upgrade enables all of them. */
+    private static JsonObject migrateVersionTwo(Path path, JsonObject old, JsonObject defaults) throws IOException {
+        var migrated = old.deepCopy();
+        var retired = migrateRetiredSettings(migrated);
+        migrateHotbarProtection(migrated, defaults.has("allowPlayerSettings"));
         validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
-        var backup = backupOriginal(path, amountChanged ? ".pre-0.12.0.bak" : storageChanged ? ".pre-single-type.bak" : ".pre-0.8.0.bak");
+        var backup = backupOriginal(path, retired.changed() ? retiredBackupSuffix(retired) : ".pre-0.13.0.bak");
         writeDocument(path, migrated);
-        MagicShulkerBoxes.LOGGER.info("Removed retired settings; backup: {} / 已移除旧设置，备份：{}", backup, backup);
+        MagicShulkerBoxes.LOGGER.info("Enabled hotbar protection defaults; backup: {} / 已启用快捷栏保护默认值，备份：{}", backup, backup);
         return migrated;
+    }
+
+    /**
+     * Server configs list every option, so they are completed. Sparse personal overrides only flip
+     * explicit off values; absent keys keep inheriting the server default.
+     */
+    private static boolean migrateHotbarProtection(JsonObject document, boolean complete) throws IOException {
+        boolean changed = false;
+        for (int slot = 1; slot <= 9; slot++) {
+            var key = "protectHotbarSlot" + slot;
+            var value = document.get(key);
+            if (value != null) {
+                if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean())
+                    throw new IOException("Hotbar protection must be true or false: " + key);
+                if (value.getAsBoolean()) continue;
+            } else if (!complete) {
+                continue;
+            }
+            document.addProperty(key, true);
+            changed = true;
+        }
+        return changed;
     }
 
     private static boolean migrateRefillAmount(JsonObject document) throws IOException {
@@ -244,6 +291,7 @@ public final class ConfigFile {
         migrateRefillAmount(migrated);
         removeRetiredSettings(migrated);
         migrateInventoryPriority(migrated);
+        migrateHotbarProtection(migrated, defaults.has("allowPlayerSettings"));
         validate(migrated.toString(), defaults.has("allowPlayerSettings") ? new ServerConfig() : new StorageConfig());
         var backup = backupOriginal(path, ".pre-0.3.2.bak");
         writeDocument(path, migrated);

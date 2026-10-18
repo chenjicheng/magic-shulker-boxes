@@ -459,6 +459,14 @@ class ShulkerStorageTest {
     private static StorageConfig pickupEnabled() {
         var config = new StorageConfig();
         config.pickupStorageEnabled = true;
+        return allowHotbar(config);
+    }
+
+    /** Storage tests predate the protected-by-default hotbar; opt out explicitly to exercise relocation. */
+    static StorageConfig allowHotbar(StorageConfig config) {
+        config.protectHotbarSlot1 = false; config.protectHotbarSlot2 = false; config.protectHotbarSlot3 = false;
+        config.protectHotbarSlot4 = false; config.protectHotbarSlot5 = false; config.protectHotbarSlot6 = false;
+        config.protectHotbarSlot7 = false; config.protectHotbarSlot8 = false; config.protectHotbarSlot9 = false;
         return config;
     }
 

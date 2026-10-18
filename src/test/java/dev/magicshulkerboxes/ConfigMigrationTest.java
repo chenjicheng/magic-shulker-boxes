@@ -19,7 +19,7 @@ class ConfigMigrationTest {
         assertTrue(server.allowPlayerSettings);
         assertTrue(server.includeOffhand);
         var serverText = Files.readString(serverPath);
-        assertTrue(serverText.contains("\"configVersion\": 2"));
+        assertTrue(serverText.contains("\"configVersion\": 3"));
         assertTrue(serverText.contains("\"pickupStorageEnabled\": true"));
         assertFalse(serverText.contains("\"enabled\""));
         assertEquals(originalServer, Files.readString(directory.resolve("server.json.pre-0.3.2.bak")));
@@ -74,7 +74,7 @@ class ConfigMigrationTest {
         assertFalse(settings.allowPlayerSettings);
         assertFalse(settings.includeOffhand);
         assertEquals(old, Files.readString(directory.resolve("server.json.pre-0.3.1.bak")));
-        assertTrue(Files.readString(path).contains("\"configVersion\": 2"));
+        assertTrue(Files.readString(path).contains("\"configVersion\": 3"));
     }
 
     @Test void legacyPlayerAndClientOverridesResetToInheritanceExactlyOnce() throws IOException {
@@ -103,7 +103,7 @@ class ConfigMigrationTest {
 
     @Test void futureOrMalformedVersionedSettingsAreNeverReset() throws IOException {
         var path = directory.resolve("player.json");
-        for (var json : new String[]{"{\"configVersion\":3,\"pickupStorageEnabled\":true}",
+        for (var json : new String[]{"{\"configVersion\":4,\"pickupStorageEnabled\":true}",
                 "{\"configVersion\":\"2\"}", "{\"configVersion\":1,\"enabled\":\"true\"}",
                 "{\"configVersion\":2,\"enabled\":true}", "{"}) {
             Files.writeString(path, json);
@@ -128,7 +128,7 @@ class ConfigMigrationTest {
         assertFalse(ConfigFile.load(directory.resolve("new-server.json")).pickupStorageEnabled);
         assertTrue(ConfigFile.readPreferences(directory.resolve("new-client.json")).isEmpty());
         assertFalse(ConfigFile.optionNames().contains("configVersion"));
-        assertTrue(Files.readString(directory.resolve("new-client.json")).contains("\"configVersion\": 2"));
+        assertTrue(Files.readString(directory.resolve("new-client.json")).contains("\"configVersion\": 3"));
     }
 
     @Test void oldSettingsChannelsCannotUploadPreResetPreferences() {

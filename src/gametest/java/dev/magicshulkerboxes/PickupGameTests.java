@@ -19,12 +19,24 @@ import net.minecraft.world.level.GameType;
 public class PickupGameTests implements CustomTestMethodInvoker {
     @Override
     public void invokeTestMethod(GameTestHelper helper, Method method) throws ReflectiveOperationException {
-        boolean pickup = MagicShulkerBoxes.config().pickupStorageEnabled;
+        var config = MagicShulkerBoxes.config();
+        boolean pickup = config.pickupStorageEnabled;
+        boolean s1 = config.protectHotbarSlot1, s2 = config.protectHotbarSlot2, s3 = config.protectHotbarSlot3;
+        boolean s4 = config.protectHotbarSlot4, s5 = config.protectHotbarSlot5, s6 = config.protectHotbarSlot6;
+        boolean s7 = config.protectHotbarSlot7, s8 = config.protectHotbarSlot8, s9 = config.protectHotbarSlot9;
         try {
-            // These fixtures test opted-in pickup; shipping defaults are tested separately.
-            MagicShulkerBoxes.config().pickupStorageEnabled = true;
+            // These fixtures use free hotbar positions for split destinations; shipping defaults are tested separately.
+            config.pickupStorageEnabled = true;
+            config.protectHotbarSlot1 = false; config.protectHotbarSlot2 = false; config.protectHotbarSlot3 = false;
+            config.protectHotbarSlot4 = false; config.protectHotbarSlot5 = false; config.protectHotbarSlot6 = false;
+            config.protectHotbarSlot7 = false; config.protectHotbarSlot8 = false; config.protectHotbarSlot9 = false;
             invokeWithCarpet(helper, method);
-        } finally { MagicShulkerBoxes.config().pickupStorageEnabled = pickup; }
+        } finally {
+            config.pickupStorageEnabled = pickup;
+            config.protectHotbarSlot1 = s1; config.protectHotbarSlot2 = s2; config.protectHotbarSlot3 = s3;
+            config.protectHotbarSlot4 = s4; config.protectHotbarSlot5 = s5; config.protectHotbarSlot6 = s6;
+            config.protectHotbarSlot7 = s7; config.protectHotbarSlot8 = s8; config.protectHotbarSlot9 = s9;
+        }
     }
 
     private void invokeWithCarpet(GameTestHelper helper, Method method) throws ReflectiveOperationException {

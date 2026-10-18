@@ -13,7 +13,7 @@ class HotbarProtectionTest {
     @BeforeAll static void bootstrap() { SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); }
 
     @Test void anEnabledHotbarStillSkipsThePlayersProtectedPositions() throws Exception {
-        var config = ConfigFile.parseServer("{\"useHotbarForSpace\":true,\"protectHotbarSlot1\":true,\"protectHotbarSlot9\":true}");
+        var config = ConfigFile.parseServer("{\"useHotbarForSpace\":true,\"protectHotbarSlot1\":true,\"protectHotbarSlot2\":false,\"protectHotbarSlot9\":true}");
         var inventory = new SimpleContainer(36);
         inventory.setItem(0, new ItemStack(Items.STONE, 3));
         inventory.setItem(1, new ItemStack(Items.STONE, 4));

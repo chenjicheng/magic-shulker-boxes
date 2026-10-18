@@ -10,6 +10,12 @@ With pickup storage enabled, vanilla first completes insertion, source deduction
 
 Box priority is matching dedicated boxes, managed junk boxes, then usable empty stock. Fuller boxes come first within a class. Actual stack merging requires identical components and preserves names, enchantments and potion payloads.
 
+## 0.13.0: all hotbar positions protected by default
+
+All nine hotbar positions are protected by default: automatic relocation does not move their items, and automatic box splitting does not place a new box there. `useHotbarForSpace` remains off by default; even after enabling it, turn off the positions you want to use in the **Hotbar relocation protection** group.
+
+Upgrading to 0.13.0 migrates existing server configuration, player preferences and single-player client settings to the protected default. Server files get all nine options, sparse personal overrides flip explicit off values, and absent keys keep inheriting the server default. Original files are backed up first; migrations without an earlier backup use `.pre-0.13.0.bak`. Migration runs once, and positions can still be unprotected afterward. Update client and server together to 0.13.0.
+
 ## Items per refill
 
 Open Mod Menu → Magic Shulker Boxes → Personal settings and adjust “Items per refill”, or run `/msb set refillAmount 23`. Choose a whole number from 1 to 64. The personal slider’s leftmost “Use server value” choice removes the override, as does `/msb reset refillAmount`. Hosts change the world default in world settings; administrators use `/msb admin set refillAmount 23`. Server permissions still control personal changes.
@@ -34,15 +40,17 @@ Count the quantities being stored and matching stock in managed boxes, without m
 
 Roles are valid only in the player's 36 backpack/hotbar positions. Direct internal swaps and temporary cursor arrangement in the own inventory preserve them. Moving to an external-menu cursor, chests, ender storage, offhand/equipment, an inventory-removal result, the ground, death drops or a placed block removes the role. A returned box remains ordinary; a later allocation from genuinely empty stock can create a new role. Cleanup removes only MSB's marker and preserves names, colors, other custom data and all contents.
 
-Hotbar relocation remains disabled by default. After enabling `useHotbarForSpace`, use the **Hotbar relocation protection** group to set `protectHotbarSlot1` through `protectHotbarSlot9`. Protected positions are never displaced or used as automatic split destinations. Protection can be configured beforehand and does not enable hotbar relocation. Each position uses the existing inherit/on/off values, individual server permissions and optional setting key binds.
+Hotbar relocation remains disabled by default, and all nine positions are protected by default. After enabling `useHotbarForSpace`, turn off the positions you want to use in the **Hotbar relocation protection** group (`protectHotbarSlot1` through `protectHotbarSlot9`). Protected positions are never displaced or used as automatic split destinations. Protection can be configured beforehand and does not enable hotbar relocation. Each position uses the existing inherit/on/off values, individual server permissions and optional setting key binds.
+
+For example, to allow positions 1 and 9 to participate in relocation:
 
 ```text
 /msb set useHotbarForSpace true
-/msb set protectHotbarSlot1 true
-/msb set protectHotbarSlot9 true
+/msb set protectHotbarSlot1 false
+/msb set protectHotbarSlot9 false
 ```
 
-These commands require server permission. Old `world/data/magic_shulker_boxes/junk-slots/` files remain untouched but unused; existing filled boxes are not converted. The F9 slot-assignment feature is removed. Preferences and GUI use protocol v9; both sides need 0.11.0 for these interfaces.
+These commands require server permission. Old `world/data/magic_shulker_boxes/junk-slots/` files remain untouched but unused; existing filled boxes are not converted. The F9 slot-assignment feature is removed. Preferences and GUI use protocol v9; both sides need 0.13.0 for these interfaces.
 
 
 ## 0.6.0: clickable command previews and key bindings
@@ -125,11 +133,11 @@ After a ten-second confirmation timeout, further saves pause while the client qu
 
 ## Schematic material refilling
 
-Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.12.0** on both sides, keeping the versions matched. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.13.0** on both sides, keeping the versions matched. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
 
 Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 
-When full, space-making moves backpack items into matching single-type boxes or separate empty boxes without dropping items. The source box may receive displaced items only when empty after extraction or still matching their type. Hotbar slots are protected by default; `useHotbarForSpace` and `allowPartialStacksForSpace` also apply. Shulker boxes are never nested. A stacked source needs a separate free slot for one modified box. With no safe space, nothing changes. Carpet normally stacks only empty boxes, which contain no materials to extract.
+When full, space-making moves backpack items into matching single-type boxes or separate empty boxes without dropping items. The source box may receive displaced items only when empty after extraction or still matching their type. All nine hotbar slots are protected by default; `useHotbarForSpace` and `allowPartialStacksForSpace` also apply. Shulker boxes are never nested. A stacked source needs a separate free slot for one modified box. With no safe space, nothing changes. Carpet normally stacks only empty boxes, which contain no materials to extract.
 
 Refilling prefers non-full boxes, starting with the least filled to help empty one box before opening another. Full boxes remain fallback sources; unsafe sources are skipped. Client lookup and server extraction enforce the same order, with inventory slot order breaking ties.
 
@@ -239,7 +247,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | `splitStackedBoxes` | `true` | Allow splitting, including automatic space-making; otherwise skip all stacked boxes |
 | `makeSpaceMode` | `"MOVE_TO_BOX"` | Direct relocation; alternatives are `"DROP_AND_PICKUP"` and `"DISABLED"` |
 | `useHotbarForSpace` | `false` | Allow moving hotbar items to free a slot |
-| `protectHotbarSlot1` to `protectHotbarSlot9` | `false` | Protect individual hotbar positions from relocation and automatic split placement; does not enable hotbar relocation |
+| `protectHotbarSlot1` to `protectHotbarSlot9` | `true` | Protect individual hotbar positions from relocation and automatic split placement; turning one off allows that position as a destination; does not enable hotbar relocation |
 | `allowPartialStacksForSpace` | `true` | Allow stacks below their item stack limit to be displaced in either mode |
 | `preferExistingBoxesBeforeMakingSpace` | `true` | Try all currently usable boxes before freeing a slot; `false` makes space as each stacked box is encountered in category order |
 | `includeOffhand` | `false` | Also search the offhand for boxes; split destinations remain main inventory/hotbar slots |
