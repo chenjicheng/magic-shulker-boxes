@@ -39,7 +39,7 @@ class EnderSourcesTest {
         assertEquals(0, ShulkerRefill.take(sources, 104, -1, Items.STONE, c));
         c.enderChestRefill = true;
         assertEquals(12, ShulkerRefill.take(sources, 104, -1, Items.STONE, c));
-        assertEquals(12, main.getItem(9).getCount());
+        assertEquals(12, main.getItem(0).getCount());
         assertTrue(ender.getItem(4).isEmpty());
         for (int i = 0; i < 36; i++) main.setItem(i, new ItemStack(Items.DIRT, 64));
         ender.setItem(4, new ItemStack(Items.STONE, 12));

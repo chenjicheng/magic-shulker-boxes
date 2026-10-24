@@ -93,5 +93,6 @@ public final class MagicShulkerBoxes implements ModInitializer {
         RefillNetwork.register();
         RestockNetwork.register();
         EnderSourcesNetwork.register();
+        RefillProvenanceNetwork.register();
     }
 }

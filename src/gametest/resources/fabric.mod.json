@@ -12,6 +12,7 @@
       "dev.magicshulkerboxes.RefillGameTests",
       "dev.magicshulkerboxes.RefillAmountGameTests",
       "dev.magicshulkerboxes.RefillRegressionGameTests",
+      "dev.magicshulkerboxes.RefillProvenanceGameTests",
       "dev.magicshulkerboxes.ConfigMigrationGameTests",
       "dev.magicshulkerboxes.RestockGameTests",
       "dev.magicshulkerboxes.CraftingGameTests",

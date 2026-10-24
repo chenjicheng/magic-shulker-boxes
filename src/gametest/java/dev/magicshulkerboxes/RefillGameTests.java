@@ -84,8 +84,76 @@ public class RefillGameTests {
         check(helper, player.getInventory().findSlotMatchingItem(new ItemStack(Items.STONE)) < 0, "Fixture has no loose stone");
         int moved = RefillNetwork.accept(player, request);
         check(helper, moved == 12, "Real server inventory receives source materials; moved=" + moved);
-        check(helper, player.getInventory().getItem(10).getCount() == 12, "Materials arrive in ordinary backpack slot");
+        check(helper, player.getInventory().getItem(0).getCount() == 12, "Materials arrive in the selected hotbar slot");
         check(helper, RefillNetwork.accept(player, request) == 0, "Repeat request cannot duplicate contents");
+        helper.succeed();
+    }
+
+    @GameTest public void schematicRefillUsesTheSelectedHotbarSlot(GameTestHelper helper) {
+        var player = player(helper);
+        var inventory = player.getInventory();
+        check(helper, inventory.getSelectedSlot() == 0, "Fixture selects the first hotbar slot");
+        check(helper, RefillNetwork.accept(player, request(helper, 9, 0, "minecraft:stone")) == 12,
+                "The source box supplies the selected slot");
+        check(helper, inventory.getItem(0).is(Items.STONE) && inventory.getItem(0).getCount() == 12,
+                "The material is placed in the selected hotbar slot");
+        for (int slot = 1; slot < 36; slot++) {
+            if (slot == 9) continue;
+            check(helper, inventory.getItem(slot).isEmpty(), "No backpack slot receives the refill: " + slot);
+        }
+        helper.succeed();
+    }
+
+    @GameTest public void schematicRefillKeepsTheSelectedItemWhenAnotherHotbarSlotIsEmpty(GameTestHelper helper) {
+        var player = player(helper);
+        var inventory = player.getInventory();
+        inventory.setItem(0, new ItemStack(Items.DIRT, 64));
+        check(helper, RefillNetwork.accept(player, request(helper, 9, 0, "minecraft:stone")) == 12,
+                "An empty hotbar position accepts the material");
+        check(helper, inventory.getItem(1).is(Items.STONE), "The first empty hotbar slot receives the material");
+        check(helper, inventory.getItem(0).is(Items.DIRT) && inventory.getItem(0).getCount() == 64,
+                "The selected item stays in place");
+        helper.succeed();
+    }
+
+    @GameTest public void schematicRefillStoresTheReplacedSelectedStackInAManagedJunkBox(GameTestHelper helper) {
+        var player = player(helper);
+        var inventory = player.getInventory();
+        var source = inventory.getItem(9);
+        for (int slot = 0; slot < 36; slot++) inventory.setItem(slot, new ItemStack(Items.DIRT, 64));
+        var junk = new ItemStack(Items.SHULKER_BOX);
+        ManagedJunkBoxes.mark(junk);
+        inventory.setItem(10, junk);
+        inventory.setItem(35, source);
+        check(helper, RefillNetwork.accept(player, request(helper, 35, 0, "minecraft:stone")) == 12,
+                "A full hotbar replaces the selected stack");
+        check(helper, inventory.getItem(0).is(Items.STONE) && inventory.getItem(0).getCount() == 12,
+                "The selected hotbar slot holds the material");
+        check(helper, count(inventory.getItem(10), Items.DIRT) == 64
+                        && ManagedJunkBoxes.marked(inventory.getItem(10)),
+                "The replaced stack goes to the managed junk box instead of the backpack");
+        check(helper, count(inventory.getItem(35), Items.STONE) == 0,
+                "The emptied source box is not reused for the refill");
+        helper.succeed();
+    }
+
+    @GameTest public void schematicRefillPromotesTheReplacedJunkTypeAtThreeStacks(GameTestHelper helper) {
+        var player = player(helper);
+        var inventory = player.getInventory();
+        var source = inventory.getItem(9);
+        for (int slot = 0; slot < 36; slot++) inventory.setItem(slot, new ItemStack(Items.DIRT, 64));
+        var junk = new ItemStack(Items.SHULKER_BOX);
+        junk.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(
+                List.of(new ItemStack(Items.DIRT, 64), new ItemStack(Items.DIRT, 64))));
+        ManagedJunkBoxes.mark(junk);
+        inventory.setItem(10, junk);
+        inventory.setItem(35, source);
+        check(helper, RefillNetwork.accept(player, request(helper, 35, 0, "minecraft:stone")) == 12,
+                "The replaced stack completes three junk stacks");
+        check(helper, inventory.getItem(0).is(Items.STONE), "The selected hotbar slot holds the material");
+        check(helper, count(inventory.getItem(10), Items.DIRT) == 192
+                        && !ManagedJunkBoxes.marked(inventory.getItem(10)),
+                "Three stacks promote the managed junk box to dedicated storage");
         helper.succeed();
     }
 
@@ -140,6 +208,11 @@ public class RefillGameTests {
         return player.getInventory().getItem(9).get(DataComponents.CONTAINER).stream().mapToInt(ItemStack::getCount).sum();
     }
 
+    private static int count(ItemStack box, net.minecraft.world.item.Item item) {
+        return box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream()
+                .filter(stack -> stack.is(item)).mapToInt(ItemStack::getCount).sum();
+    }
+
     @GameTest public void unusableStackedSourceDoesNotHideLaterUsableBox(GameTestHelper helper) {
         var player = player(helper); var inv = player.getInventory();
         var first = inv.getItem(9).copy();
@@ -148,7 +221,7 @@ public class RefillGameTests {
         inv.setItem(10, first.copyWithCount(1));
         check(helper, RefillNetwork.accept(player, request(helper, 9, 0, "minecraft:stone")) == 12, "Later usable box can supply materials");
         check(helper, inv.getItem(9).getCount() == 3, "Unusable stacked source remains unchanged");
-        check(helper, inv.getItem(11).is(Items.STONE), "Full inventory received materials safely");
+        check(helper, inv.getItem(0).is(Items.STONE), "Full inventory received materials in the selected hotbar slot");
         helper.succeed();
     }
 

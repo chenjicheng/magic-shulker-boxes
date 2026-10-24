@@ -42,7 +42,7 @@ public class RefillRegressionGameTests {
         player.getInventory().setItem(9, box(List.of(named)));
         var request = new RefillNetwork.Request(9, 0, "minecraft:stone", ItemFingerprint.of(named, player.registryAccess()));
         helper.assertTrue(RefillNetwork.accept(player, request) == 12, Component.literal("Matching non-default components are accepted"));
-        helper.assertTrue(ItemStack.isSameItemSameComponents(named, player.getInventory().getItem(10)),
+        helper.assertTrue(ItemStack.isSameItemSameComponents(named, player.getInventory().getItem(0)),
                 Component.literal("Extracted components come from the server's source"));
         helper.succeed();
     }

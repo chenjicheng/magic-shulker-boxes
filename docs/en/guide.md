@@ -10,6 +10,10 @@ With pickup storage enabled, vanilla first completes insertion, source deduction
 
 Box priority is matching dedicated boxes, managed junk boxes, then usable empty stock. Fuller boxes come first within a class. Actual stack merging requires identical components and preserves names, enchantments and potion payloads.
 
+## 0.14.0: hotbar refills, provenance returns and the empty-box switch
+
+Schematic refilling now prefers the hotbar, and a replaced stack automatically tries to return to its source box. The transient server-side ledger writes no item data, so no marker can remain after an item leaves the inventory. `useEmptyBoxes=false` now also covers relocation, schematic and tool replacement, crafting remainders and the stacked-empty-box shortcut; existing managed junk boxes stay usable. Update both sides to 0.14.0 for the full experience; the provenance tooltip uses a separate additive read-only channel that older clients do not register.
+
 ## 0.13.0: all hotbar positions protected by default
 
 All nine hotbar positions are protected by default: automatic relocation does not move their items, and automatic box splitting does not place a new box there. `useHotbarForSpace` remains off by default; even after enabling it, turn off the positions you want to use in the **Hotbar relocation protection** group.
@@ -50,7 +54,7 @@ For example, to allow positions 1 and 9 to participate in relocation:
 /msb set protectHotbarSlot9 false
 ```
 
-These commands require server permission. Old `world/data/magic_shulker_boxes/junk-slots/` files remain untouched but unused; existing filled boxes are not converted. The F9 slot-assignment feature is removed. Preferences and GUI use protocol v9; both sides need 0.13.0 for these interfaces.
+These commands require server permission. Old `world/data/magic_shulker_boxes/junk-slots/` files remain untouched but unused; existing filled boxes are not converted. The F9 slot-assignment feature is removed. Preferences and GUI use protocol v9; both sides need 0.14.0 for these interfaces.
 
 
 ## 0.6.0: clickable command previews and key bindings
@@ -133,11 +137,13 @@ After a ten-second confirmation timeout, further saves pause while the client qu
 
 ## Schematic material refilling
 
-Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.13.0** on both sides, keeping the versions matched. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
+Install **Litematica 0.26.16 / MaLiLib 0.27.20 for Minecraft 1.21.11** on the client, and Magic Shulker Boxes **0.14.0** on both sides, keeping the versions matched. Older refill protocols are no longer accepted; personal settings require compatible synchronization channels. A single-player instance supplies both sides. Dedicated servers do not need Litematica or MaLiLib.
 
-Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials are extracted from inventory shulker boxes; placement continues after the server synchronizes the inventory. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
+Enable Litematica Easy Place, aim at a schematic block and use its placement key. Existing inventory/offhand materials retain the original behavior. Missing materials now prefer the hotbar: an empty selected slot is filled directly, otherwise any empty hotbar slot is used. When the hotbar is full, the selected slot is replaced by default (falling back to another replaceable slot), skipping tools and damageable items. The replaced stack first tries its source box, then follows matching boxes, managed junk boxes, empty boxes and finally free backpack slots. With `refillMakeSpace=false`, a non-empty hotbar slot is never replaced and the material keeps the backpack fallback. With no safe space, nothing changes. Keep holding the placement key to continue. A single click may only refill; click again to place. Both legacy and rewritten Easy Place are supported. Normal pick-block, creative mode, open containers and cursor-held items do not trigger refilling.
 
-When full, space-making moves backpack items into matching single-type boxes or separate empty boxes without dropping items. The source box may receive displaced items only when empty after extraction or still matching their type. All nine hotbar slots are protected by default; `useHotbarForSpace` and `allowPartialStacksForSpace` also apply. Shulker boxes are never nested. A stacked source needs a separate free slot for one modified box. With no safe space, nothing changes. Carpet normally stacks only empty boxes, which contain no materials to extract.
+Each refill records a transient server-side provenance entry; nothing is written to item NBT or components. On the next replacement, material still belonging to that source and still in the hotbar returns to the original box first; anything that does not fit follows normal storage. Returns honor the current `enderChestRefill` / `includeOffhand` switches; disabling one stops writes to that ender chest or offhand box. Entries clear when items leave the main inventory and hotbar, on death or logout, and are not kept across server restarts. A unique stack moved within the main inventory or hotbar is followed; duplicate candidate stacks discard provenance rather than risking a wrong return. Tracked stacks in the main inventory or hotbar show their source box and returnable count in the tooltip. Use `/msb ledger` for your own entries; administrators can use `/msb admin ledger <player>` for an online player.
+
+The source box may receive displaced items only when empty after extraction or still matching their type. All nine hotbar slots are protected by default, but an explicit Easy Place refill may use an empty slot or replace the selected stack; protection still governs automatic relocation and splitting. Shulker boxes are never nested. A stacked source needs a separate free slot for one modified box. With no safe space, nothing changes. Carpet normally stacks only empty boxes, which contain no materials to extract.
 
 Refilling prefers non-full boxes, starting with the least filled to help empty one box before opening another. Full boxes remain fallback sources; unsafe sources are skipped. Client lookup and server extraction enforce the same order, with inventory slot order breaking ties.
 
@@ -147,7 +153,7 @@ The menu has a **Schematic materials** group:
 | --- | --- | --- |
 | `schematicRefill` | `true` | Enable refilling independently; players can override the server default when personal settings are allowed |
 | `refillAmount` | `64` | Take 1–64 items per schematic or IPN refill, capped by source count and the item’s stack limit |
-| `refillMakeSpace` | `true` | Direct relocation when full, even with pickup storage disabled; independent of pickup drop mode |
+| `refillMakeSpace` | `true` | When the hotbar is full, allow replacing the selected stack and storing it; when off, never replace a non-empty hotbar slot and keep the backpack fallback. Independent of pickup drop mode |
 | `refillFailureMessages` | `true` | Controls non-space refill failure notices; space failures use their independent setting, and success is silent |
 | `spaceFailureMessages` | `true` | Independently show space failures for storage, extraction, tool swaps and crafting; shared 40-tick cooldown, with no effect on items |
 
@@ -243,7 +249,7 @@ The [complete server example](https://github.com/chenjicheng/magic-shulker-boxes
 | `pickupStorageEnabled` | `false` | Off by default; enables pickup storage independently of refilling; players can override the server default when personal settings are allowed |
 | `preferEmptyBoxesOverInventory` | `false` | Matching boxes always come first; enable to prefer empty boxes before the inventory too |
 | `useMatchingBoxes` | `true` | Use matching single-type boxes |
-| `useEmptyBoxes` | `true` | Use empty boxes |
+| `useEmptyBoxes` | `true` | Allow allocating or using empty boxes; when off, relocation, refill/tool replacement, crafting remainders and the stacked-empty-box shortcut no longer create managed boxes, while already marked boxes remain usable |
 | `splitStackedBoxes` | `true` | Allow splitting, including automatic space-making; otherwise skip all stacked boxes |
 | `makeSpaceMode` | `"MOVE_TO_BOX"` | Direct relocation; alternatives are `"DROP_AND_PICKUP"` and `"DISABLED"` |
 | `useHotbarForSpace` | `false` | Allow moving hotbar items to free a slot |

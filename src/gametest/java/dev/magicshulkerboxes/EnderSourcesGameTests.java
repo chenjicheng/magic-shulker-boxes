@@ -27,8 +27,8 @@ public class EnderSourcesGameTests {
                     check(
                             h,
                             RefillNetwork.accept(p, request) == 12
-                                    && p.getInventory().getItem(9).getCount() == 12,
-                            "Direct ender material goes to backpack");
+                                    && p.getInventory().getItem(0).getCount() == 12,
+                            "Direct ender material goes to the selected hotbar slot");
                     check(
                             h,
                             RefillNetwork.accept(p, request) == 0
@@ -84,7 +84,7 @@ public class EnderSourcesGameTests {
                             "Nested ender box can safely make room");
                     check(
                             h,
-                            full.getInventory().getItem(9).getCount() == 8
+                            full.getInventory().getItem(0).getCount() == 8
                                     && stored(full.getEnderChestInventory().getItem(2)) == 64,
                             "Displaced dirt is retained in the source box");
                 });
