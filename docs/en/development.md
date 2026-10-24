@@ -114,6 +114,16 @@ Inventory removal and non-backpack positions, external-menu cursor writes, exter
 
 `HotbarProtection` applies nine existing-style boolean options `protectHotbarSlot1`–`protectHotbarSlot9`, visible positions1–9 mapped to indexes0–8. Relocation and split destinations honor them; all nine protections default to `true`, while hotbar relocation remains off by default and independent. Each option reuses inheritance, persistence, permissions, commands and key binds. Settings/GUI use v9; disk schema is version 3, and version 2 files migrate to the protected default once, remaining individually configurable afterward. Remove F9 assignment and extra IPN sort-lock projection while retaining native IPN locks. Client enhancement uses vanilla item-tooltip callbacks.
 
+### Hotbar refills and provenance ledger (0.14.0)
+
+The schematic path in `ShulkerRefill` prefers the hotbar: an empty selected slot, otherwise any empty hotbar slot. When the hotbar is full and `refillMakeSpace=true`, it replaces the selected slot (scanning other slots when that one is not replaceable), skipping tools and damageable items. The displaced stack first returns to its source box through `RefillProvenance.planReturn`; the remainder follows `BoxRelocation.store`, managed boxes and the backpack fallback. With `refillMakeSpace=false`, no non-empty hotbar slot is replaced and the backpack destination remains. IPN restock keeps its backpack destination.
+
+`RefillProvenance` is server-side, in-memory state and writes no `ItemStack` components or NBT. Entries hold an extraction id, the full-component prototype, extracted/remaining/returned/stored counts, source slot and ender flag, and the anchored main-inventory/hotbar slot. Recording happens only after a successful commit; a plan's completion runs only on success, so failed transactions leave the ledger unchanged. `reconcile` caps the remaining count to the live stack on every refill and on the 20-tick projection; a unique matching stack may migrate its anchor, while duplicate stacks or an item that left the main inventory and hotbar remove the entry. Death, logout and server stop clear the ledger; it is not persisted across logins. `audit` logs only counter-invariant violations.
+
+`RefillProvenanceNetwork` adds only the S2C `refill_ledger_v1` projection (anchor, source, remaining, fingerprint); settings/GUI stay on v9. `RefillProvenanceClient` confirms the hovered stack by object identity in the player's hotbar before showing the source and returnable count. `/msb ledger` reads the caller's entries and `/msb admin ledger <player>` reads an online player's entries; both are read-only.
+
+`BoxRelocation.store`'s `DestinationKind.EMPTY` and the empty stacked-box shortcut in `ShulkerStorage.tryMakingSpace` both honor `useEmptyBoxes`; already marked managed boxes remain usable. Regression adds `RefillProvenanceTest`, `BoxRelocationTest`, `RefillProvenanceGameTests` and updates the destination assertions in `ShulkerRefillTest`.
+
 Behavior regression covers original-box protection, stock conservation, complete three-stack gathering, real free positions, budgeted multi-slot receipts, exit paths and GUI policy/save/reopen behavior:
 
 ```powershell

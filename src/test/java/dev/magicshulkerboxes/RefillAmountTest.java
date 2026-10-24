@@ -57,7 +57,7 @@ class RefillAmountTest {
         ender.setItem(0, new ItemStack(Items.ENDER_PEARL, 16));
         assertEquals(5, ShulkerRefill.take(new RefillSources.View(main, ender), 100, -1, Items.ENDER_PEARL, config));
         assertEquals(11, ender.getItem(0).getCount());
-        assertEquals(5, main.getItem(9).getCount());
+        assertEquals(5, main.getItem(0).getCount());
     }
 
     @Test void migratesBothLegacyChoicesAndPermissionsWithAnExactBackup() throws Exception {
@@ -111,8 +111,8 @@ class RefillAmountTest {
         inventory.setItem(9, box(source));
         var config = ConfigFile.parseServer("{\"refillAmount\":" + amount + "}");
         assertEquals(expected, ShulkerRefill.take(inventory, 9, 0, source.getItem(), config));
-        assertEquals(expected, inventory.getItem(10).getCount());
-        assertTrue(ItemStack.isSameItemSameComponents(source, inventory.getItem(10)));
+        assertEquals(expected, inventory.getItem(0).getCount());
+        assertTrue(ItemStack.isSameItemSameComponents(source, inventory.getItem(0)));
         assertEquals(source.getCount() - expected, contents(inventory.getItem(9)));
     }
     private static ItemStack box(ItemStack source) {

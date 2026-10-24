@@ -1,6 +1,8 @@
 package dev.magicshulkerboxes;
 
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
@@ -20,6 +22,22 @@ public final class RefillSources {
 
     public static boolean isEnder(Container inventory, int slot) {
         return inventory instanceof View && slot >= ENDER_START && slot < ENDER_START + ENDER_SIZE;
+    }
+
+    /** The player's selected hotbar index, or -1 for plain container snapshots. */
+    static int selectedSlot(Container inventory) {
+        if (inventory instanceof Inventory playerInventory) return playerInventory.getSelectedSlot();
+        if (inventory instanceof View view && view.inventory instanceof Inventory playerInventory)
+            return playerInventory.getSelectedSlot();
+        return -1;
+    }
+
+    static ServerPlayer playerOf(Container inventory) {
+        if (inventory instanceof Inventory playerInventory && playerInventory.player instanceof ServerPlayer player)
+            return player;
+        if (inventory instanceof View view && view.inventory instanceof Inventory playerInventory
+                && playerInventory.player instanceof ServerPlayer player) return player;
+        return null;
     }
 
     public static int freeBoxSlot(Container inventory, int source) {

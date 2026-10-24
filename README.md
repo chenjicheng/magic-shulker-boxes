@@ -2,7 +2,7 @@
 
 **简体中文** | [English](README.en.md)
 
-适用于 **Minecraft Java 1.21.11 · Fabric · Java 21** 的潜影盒自动收纳与补货模组，采用 MIT 许可证。当前版本为 **0.13.0**。
+适用于 **Minecraft Java 1.21.11 · Fabric · Java 21** 的潜影盒自动收纳与补货模组，采用 MIT 许可证。当前版本为 **0.14.0**。
 
 0.13.0 将快捷栏第 1–9 格保护改为默认开启；升级时服务器配置、玩家个人设置和单人客户端配置会自动迁移为全部保护，原文件先备份。需要腾空某格时仍可逐格关闭。详见 [0.13.0 发布说明](docs/releases/0.13.0.md)。
 
@@ -31,7 +31,7 @@
 
 ## 安装
 
-安装 `magic-shulker-boxes-fabric-0.13.0+mc1.21.11.jar` 和 Fabric API，使用 Fabric Loader 0.18.4 或更新版。不要安装 `-sources.jar`。升级前移走旧版 JAR，避免重复加载。使用个人设置和界面时，两端都需升级到 0.13.0（v9）。
+安装 `magic-shulker-boxes-fabric-0.14.0+mc1.21.11.jar` 和 Fabric API，使用 Fabric Loader 0.18.4 或更新版。不要安装 `-sources.jar`。升级前移走旧版 JAR，避免重复加载。使用个人设置和界面时，两端都需升级到 0.14.0（v9）。
 
 0.4.0 保留 0.3.2 配置和已有选择，新增 `ipnRefill`、`craftRefill` 默认开启。完整新增功能和安装要求见 [0.4.0 发布说明](docs/releases/0.4.0.md)。
 

@@ -100,10 +100,10 @@ class PotionClassificationTest {
         var speed = potion(Items.POTION, Potions.SWIFTNESS);
         var strength = potion(Items.POTION, Potions.STRENGTH);
         var source = box(speed, speed.copy());
-        inventory.setItem(35, source.copy()); inventory.setItem(9, strength.copy());
+        inventory.setItem(35, source.copy()); inventory.setItem(0, strength.copy());
         assertEquals(0, ShulkerRefill.take(inventory, 35, 0, Items.POTION, new StorageConfig()));
         assertTrue(ItemStack.matches(source, inventory.getItem(35)));
-        assertTrue(ItemStack.matches(strength, inventory.getItem(9)));
+        assertTrue(ItemStack.matches(strength, inventory.getItem(0)));
         inventory.setItem(34, box());
         assertEquals(1, ShulkerRefill.take(inventory, 35, 0, Items.POTION, new StorageConfig()));
         assertTrue(ItemStack.isSameItemSameComponents(strength, stored(inventory.getItem(34)).getFirst()));

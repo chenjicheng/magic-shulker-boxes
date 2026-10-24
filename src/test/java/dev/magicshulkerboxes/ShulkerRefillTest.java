@@ -22,9 +22,91 @@ class ShulkerRefillTest {
         stone.set(DataComponents.CUSTOM_NAME, Component.literal("Materials"));
         inv.setItem(9, box(stone));
         assertEquals(37, ShulkerRefill.take(inv, 9, 0, Items.STONE, new StorageConfig()));
-        assertTrue(ItemStack.isSameItemSameComponents(stone, inv.getItem(10)));
-        assertEquals(37, inv.getItem(10).getCount());
+        assertTrue(ItemStack.isSameItemSameComponents(stone, inv.getItem(0)));
+        assertEquals(37, inv.getItem(0).getCount());
         assertTrue(contents(inv.getItem(9)).stream().findFirst().orElse(ItemStack.EMPTY).isEmpty());
+    }
+
+    @Test void schematicRefillUsesAnEmptyHotbarSlotInsteadOfTheBackpack() {
+        var inv = new SimpleContainer(41);
+        inv.setItem(9, box(new ItemStack(Items.STONE, 12)));
+        assertEquals(12, ShulkerRefill.take(inv, 9, 0, Items.STONE, new StorageConfig()));
+        assertTrue(inv.getItem(0).is(Items.STONE), "Refilled material goes to the first empty hotbar slot");
+        assertEquals(12, inv.getItem(0).getCount());
+        assertTrue(inv.getItem(10).isEmpty(), "The backpack does not receive the refill");
+    }
+
+    @Test void replacingAFullHotbarSlotStoresTheOldStackInAManagedJunkBox() {
+        var inv = new SimpleContainer(41);
+        for (int i = 0; i < 36; i++) inv.setItem(i, new ItemStack(Items.DIRT, 64));
+        var junk = box();
+        ManagedJunkBoxes.mark(junk);
+        inv.setItem(10, junk);
+        inv.setItem(35, box(new ItemStack(Items.STONE, 12)));
+        assertEquals(12, ShulkerRefill.take(inv, 35, 0, Items.STONE, new StorageConfig()));
+        assertTrue(inv.getItem(0).is(Items.STONE), "The selected hotbar stack is replaced by the material");
+        assertEquals(64, count(inv.getItem(10), Items.DIRT), "The replaced stack is stored in the managed junk box");
+        assertTrue(ManagedJunkBoxes.marked(inv.getItem(10)), "Reusing an empty box for junk keeps its role");
+        assertEquals(0, count(inv.getItem(35), Items.STONE), "The emptied source box remains available for storage");
+    }
+
+    @Test void replacingAFullHotbarSlotPromotesTheJunkTypeAtThreeStacks() {
+        var inv = new SimpleContainer(41);
+        for (int i = 0; i < 36; i++) inv.setItem(i, new ItemStack(Items.DIRT, 64));
+        var junk = box(new ItemStack(Items.DIRT, 64), new ItemStack(Items.DIRT, 64));
+        ManagedJunkBoxes.mark(junk);
+        inv.setItem(10, junk);
+        inv.setItem(35, box(new ItemStack(Items.STONE, 12)));
+        assertEquals(12, ShulkerRefill.take(inv, 35, 0, Items.STONE, new StorageConfig()));
+        assertTrue(inv.getItem(0).is(Items.STONE), "The selected hotbar stack is replaced by the material");
+        assertEquals(192, count(inv.getItem(10), Items.DIRT), "Three stacks promote to a dedicated box");
+        assertFalse(ManagedJunkBoxes.marked(inv.getItem(10)), "A promoted pure source box gives up its junk role");
+        assertTrue(contents(inv.getItem(35)).stream().allMatch(ItemStack::isEmpty),
+                "The emptied source box is no longer needed as the dedicated destination");
+    }
+
+    @Test void replacingAFullHotbarSlotSkipsDamageableItems() {
+        var inv = new SimpleContainer(41);
+        for (int i = 0; i < 36; i++) inv.setItem(i, new ItemStack(Items.DIRT, 64));
+        inv.setItem(0, new ItemStack(Items.DIAMOND_PICKAXE));
+        inv.setItem(35, box(new ItemStack(Items.STONE, 12)));
+        assertEquals(12, ShulkerRefill.take(inv, 35, 0, Items.STONE, new StorageConfig()));
+        assertTrue(inv.getItem(0).is(Items.DIAMOND_PICKAXE), "A tool is never displaced by schematic refill");
+        assertTrue(inv.getItem(1).is(Items.STONE), "The next replaceable hotbar slot receives the material");
+    }
+
+    @Test void disablingEmptyBoxesStopsReusingTheEmptiedSourceBox() {
+        var inv = full(); inv.setItem(35, box(new ItemStack(Items.STONE, 12)));
+        var config = new StorageConfig(); config.useEmptyBoxes = false;
+        assertEquals(0, ShulkerRefill.take(inv, 35, 0, Items.STONE, config),
+                "Without empty boxes and backpack space the replacement is refused");
+        assertEquals(12, count(inv.getItem(35), Items.STONE), "The source box keeps its materials");
+        assertTrue(inv.getItem(0).is(Items.DIRT), "The hotbar stack is unchanged");
+    }
+
+    @Test void existingManagedJunkBoxStillReceivesWhenEmptyBoxesAreDisabled() {
+        var inv = new SimpleContainer(41);
+        for (int i = 0; i < 36; i++) inv.setItem(i, new ItemStack(Items.DIRT, 64));
+        var junk = box();
+        ManagedJunkBoxes.mark(junk);
+        inv.setItem(10, junk);
+        inv.setItem(35, box(new ItemStack(Items.STONE, 12)));
+        var config = new StorageConfig(); config.useEmptyBoxes = false;
+        assertEquals(12, ShulkerRefill.take(inv, 35, 0, Items.STONE, config));
+        assertTrue(inv.getItem(0).is(Items.STONE));
+        assertEquals(64, count(inv.getItem(10), Items.DIRT), "An existing managed box remains usable");
+    }
+
+    @Test void fullHotbarWithoutMakingSpaceKeepsTheBackpackFallback() {
+        var inv = new SimpleContainer(41);
+        for (int i = 0; i < 36; i++) inv.setItem(i, new ItemStack(Items.DIRT, 64));
+        inv.setItem(34, ItemStack.EMPTY);
+        inv.setItem(35, box(new ItemStack(Items.STONE, 12)));
+        var config = new StorageConfig();
+        config.refillMakeSpace = false;
+        assertEquals(12, ShulkerRefill.take(inv, 35, 0, Items.STONE, config));
+        assertTrue(inv.getItem(34).is(Items.STONE), "Without making space the refill keeps its backpack fallback");
+        assertTrue(inv.getItem(0).is(Items.DIRT), "The hotbar stack is not replaced when making space is disabled");
     }
 
     @Test void oneItemModeLeavesRemainderInBox() {
@@ -35,14 +117,16 @@ class ShulkerRefillTest {
         assertEquals(36, contents(inv.getItem(9)).stream().findFirst().orElse(ItemStack.EMPTY).getCount());
     }
 
-    @Test void fullInventoryMovesBackpackStackIntoVacatedBoxSlotAtomically() {
+    @Test void fullInventoryReplacesTheFirstHotbarStackAndStoresItInTheVacatedBox() {
         var inv = full(); inv.setItem(35, box(new ItemStack(Items.STONE, 64)));
         var hand = inv.getItem(0).copy();
         assertEquals(64, ShulkerRefill.take(inv, 35, 0, Items.STONE, new StorageConfig()));
-        assertTrue(inv.getItem(9).is(Items.STONE));
+        assertTrue(inv.getItem(0).is(Items.STONE), "The replaced hotbar stack leaves without touching the backpack");
         assertTrue(contents(inv.getItem(35)).stream().findFirst().orElse(ItemStack.EMPTY).is(Items.DIRT));
         assertEquals(64, contents(inv.getItem(35)).stream().findFirst().orElse(ItemStack.EMPTY).getCount());
-        assertTrue(ItemStack.matches(hand, inv.getItem(0)));
+        assertTrue(ManagedJunkBoxes.marked(inv.getItem(35)),
+                "The emptied source box becomes managed storage for the replaced stack");
+        assertFalse(ItemStack.matches(hand, inv.getItem(0)));
     }
 
     @Test void noRoomAndDisabledMakingSpaceLeaveEveryItemUnchanged() {
@@ -68,9 +152,12 @@ class ShulkerRefillTest {
         assertEquals(12, ShulkerRefill.take(inv, 35, 0, Items.STONE, new StorageConfig()));
         assertEquals(2, inv.getItem(35).getCount());
         assertEquals(12, contents(inv.getItem(35)).stream().findFirst().orElse(ItemStack.EMPTY).getCount());
-        assertTrue(inv.getItem(9).is(Items.STONE));
-        assertEquals(1, inv.getItem(10).getCount());
-        assertTrue(contents(inv.getItem(10)).stream().allMatch(ItemStack::isEmpty));
+        assertTrue(inv.getItem(0).is(Items.STONE), "The material replaces the first hotbar stack");
+        assertEquals(1, inv.getItem(9).getCount());
+        assertEquals(64, count(inv.getItem(9), Items.DIRT),
+                "The split empty box receives the replaced stack as managed storage");
+        assertTrue(ManagedJunkBoxes.marked(inv.getItem(9)));
+        assertTrue(inv.getItem(10).isEmpty(), "No second backpack slot is consumed");
     }
 
     @Test void stackedSourceWithoutSplitSlotIsNeverMutated() {
@@ -129,4 +216,8 @@ class ShulkerRefillTest {
         return box;
     }
     private static ItemContainerContents contents(ItemStack box) { return box.get(DataComponents.CONTAINER); }
+    private static int count(ItemStack box, net.minecraft.world.item.Item item) {
+        return box.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).stream()
+                .filter(stack -> stack.is(item)).mapToInt(ItemStack::getCount).sum();
+    }
 }

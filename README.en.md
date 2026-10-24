@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English**
 
-Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.13.0**.
+Automatic shulker storage and refilling for **Minecraft Java 1.21.11 · Fabric · Java 21**, licensed under MIT. The current version is **0.14.0**.
 
 Version 0.13.0 protects all nine hotbar positions by default. Upgrading migrates existing server configuration, player preferences and single-player client settings to the protected default, backing up originals first. Individual positions can still be unprotected for relocation. See the [0.13.0 release notes](docs/releases/0.13.0.md).
 
@@ -31,7 +31,7 @@ After enabling pickup storage, vanilla completes inventory insertion, source ded
 
 ## Install
 
-Install `magic-shulker-boxes-fabric-0.13.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading. Update both client and server to 0.13.0 for the current settings protocol (v9).
+Install `magic-shulker-boxes-fabric-0.14.0+mc1.21.11.jar` and Fabric API with Fabric Loader 0.18.4 or newer. Do not install the sources JAR. Remove older mod JARs before upgrading. Update both client and server to 0.14.0 for the current settings protocol (v9).
 
 0.4.0 retains 0.3.2 settings and choices; new `ipnRefill` and `craftRefill` switches default to enabled. See the [0.4.0 release notes](docs/releases/0.4.0.md) for features and installation requirements.
 

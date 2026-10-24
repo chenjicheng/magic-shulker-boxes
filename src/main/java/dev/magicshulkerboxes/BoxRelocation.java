@@ -110,7 +110,7 @@ final class BoxRelocation {
                 boolean accepts = switch (kind) {
                     case SAME_TYPE -> !junk && !empty && stored.stream().allMatch(stack -> stack.isEmpty() || sameType(stack, displaced, config));
                     case JUNK -> junk;
-                    case EMPTY -> !junk && empty;
+                    case EMPTY -> config.useEmptyBoxes && !junk && empty;
                 };
                 if (!accepts || (box.getCount() > 1 && (kind == DestinationKind.SAME_TYPE || !config.splitStackedBoxes))) continue;
                 var contents = contents(box);

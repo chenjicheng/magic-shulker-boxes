@@ -116,7 +116,9 @@ public final class ShulkerStorage {
                                        RelocationHandler dropHandler) {
         boolean dropping = config.makeSpaceMode == StorageConfig.MakeSpaceMode.DROP_AND_PICKUP;
         if (dropping && dropHandler == null) return;
-        if (!ManagedJunkBoxes.marked(stacked)) {
+        // Splitting an empty stacked box creates managed storage, so it follows the empty-box switch.
+        boolean emptyContents = contents.stream().allMatch(ItemStack::isEmpty);
+        if (!ManagedJunkBoxes.marked(stacked) && (config.useEmptyBoxes || !emptyContents)) {
             // A displaced stack of the incoming type can share its dedicated box.
             for (int index = 0; index < Inventory.INVENTORY_SIZE; index++) {
                 int slot = (index + 9) % Inventory.INVENTORY_SIZE;

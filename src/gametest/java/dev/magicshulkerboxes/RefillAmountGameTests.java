@@ -34,7 +34,7 @@ public class RefillAmountGameTests {
             MagicShulkerBoxes.players(player.level().getServer()).saveAllowed(player.getUUID(), choice, config);
             int moved = RefillNetwork.accept(player, new RefillNetwork.Request(9, 0, "minecraft:stone",
                     ItemFingerprint.of(source, player.registryAccess())));
-            helper.assertTrue(moved == 17 && player.getInventory().getItem(10).getCount() == 17,
+            helper.assertTrue(moved == 17 && player.getInventory().getItem(0).getCount() == 17,
                     Component.literal("Server applies the player's quantity to an actual refill request"));
             helper.assertTrue(player.getInventory().getItem(9).get(DataComponents.CONTAINER).stream()
                     .mapToInt(ItemStack::getCount).sum() == 47, Component.literal("Source retains exactly 47 stone"));

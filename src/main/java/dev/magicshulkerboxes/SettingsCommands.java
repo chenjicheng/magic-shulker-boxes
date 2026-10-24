@@ -21,6 +21,7 @@ import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.server.players.NameAndId;
+import net.minecraft.world.entity.player.Inventory;
 
 public final class SettingsCommands {
     private SettingsCommands() {}
@@ -39,6 +40,7 @@ public final class SettingsCommands {
                         StringArgumentType.getString(context, "option"), StringArgumentType.getString(context, "value")))))
                 .then(Commands.literal("reset").executes(context -> reset(context.getSource()))
                         .then(optionArgument().executes(context -> reset(context.getSource(), StringArgumentType.getString(context, "option")))))
+                .then(Commands.literal("ledger").executes(context -> ledger(context.getSource(), null)))
                 .then(adminCommands()));
     }
 
@@ -61,6 +63,9 @@ public final class SettingsCommands {
                 .then(Commands.literal("permissions")
                         .then(Commands.literal("all").executes(context -> editServer(context.getSource(), "playerEditableSettings", null)))
                         .then(Commands.literal("none").executes(context -> editServer(context.getSource(), "playerEditableSettings", "[]"))))
+                .then(Commands.literal("ledger").then(Commands.argument("player", StringArgumentType.word())
+                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(context.getSource().getOnlinePlayerNames(), builder))
+                        .executes(context -> ledger(context.getSource(), target(context)))))
                 .then(playerCommands())
                 .then(Commands.literal("player-settings").then(Commands.argument("allowed", BoolArgumentType.bool())
                         .executes(context -> policy(context.getSource(), BoolArgumentType.getBool(context, "allowed")))))
@@ -166,6 +171,42 @@ public final class SettingsCommands {
             return online == null ? cache.get(input).orElseThrow(GameProfileArgument.ERROR_UNKNOWN_PLAYER::create)
                     : new NameAndId(online.getGameProfile());
         }
+    }
+
+    private static int ledger(CommandSourceStack source, NameAndId target) {
+        final UUID id;
+        if (target != null) {
+            id = target.id();
+        } else {
+            var player = source.getPlayer();
+            if (player == null) return failure(source, "ledger.player_only");
+            id = player.getUUID();
+        }
+        var online = source.getServer().getPlayerList().getPlayer(id);
+        if (online != null) RefillProvenance.reconcile(online.getInventory(), id);
+        else if (target != null) reply(source, "ledger.offline");
+        var entries = RefillProvenance.view(id);
+        if (entries.isEmpty()) {
+            reply(source, "ledger.empty");
+            return 1;
+        }
+        reply(source, "ledger.title");
+        for (var entry : entries) {
+            var origin = entry.ender()
+                    ? Messages.text(language(source), "ledger.source.ender",
+                            entry.sourceSlot() - RefillSources.ENDER_START + 1)
+                    : entry.sourceSlot() == Inventory.SLOT_OFFHAND
+                            ? Messages.text(language(source), "ledger.source.offhand")
+                            : entry.sourceSlot() < 9
+                                    ? Messages.text(language(source), "ledger.source.hotbar", entry.sourceSlot() + 1)
+                                    : Messages.text(language(source), "ledger.source.inventory", entry.sourceSlot() - 8);
+            var anchor = entry.anchorSlot() < 9
+                    ? Messages.text(language(source), "ledger.anchor.hotbar", entry.anchorSlot() + 1)
+                    : Messages.text(language(source), "ledger.anchor.inventory", entry.anchorSlot() - 8);
+            reply(source, "ledger.entry", entry.prototype().getHoverName(), origin,
+                    entry.remaining(), entry.extracted(), anchor);
+        }
+        return 1;
     }
 
     private static int showPlayer(CommandSourceStack source, NameAndId target) {

@@ -114,6 +114,16 @@ npm run docs:preview
 
 `HotbarProtection` 统一九个原生布尔设置 `protectHotbarSlot1`–`protectHotbarSlot9`（用户位置1–9、内部索引0–8）。保护用于候选腾栏与拆盒目的地；九个保护默认 `true`，`useHotbarForSpace=false` 仍是默认，二者独立。每格继承既有保存、许可、命令与按键绑定机制。设置网络和GUI使用v9，磁盘配置版本为3；版本 2 文件在加载时一次性迁移为全部保护，之后仍可逐格关闭。旧格子协议/F9客户端和IPN额外锁投影移除，IPN原有锁定仍有效。客户端仅追加原版物品提示中的受管角色说明。
 
+### 快捷栏取料与来源账本（0.14.0）
+
+`ShulkerRefill` 的原理图路径优先落在快捷栏：选中格为空时用选中格，否则用任意快捷栏空格；快捷栏全满且 `refillMakeSpace=true` 时替换选中格（选中格不可替换时扫描其他格），跳过工具和可损坏物品。被替换物品先由 `RefillProvenance.planReturn` 尝试放回来源盒，剩余部分再走 `BoxRelocation.store`、受管盒和背包回退。`refillMakeSpace=false` 时不替换非空快捷栏格，保留背包落点；IPN restock 仍使用背包落点。
+
+`RefillProvenance` 是服务端内存账本，不写 `ItemStack` 组件/NBT。条目包含取料序号、完整组件原型、取出/剩余/已回盒/已转存数量、来源槽位与末影标志、锚定主背包/快捷栏槽位。记录发生在成功提交之后；替换完成后才执行 plan 的 completion，失败事务不改变账本。`reconcile` 在每次取料和每 20 tick 的同步中把剩余数收缩到实际堆叠；唯一同指纹堆可迁移锚点，多堆或离开主背包与快捷栏时删除条目。死亡、退出登录和服务端停止清空，不跨登录持久化。计数异常只在 `audit` 中记录错误日志。
+
+`RefillProvenanceNetwork` 只新增 S2C `refill_ledger_v1` 投影（锚点、来源、剩余、指纹），不修改设置/GUI v9；`RefillProvenanceClient` 用物品对象身份确认悬停的是玩家快捷栏堆叠，再显示来源与可回盒数量。`/msb ledger` 读取本人条目，`/msb admin ledger <玩家>` 读取在线玩家；两者均为只读。
+
+`BoxRelocation.store` 的 `DestinationKind.EMPTY` 与 `ShulkerStorage.tryMakingSpace` 的空堆叠捷径都检查 `useEmptyBoxes`；已标记的受管盒不因关闭开关而失效。回归新增 `RefillProvenanceTest`、`BoxRelocationTest`、`RefillProvenanceGameTests`，并更新 `ShulkerRefillTest` 的落点断言。
+
 回归包括 `ManagedJunkStorageTest`、`HotbarProtectionTest`、`ManagedJunkGameTests` 与真实 `ManagedJunkClientGameTests`，验证原有盒保护、真实资源拆盒、三组完整归集、净空位、原版多格收据预算、全部离包路径、组件守恒和设置权限保存：
 
 ```powershell

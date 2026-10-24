@@ -49,7 +49,7 @@ class SingleTypeStorageTest {
         assertEquals(1, ShulkerRefill.take(inventory, 35, 0, Items.COBBLESTONE, config));
         assertContents(inventory.getItem(35), Items.COBBLESTONE, 11);
         assertContents(inventory.getItem(34), Items.STONE, 124);
-        assertTrue(inventory.getItem(9).is(Items.COBBLESTONE));
+        assertTrue(inventory.getItem(0).is(Items.COBBLESTONE));
     }
 
     @Test void ipnCannotStoreDisplacedItemsInALockedBox() {
